@@ -83,23 +83,51 @@
   --font-headline: "Space Grotesk", sans-serif;
   --font-body: "DM Sans", sans-serif;
   --font-label: "DM Sans", sans-serif;
-  --font-wordmark: "Archivo Black", "Space Grotesk", sans-serif;
+  --font-wordmark: "Anton", "Archivo Black", "Space Grotesk", sans-serif;
 }
 
 /* ── Photofacto wordmark (PHOTO + FACTO logotype) ─────────── */
 .wordmark-photofacto {
   font-family: var(--font-wordmark);
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  line-height: 1;
+  font-weight: 400; /* Anton is a single-weight display font */
+  letter-spacing: 0.005em;
+  line-height: 0.95;
   text-transform: uppercase;
   display: inline-flex;
   align-items: baseline;
   white-space: nowrap;
+  font-stretch: condensed;
 }
 .wordmark-photofacto > .wm-photo { color: var(--color-spark-charcoal); }
 .wordmark-photofacto > .wm-facto { color: var(--color-spark-orange); }
 .wordmark-photofacto.on-dark > .wm-photo { color: #FFFFFF; }
+
+/* Tagline "Documenter. Verifier. Avancer." */
+.wordmark-tagline {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.62em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: 0.35em;
+  white-space: nowrap;
+}
+.wordmark-tagline::before,
+.wordmark-tagline::after {
+  content: "";
+  display: inline-block;
+  width: 1.2em;
+  height: 2px;
+  background: var(--color-spark-orange);
+  border-radius: 1px;
+}
+.wordmark-tagline .tagline-dot { color: var(--color-spark-orange); }
+.wordmark-photofacto.on-dark ~ .wordmark-tagline,
+.on-dark .wordmark-tagline { color: rgba(255,255,255,0.75); }
 
 @layer base {
   * {
