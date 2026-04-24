@@ -76,8 +76,8 @@ export default function Layout() {
             <img src="/icons/icon-192.png" alt="Photofacto" className="w-full h-full object-contain" />
           </div>
           <div>
-            <div className="font-headline font-bold text-[17px] text-on-surface tracking-tight leading-none">
-              Photofacto
+            <div className="wordmark-photofacto text-[18px] leading-none">
+              <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
             </div>
             <div className="text-[9px] font-bold uppercase tracking-[1px] text-on-surface-variant mt-1">
               Facturation IA
@@ -189,8 +189,8 @@ export default function Layout() {
             <div className="md:hidden w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
               <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-lg font-bold text-on-surface font-headline tracking-tight md:hidden">
-              Photofacto
+            <h1 className="wordmark-photofacto text-lg md:hidden">
+              <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
             </h1>
           </div>
           <div className="flex items-center gap-3">

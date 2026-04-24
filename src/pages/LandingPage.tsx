@@ -185,8 +185,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
           <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
             <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-headline font-bold text-xl tracking-tight text-on-surface">
-            Photofacto
+          <span className="wordmark-photofacto text-xl">
+            <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
           </span>
         </div>
         <div className="hidden md:flex items-center gap-7">
@@ -690,7 +690,9 @@ export default function LandingPage({ profession }: LandingPageProps) {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <span className="font-headline font-bold text-base text-white">Photofacto</span>
+                <span className="wordmark-photofacto on-dark text-base">
+                  <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
+                </span>
               </div>
               <p className="text-xs text-white/30 leading-relaxed">
                 De la photo à la facture en 10 secondes. L'IA au service des artisans.

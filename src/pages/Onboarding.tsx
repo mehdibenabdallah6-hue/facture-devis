@@ -96,7 +96,9 @@ export default function Onboarding() {
           <div className="w-10 h-10 bg-white border border-outline-variant/20 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 overflow-hidden">
             <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain p-1" />
           </div>
-          <span className="font-headline font-extrabold text-xl text-on-surface">Photofacto</span>
+          <span className="wordmark-photofacto text-xl">
+            <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
+          </span>
         </div>
 
         <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-xl border border-outline-variant/10 space-y-6">

@@ -173,7 +173,9 @@ export default function PublicSignature() {
         <div className="w-10 h-10 bg-primary text-on-primary rounded-xl flex items-center justify-center shadow-md">
           <Camera className="w-5 h-5" />
         </div>
-        <span className="font-headline font-extrabold text-xl text-on-surface">Photofacto</span>
+        <span className="wordmark-photofacto text-xl">
+          <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
+        </span>
       </nav>
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
