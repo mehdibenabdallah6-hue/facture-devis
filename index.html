@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photofacto - De la photo à la facture en 10 secondes</title>
+    <meta name="description" content="Photofacto : l'application de facturation intelligente pour artisans. Dictez ou photographiez, l'IA génère votre facture conforme en 10 secondes. Essai gratuit 14 jours." />
+    <meta name="theme-color" content="#E8621A" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Photofacto" />
+    <meta property="og:title" content="Photofacto — Facturez en 10s par photo ou voix" />
+    <meta property="og:description" content="L'app de facturation IA pour artisans. Photo ou dictée vocale → facture conforme en 10 secondes. Essai gratuit." />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://photofacto.fr" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Photofacto — Facturez en 10s par photo ou voix" />
+    <meta name="twitter:description" content="L'app de facturation IA pour artisans. Photo ou dictée vocale → facture conforme en 10 secondes." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Unregister any previously registered service workers
+      // (we removed SW support, so clean up old registrations)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

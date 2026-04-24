@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+firebase-applet-config.json
+
+# Mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/ios/
+mobile/android/

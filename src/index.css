@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+@theme {
+  /* ═══════════════════════════════════════════════════════════════
+     PHOTOFACTO — Direction B "Spark"
+     Orange vif (#E8621A) + Charcoal (#2E3440) — artisan, premium, clair
+  ═══════════════════════════════════════════════════════════════ */
+
+  /* ── Primary (Orange — Action, Artisan) ───────────────────── */
+  --color-primary: #E8621A;
+  --color-primary-dim: #C04D0F;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #FEEBE0;
+  --color-on-primary-container: #C04D0F;
+  --color-primary-fixed: #FFD6BE;
+  --color-primary-fixed-dim: #FF7D3B;
+  --color-on-primary-fixed: #7A2F08;
+  --color-on-primary-fixed-variant: #C04D0F;
+  --color-inverse-primary: #FF7D3B;
+  --color-surface-tint: #E8621A;
+
+  /* ── Secondary (charcoal tints) ───────────────────────────── */
+  --color-secondary: #2E3440;
+  --color-secondary-dim: #1E2430;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #E9EBEF;
+  --color-on-secondary-container: #1E2430;
+  --color-secondary-fixed: #E9EBEF;
+  --color-secondary-fixed-dim: #C8CCD4;
+  --color-on-secondary-fixed: #1E2430;
+  --color-on-secondary-fixed-variant: #2E3440;
+
+  /* ── Tertiary (Success green) ─────────────────────────────── */
+  --color-tertiary: #15803d;
+  --color-tertiary-dim: #166534;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #dcfce7;
+  --color-on-tertiary-container: #14532d;
+  --color-tertiary-fixed: #bbf7d0;
+  --color-tertiary-fixed-dim: #86efac;
+  --color-on-tertiary-fixed: #052e16;
+  --color-on-tertiary-fixed-variant: #166534;
+
+  /* ── Surfaces ─────────────────────────────────────────────── */
+  --color-background: #FAFAF9;
+  --color-on-background: #2E3440;
+  --color-surface: #ffffff;
+  --color-on-surface: #2E3440;
+  --color-on-surface-variant: #6B7280;
+  --color-surface-variant: #F3F4F6;
+  --color-surface-bright: #ffffff;
+  --color-surface-dim: #F3F4F6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #FAFAF9;
+  --color-surface-container: #F5F5F4;
+  --color-surface-container-high: #E9EBEF;
+  --color-surface-container-highest: #1E2430;
+
+  /* ── Outline ──────────────────────────────────────────────── */
+  --color-outline: #9CA3AF;
+  --color-outline-variant: rgba(0, 0, 0, 0.07);
+
+  /* ── Error ────────────────────────────────────────────────── */
+  --color-error: #dc2626;
+  --color-error-dim: #b91c1c;
+  --color-error-container: #fee2e2;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #991b1b;
+
+  /* ── Inverse ─────────────────────────────────────────────── */
+  --color-inverse-surface: #1E2430;
+  --color-inverse-on-surface: #FAFAF9;
+
+  /* ── Spark-specific named colors ─────────────────────────── */
+  --color-spark-orange: #E8621A;
+  --color-spark-orange-light: #FF7D3B;
+  --color-spark-orange-dark: #C04D0F;
+  --color-spark-charcoal: #2E3440;
+  --color-spark-charcoal-deep: #1E2430;
+  --color-spark-muted: #6B7280;
+
+  /* ── Typography ──────────────────────────────────────────── */
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+  --font-label: "DM Sans", sans-serif;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-background);
+    color: var(--color-on-background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+    letter-spacing: -0.02em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  input, select, textarea {
+    transition: box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  50% { transform: translateY(50%); }
+  100% { transform: translateY(-100%); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.75; transform: scale(1.04); }
+}
+
+@layer utilities {
+  .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+  .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+  .animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
+  .animate-slide-in-right { animation: slideInRight 0.4s ease-out forwards; }
+  .animate-float { animation: float 4s ease-in-out infinite; }
+  .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-400 { animation-delay: 400ms; }
+  .animation-delay-500 { animation-delay: 500ms; }
+
+  /* Spark signature shadows */
+  .shadow-spark-sm  { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .shadow-spark-md  { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .shadow-spark-lg  { box-shadow: 0 24px 80px rgba(0,0,0,0.12); }
+  .shadow-spark-cta { box-shadow: 0 4px 16px rgba(232,98,26,0.25); }
+  .shadow-spark-cta-lg { box-shadow: 0 8px 40px rgba(232,98,26,0.3); }
+  .shadow-spark-cta-xl { box-shadow: 0 12px 50px rgba(232,98,26,0.3); }
+
+  /* Borders */
+  .border-spark { border: 1.5px solid rgba(0,0,0,0.07); }
+  .border-b-spark { border-bottom: 1.5px solid rgba(0,0,0,0.07); }
+  .border-t-spark { border-top: 1.5px solid rgba(0,0,0,0.07); }
+  .border-r-spark { border-right: 1.5px solid rgba(0,0,0,0.07); }
+}
+
+/* Card hover */
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+/* CTA button glow */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.2) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.btn-glow:hover::after { opacity: 1; }
+
+/* Gradient text */
+.text-gradient-spark {
+  background: linear-gradient(135deg, #E8621A 0%, #FF7D3B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Top accent bar (landing) */
+.accent-bar-spark {
+  height: 3px;
+  background: linear-gradient(90deg, #E8621A, #FF7D3B);
+}
