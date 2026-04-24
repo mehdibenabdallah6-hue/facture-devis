@@ -1,0 +1,130 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.ownerId;
+    }
+
+    function uidUnchanged() {
+      return !('ownerId' in request.resource.data) || request.resource.data.ownerId == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('ownerId' in request.resource.data) || request.resource.data.ownerId == resource.data.ownerId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidCompany() {
+      return hasRequiredFields(['ownerId', 'name']) &&
+             request.resource.data.ownerId == request.auth.uid &&
+             isValidString('name', 1, 100) &&
+             isValidOptionalString('profession', 0, 100) &&
+             isValidOptionalString('trialStartedAt', 0, 50) &&
+             (!( 'subscriptionStatus' in request.resource.data ) || request.resource.data.subscriptionStatus in ['trial', 'active', 'expired']) &&
+             (!( 'plan' in request.resource.data ) || request.resource.data.plan in ['free', 'starter', 'pro']) &&
+             (!( 'monthlyInvoiceCount' in request.resource.data ) || request.resource.data.monthlyInvoiceCount is number) &&
+             (!( 'monthlyAiUsageCount' in request.resource.data ) || request.resource.data.monthlyAiUsageCount is number) &&
+             (!( 'invoiceCounter' in request.resource.data ) || request.resource.data.invoiceCounter is number) &&
+             (!( 'quoteCounter' in request.resource.data ) || request.resource.data.quoteCounter is number) &&
+             isValidOptionalString('address', 0, 500) &&
+             isValidOptionalString('siret', 0, 50) &&
+             isValidOptionalString('vatNumber', 0, 50) &&
+             isValidOptionalString('legalForm', 0, 100) &&
+             (!( 'capital' in request.resource.data ) || request.resource.data.capital is number) &&
+             (!( 'vatRegime' in request.resource.data ) || request.resource.data.vatRegime in ['standard', 'franchise', 'autoliquidation']) &&
+             isValidOptionalString('decennale', 0, 500) &&
+             isValidOptionalString('rcPro', 0, 500) &&
+             isValidOptionalString('logoUrl', 0, 1000) &&
+             isValidOptionalString('invoicePrefix', 0, 20);
+    }
+
+    function isValidClient() {
+      return hasRequiredFields(['ownerId', 'name', 'type']) &&
+             request.resource.data.ownerId == request.auth.uid &&
+             request.resource.data.type in ['B2B', 'B2C'] &&
+             isValidString('name', 1, 100) &&
+             isValidOptionalString('address', 0, 500) &&
+             isValidOptionalString('email', 0, 100) &&
+             isValidOptionalString('phone', 0, 50) &&
+             isValidOptionalString('siren', 0, 50) &&
+             isValidOptionalString('vatNumber', 0, 50) &&
+             isValidOptionalString('notes', 0, 2000);
+    }
+
+    function isValidInvoice() {
+      return hasRequiredFields(['ownerId', 'type', 'clientId', 'number', 'date', 'status', 'items', 'totalHT', 'totalVAT', 'totalTTC']) &&
+             request.resource.data.ownerId == request.auth.uid &&
+             request.resource.data.type in ['invoice', 'quote', 'deposit', 'credit'] &&
+             isValidString('clientId', 0, 100) &&
+             isValidOptionalString('clientName', 0, 100) &&
+             isValidString('number', 1, 50) &&
+             isValidString('date', 1, 50) &&
+             isValidOptionalString('dueDate', 0, 50) &&
+             isValidOptionalString('serviceDate', 0, 50) &&
+             request.resource.data.status in ['draft', 'sent', 'paid', 'overdue', 'cancelled', 'accepted', 'converted'] &&
+             (!( 'vatRegime' in request.resource.data ) || request.resource.data.vatRegime in ['standard', 'franchise', 'autoliquidation']) &&
+             request.resource.data.items is list &&
+             request.resource.data.items.size() <= 100 &&
+             request.resource.data.totalHT is number &&
+             request.resource.data.totalVAT is number &&
+             request.resource.data.totalTTC is number &&
+             isValidOptionalString('notes', 0, 2000) &&
+             isValidOptionalString('paymentMethod', 0, 100);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /companies/{companyId} {
+      allow read: if isOwner(companyId);
+      allow create: if isOwner(companyId) && isValidCompany();
+      allow update: if isOwner(companyId) && isValidCompany() && uidNotModified();
+      allow delete: if isOwner(companyId);
+    }
+
+    match /clients/{clientId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidClient();
+      allow update: if isDocOwner() && isValidClient() && uidNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidInvoice();
+      allow update: if isDocOwner() && isValidInvoice() && uidNotModified();
+      allow delete: if isDocOwner();
+    }
+  }
+}

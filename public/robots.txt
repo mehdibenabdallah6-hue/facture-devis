@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /plombier
+Allow: /electricien
+Allow: /macon
+Allow: /peintre
+Allow: /carreleur
+Allow: /couvreur
+Allow: /menuisier
+Allow: /serrurier
+Allow: /plaquiste
+Allow: /chauffagiste
+Allow: /paysagiste
+Allow: /mentions-legales
+Allow: /cgv
+Allow: /confidentialite
+
+# Private routes
+Disallow: /app/
+
+Sitemap: https://photofacto.fr/sitemap.xml

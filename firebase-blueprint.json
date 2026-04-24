@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "CompanySettings": {
+      "title": "CompanySettings",
+      "description": "Settings and profile for the user's company",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "description": "User ID of the owner" },
+        "name": { "type": "string" },
+        "profession": { "type": "string" },
+        "trialStartedAt": { "type": "string", "format": "date-time" },
+        "subscriptionStatus": { "type": "string", "enum": ["trial", "active", "expired"] },
+        "address": { "type": "string" },
+        "siret": { "type": "string" },
+        "vatNumber": { "type": "string" },
+        "legalForm": { "type": "string" },
+        "capital": { "type": "number" },
+        "vatRegime": { "type": "string", "enum": ["standard", "franchise", "autoliquidation"] },
+        "decennale": { "type": "string" },
+        "rcPro": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "invoicePrefix": { "type": "string" },
+        "defaultPaymentTerms": { "type": "number", "description": "Days until due" },
+        "defaultCurrency": { "type": "string" },
+        "defaultVat": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "A client of the company",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "description": "User ID of the owner" },
+        "type": { "type": "string", "enum": ["B2B", "B2C"] },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "siren": { "type": "string" },
+        "vatNumber": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "type"]
+    },
+    "InvoiceItem": {
+      "title": "InvoiceItem",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "vatRate": { "type": "number" }
+      },
+      "required": ["description", "quantity", "unitPrice", "vatRate"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "An invoice issued to a client",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "description": "User ID of the owner" },
+        "type": { "type": "string", "enum": ["invoice", "quote", "deposit", "credit"] },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "number": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "serviceDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["draft", "sent", "paid", "overdue", "cancelled", "accepted"] },
+        "vatRegime": { "type": "string", "enum": ["standard", "franchise", "autoliquidation"] },
+        "items": { "type": "array", "items": { "$ref": "#/entities/InvoiceItem" } },
+        "totalHT": { "type": "number" },
+        "totalVAT": { "type": "number" },
+        "totalTTC": { "type": "number" },
+        "notes": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "type", "clientId", "number", "date", "status", "items", "totalHT", "totalVAT", "totalTTC"]
+    }
+  },
+  "firestore": {
+    "/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/CompanySettings" },
+      "description": "Company settings, document ID is the user's UID"
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Clients created by users"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/Invoice" },
+      "description": "Invoices created by users"
+    }
+  }
+}

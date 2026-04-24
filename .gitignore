@@ -13,3 +13,15 @@ mobile/node_modules/
 mobile/.expo/
 mobile/ios/
 mobile/android/
+
+# Editor / agent tooling
+.agents/
+.claude/
+.codebuddy/
+.continue/
+.junie/
+.kiro/
+scratch/
+patch.js
+pdf_content.txt
+skills-lock.json

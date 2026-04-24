@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://photofacto.fr/</loc><priority>1.0</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://photofacto.fr/plombier</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/electricien</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/macon</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/peintre</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/carreleur</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/couvreur</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/menuisier</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/serrurier</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/plaquiste</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/chauffagiste</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/paysagiste</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://photofacto.fr/mentions-legales</loc><priority>0.5</priority><changefreq>yearly</changefreq></url>
+  <url><loc>https://photofacto.fr/cgv</loc><priority>0.5</priority><changefreq>yearly</changefreq></url>
+  <url><loc>https://photofacto.fr/confidentialite</loc><priority>0.5</priority><changefreq>yearly</changefreq></url>
+</urlset>
