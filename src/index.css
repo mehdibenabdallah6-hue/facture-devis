@@ -143,7 +143,6 @@
   #root {
     min-height: 100%;
     width: 100%;
-    overflow-x: clip;
   }
 
   body {
@@ -153,6 +152,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
+    overflow-x: hidden;
+  }
+
+  #root {
+    /* Prevent any horizontal overflow from breaking page width on mobile */
     overflow-x: hidden;
   }
 
