@@ -180,12 +180,12 @@ export default function LandingPage({ profession }: LandingPageProps) {
       <div className="accent-bar-spark" />
 
       {/* ── Nav ────────────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between gap-3 px-4 md:px-14 py-3 md:py-4 bg-white border-b-spark">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
+      <nav className="flex items-center justify-between gap-2 px-3.5 md:px-14 py-2.5 md:py-4 bg-white border-b-spark">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden shrink-0">
             <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="wordmark-photofacto text-xl">
+          <span className="wordmark-photofacto text-[17px] md:text-xl min-w-0">
             <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
           </span>
         </div>
@@ -213,7 +213,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           </button>
           <button
             onClick={login}
-            className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-4 sm:px-5 py-2 rounded-[10px] text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform whitespace-nowrap"
+            className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-3.5 sm:px-5 py-2 rounded-[10px] text-xs sm:text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform whitespace-nowrap"
           >
             Essai gratuit →
           </button>
@@ -221,18 +221,18 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────── */}
-      <section className="max-w-[1200px] mx-auto px-4 md:px-14 py-8 md:py-20 grid md:grid-cols-[1fr_460px] gap-7 lg:gap-16 items-center">
+      <section className="max-w-[1200px] mx-auto px-4 md:px-14 py-6 md:py-20 grid md:grid-cols-[1fr_460px] gap-5 lg:gap-16 items-center">
         <div>
-          <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-3 py-1.5 mb-5 md:mb-7">
+          <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-2.5 md:px-3 py-1.5 mb-4 md:mb-7">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-            <span className="text-xs font-semibold text-primary-dim">
+            <span className="text-[11px] md:text-xs font-semibold text-primary-dim">
               + de 500 artisans · Conforme Factur-X 2026
             </span>
           </div>
-          <h1 className="font-headline font-extrabold text-4xl sm:text-[52px] lg:text-[62px] leading-[1.06] text-secondary-dim mb-5">
+          <h1 className="font-headline font-extrabold text-[33px] sm:text-[52px] lg:text-[62px] leading-[1.04] text-secondary-dim mb-4 md:mb-5">
             {heroTitle}
           </h1>
-          <p className="text-base md:text-[17px] text-on-surface-variant leading-[1.7] max-w-[480px] mb-7 md:mb-8">
+          <p className="text-[15px] md:text-[17px] text-on-surface-variant leading-[1.55] md:leading-[1.7] max-w-[480px] mb-5 md:mb-8">
             Artisans — dictez votre prestation depuis le chantier. L'IA Gemini génère une{' '}
             <strong className="text-on-surface">facture conforme</strong> instantanément. Fini
             l'Excel et le papier.
@@ -240,7 +240,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           <div className="flex flex-col gap-3">
             <button
               onClick={login}
-              className="btn-glow min-touch inline-flex items-center justify-center gap-2.5 bg-primary text-white border-none px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base shadow-spark-cta-lg w-full sm:w-fit active:scale-[0.98] transition-transform"
+              className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white border-none px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg w-full sm:w-fit active:scale-[0.98] transition-transform"
             >
               <Mic className="w-[18px] h-[18px]" />
               Démarrer l'essai gratuit — 14 jours
@@ -263,8 +263,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
         </div>
 
         {/* Mockup card */}
-        <div className="w-full max-w-[420px] mx-auto md:mx-0 bg-white rounded-[20px] shadow-spark-lg border-spark overflow-hidden">
-          <div className="bg-primary px-5 py-3.5 flex items-center gap-2.5">
+        <div className="w-full max-w-[360px] md:max-w-[420px] mx-auto md:mx-0 bg-white rounded-[18px] md:rounded-[20px] shadow-spark-lg border-spark overflow-hidden">
+          <div className="bg-primary px-4 md:px-5 py-3 md:py-3.5 flex items-center gap-2.5">
             <Zap className="w-4 h-4 text-white fill-white" />
             <div className="flex-1">
               <div className="text-[10px] text-white/75 font-bold tracking-wide mb-1">
@@ -275,7 +275,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               </div>
             </div>
           </div>
-          <div className="px-5 py-5">
+          <div className="px-4 md:px-5 py-4 md:py-5">
             <div className="flex justify-between gap-3 mb-3.5">
               <div>
                 <div className="text-[9px] text-on-surface-variant font-bold uppercase tracking-wide">
@@ -292,7 +292,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 <div className="text-[13px] font-semibold text-on-surface">24 avril 2026</div>
               </div>
             </div>
-            <div className="bg-background rounded-[10px] px-3.5 py-2.5 mb-4">
+            <div className="bg-background rounded-[10px] px-3 py-2.5 mb-3 md:mb-4">
               <div className="text-[10px] text-on-surface-variant font-semibold mb-0.5">
                 CLIENT
               </div>
@@ -316,7 +316,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 <span className="font-bold text-on-surface shrink-0">{p}</span>
               </div>
             ))}
-            <div className="grid grid-cols-2 gap-1.5 mt-3 text-[11px] text-on-surface-variant">
+            <div className="grid grid-cols-2 gap-1.5 mt-2.5 md:mt-3 text-[10px] md:text-[11px] text-on-surface-variant">
               <div className="py-1.5">
                 HT : <strong className="text-on-surface">1 062,50 €</strong>
               </div>
@@ -324,9 +324,9 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 TVA 20% : <strong className="text-on-surface">212,50 €</strong>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mt-2 bg-primary/[0.06] rounded-[10px] px-3.5 py-2.5 border border-primary/[0.12]">
+            <div className="flex flex-row justify-between items-center gap-2 mt-2 bg-primary/[0.06] rounded-[10px] px-3 py-2.5 border border-primary/[0.12]">
               <span className="font-extrabold text-[13px] text-on-surface">NET À PAYER</span>
-              <span className="font-headline font-extrabold text-xl text-primary">1 275,00 €</span>
+              <span className="font-headline font-extrabold text-lg md:text-xl text-primary whitespace-nowrap">1 275,00 €</span>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
@@ -347,8 +347,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Stats ──────────────────────────────────────────────── */}
-      <section className="bg-white border-y-spark py-5 md:py-7">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-14 grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <section className="bg-white border-y-spark py-4 md:py-7">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-14 grid grid-cols-2 sm:grid-cols-5 gap-2.5 md:gap-3">
           {[
             ['500+', 'artisans actifs'],
             ['10s', 'par facture'],
@@ -356,11 +356,11 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ['4.9/5', 'note moyenne'],
             ['100%', 'conforme 2026'],
           ].map(([v, l], i) => (
-            <div key={v as string} className="flex items-center justify-center gap-5 rounded-2xl bg-background/70 px-3 py-3 sm:bg-transparent sm:px-0 sm:py-0">
+            <div key={v as string} className="flex items-center justify-center gap-5 rounded-xl md:rounded-2xl bg-background/70 px-2 py-2.5 sm:bg-transparent sm:px-0 sm:py-0">
               {i > 0 && <div className="hidden md:block w-px h-10 bg-outline-variant" />}
               <div className="text-center">
-                <div className="font-headline text-[28px] font-bold text-primary">{v}</div>
-                <div className="text-[11px] text-on-surface-variant font-medium mt-0.5">{l}</div>
+                <div className="font-headline text-[24px] md:text-[28px] font-bold text-primary">{v}</div>
+                <div className="text-[10px] md:text-[11px] text-on-surface-variant font-medium mt-0.5">{l}</div>
               </div>
             </div>
           ))}
@@ -525,7 +525,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               Un plan gratuit à vie, des plans pro quand vous grandissez.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-5 max-w-[960px] mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5 max-w-[960px] mx-auto">
             {[
               {
                 name: 'Gratuit',
@@ -571,7 +571,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ].map(({ name, price, per, sub, features, cta, highlight }) => (
               <div
                 key={name}
-                className={`rounded-[20px] p-5 md:p-7 relative overflow-hidden ${
+                className={`rounded-[18px] md:rounded-[20px] p-4 md:p-7 relative overflow-hidden ${
                   highlight
                     ? 'bg-primary text-white shadow-spark-cta-xl'
                     : 'bg-white border-spark shadow-spark-md'
@@ -592,7 +592,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 <div className="mb-1.5">
                   <div className="flex items-baseline gap-1">
                     <span
-                      className={`font-headline font-bold text-[40px] ${
+                      className={`font-headline font-bold text-[34px] md:text-[40px] ${
                         highlight ? 'text-white' : 'text-secondary-dim'
                       }`}
                     >
@@ -619,7 +619,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 <div
                   className={`h-px my-4 ${highlight ? 'bg-white/15' : 'bg-outline-variant'}`}
                 />
-                <div className="flex flex-col gap-2 mb-6">
+                <div className="flex flex-col gap-2 mb-4 md:mb-6">
                   {features.map(f => (
                     <div key={f} className="flex items-center gap-2 text-[13px]">
                       <div
@@ -655,16 +655,16 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── CTA final ──────────────────────────────────────────── */}
-      <section className="bg-secondary-dim py-10 md:py-14 px-4 md:px-6 text-center">
-        <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-white mb-2.5">
+      <section className="bg-secondary-dim py-8 md:py-14 px-4 md:px-6 text-center">
+        <h2 className="font-headline font-extrabold text-[28px] md:text-[40px] text-white mb-2.5 leading-tight">
           Prêt à gagner 2h par semaine ?
         </h2>
-        <p className="text-[15px] text-white/50 mb-8">
+        <p className="text-sm md:text-[15px] text-white/50 mb-6 md:mb-8">
           Rejoignez 500+ artisans qui ont simplifié leur facturation.
         </p>
         <button
           onClick={login}
-          className="min-touch inline-flex items-center justify-center gap-2.5 bg-primary text-white px-6 sm:px-9 py-4 rounded-2xl font-bold text-sm sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform w-full sm:w-auto"
+          className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-5 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform w-full sm:w-auto"
         >
           <Mic className="w-[18px] h-[18px]" />
           Créer mon compte gratuitement
