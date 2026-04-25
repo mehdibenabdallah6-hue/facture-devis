@@ -282,7 +282,7 @@ export default function InvoiceCreate() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isPro, isFree, plan, checkInvoiceLimit, limits, hasPaidAccess, isPendingActivation } = usePlan();
+  const { isPro, isFree, plan, checkInvoiceLimit, checkAiLimit, limits, hasPaidAccess, isPendingActivation } = usePlan();
   const [showUpsellModal, setShowUpsellModal] = useState<string | null>(null);
   const [showCameraGuide, setShowCameraGuide] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -432,6 +432,30 @@ export default function InvoiceCreate() {
     } finally {
       setIsAddingClient(false);
     }
+  };
+
+  /**
+   * Gate every AI-powered action (photo extraction, document import, voice
+   * dictation) through the same monthly counter:
+   *   - Free  : 5 / month   (PLAN_LIMITS.free.monthlyAiUsageLimit)
+   *   - Solo  : 50 / month  (PLAN_LIMITS.starter.monthlyAiUsageLimit)
+   *   - Pro   : unlimited
+   * Returns true if the user can proceed; otherwise pops the upsell modal
+   * with a plan-specific message and returns false.
+   */
+  const tryUseAi = (): boolean => {
+    if (checkAiLimit()) return true;
+    const cap = limits.monthlyAiUsageLimit;
+    if (isFree) {
+      setShowUpsellModal(
+        `Vous avez atteint la limite de ${cap} utilisations IA / mois du plan Gratuit. Passez au plan Solo pour 50 utilisations / mois.`
+      );
+    } else {
+      setShowUpsellModal(
+        `Vous avez atteint la limite de ${cap} utilisations IA / mois du plan Solo. Passez au plan Pro pour un usage illimité.`
+      );
+    }
+    return false;
   };
 
   const handleDictation = () => {
@@ -1446,8 +1470,8 @@ export default function InvoiceCreate() {
                 ? "border-error shadow-2xl shadow-error/20 bg-error/5 scale-[1.02]" 
                 : "border-primary/20 hover:border-primary card-hover group hover:shadow-2xl hover:shadow-primary/10"
             }`}
-            onClick={(isDictating || isOffline || isFree) ? (isFree && !isOffline ? () => setShowUpsellModal('La dictée vocale est disponible à partir du plan Solo (14,90€/mois).') : undefined) : handleDictation}
-            style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
+            onClick={(isDictating || isOffline) ? undefined : () => { if (tryUseAi()) handleDictation(); }}
+            style={isOffline ? { opacity: 0.5, pointerEvents: 'none' } : {}}
           >
             {!isDictating && <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>}
             <div className="relative z-10 flex flex-row md:flex-col items-center md:justify-center h-full gap-4 md:gap-0 md:space-y-4 py-0 md:py-4">
@@ -1494,11 +1518,12 @@ export default function InvoiceCreate() {
 
           <div 
             className="animate-fade-in-up animation-delay-200 card-hover group relative min-h-[104px] md:min-h-[230px] bg-surface-container-lowest border border-secondary/20 hover:border-secondary rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-left md:text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-secondary/10 overflow-hidden"
-            onClick={() => { 
-              if (isFree) { setShowUpsellModal('L\'extraction IA par photo est disponible à partir du plan Solo (14,90€/mois).'); return; }
-              if (!isOffline) setShowCameraGuide(true); 
+            onClick={() => {
+              if (isOffline) return;
+              if (!tryUseAi()) return;
+              setShowCameraGuide(true);
             }}
-            style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
+            style={isOffline ? { opacity: 0.5, pointerEvents: 'none' } : {}}
           >
             <input 
               type="file" 
@@ -1523,15 +1548,16 @@ export default function InvoiceCreate() {
           {/* Third card: Import Document */}
           <div 
             className="animate-fade-in-up animation-delay-300 card-hover group relative min-h-[104px] md:min-h-[230px] bg-surface-container-lowest border border-tertiary/20 hover:border-tertiary rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-left md:text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-tertiary/10 overflow-hidden md:col-span-2 lg:col-span-1"
-            onClick={() => { 
-              if (isFree) { setShowUpsellModal('L\'import de documents est disponible à partir du plan Solo (14,90€/mois).'); return; }
-              if (!isOffline) docInputRef.current?.click(); 
+            onClick={() => {
+              if (isOffline) return;
+              if (!tryUseAi()) return;
+              docInputRef.current?.click();
             }}
-            style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
+            style={isOffline ? { opacity: 0.5, pointerEvents: 'none' } : {}}
           >
-            <input 
-              type="file" 
-              ref={docInputRef} 
+            <input
+              type="file"
+              ref={docInputRef}
               onChange={handleDocumentUpload} 
               accept=".pdf,.xlsx,.xls,.csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" 
               className="hidden" 
@@ -1941,11 +1967,17 @@ export default function InvoiceCreate() {
                   <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2 flex items-center justify-between">
                       Qté
-                      <button 
-                        type="button" 
-                        onClick={() => setActiveCalculatorIndex(activeCalculatorIndex === index ? null : index)}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!limits.canUseAICalculator) {
+                            setShowUpsellModal('Le calculateur de surfaces est disponible à partir du plan Solo (14,90€/mois).');
+                            return;
+                          }
+                          setActiveCalculatorIndex(activeCalculatorIndex === index ? null : index);
+                        }}
                         className="min-h-[32px] min-w-[32px] text-primary hover:text-primary/70 transition-colors rounded flex items-center justify-center"
-                        title="Calculateur (L x l x h)"
+                        title={limits.canUseAICalculator ? 'Calculateur (L x l x h)' : 'Calculateur de surfaces — plan Solo'}
                       >
                         <Calculator className="w-3.5 h-3.5" />
                       </button>
