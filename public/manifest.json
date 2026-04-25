@@ -4,8 +4,8 @@
   "description": "De la photo à la facture en 10 secondes — Facturation IA pour artisans",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFBFE",
-  "theme_color": "#6750A4",
+  "background_color": "#FFFFFF",
+  "theme_color": "#E8621A",
   "orientation": "portrait-primary",
   "icons": [
     {

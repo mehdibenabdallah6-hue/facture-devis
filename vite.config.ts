@@ -50,7 +50,7 @@ export default defineConfig(({mode}) => {
       vercelApiPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
+        includeAssets: ['favicon.ico', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'],
         manifest: {
           name: 'Photofacto',
           short_name: 'Photofacto',
@@ -59,8 +59,8 @@ export default defineConfig(({mode}) => {
           scope: '/',
           lang: 'fr',
           categories: ['business', 'finance', 'productivity'],
-          theme_color: '#0d9488',
-          background_color: '#f5f5f4',
+          theme_color: '#E8621A',
+          background_color: '#FFFFFF',
           display: 'standalone',
           orientation: 'portrait-primary',
           icons: [

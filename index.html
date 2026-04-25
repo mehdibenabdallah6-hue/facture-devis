@@ -6,23 +6,60 @@
     <title>Photofacto - De la photo à la facture en 10 secondes</title>
     <meta name="description" content="Photofacto : l'application de facturation intelligente pour artisans. Dictez ou photographiez, l'IA génère votre facture conforme en 10 secondes. Essai gratuit 14 jours." />
     <meta name="theme-color" content="#E8621A" />
-    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="canonical" href="https://photofacto.fr/" />
+
+    <!-- Favicon stack — Google's crawler reads /favicon.ico first, modern
+         browsers prefer the SVG, and we keep PNG fallbacks for older clients. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Photofacto" />
+
+    <!-- Open Graph / social — use PNG; Facebook + LinkedIn previews don't
+         render SVG og:images reliably. -->
     <meta property="og:title" content="Photofacto — Facturez en 10s par photo ou voix" />
     <meta property="og:description" content="L'app de facturation IA pour artisans. Photo ou dictée vocale → facture conforme en 10 secondes. Essai gratuit." />
-    <meta property="og:image" content="/og-image.svg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image" content="https://photofacto.fr/icons/icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content="Photofacto — l'app de facturation IA pour artisans" />
+    <meta property="og:site_name" content="Photofacto" />
+    <meta property="og:locale" content="fr_FR" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://photofacto.fr" />
+    <meta property="og:url" content="https://photofacto.fr/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Photofacto — Facturez en 10s par photo ou voix" />
     <meta name="twitter:description" content="L'app de facturation IA pour artisans. Photo ou dictée vocale → facture conforme en 10 secondes." />
+    <meta name="twitter:image" content="https://photofacto.fr/icons/icon-512.png" />
+
+    <!-- Organization JSON-LD — helps Google associate the favicon and brand
+         with the site, and surfaces the logo in rich results. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Photofacto",
+      "url": "https://photofacto.fr/",
+      "logo": "https://photofacto.fr/icons/icon-512.png",
+      "description": "Application de facturation intelligente pour artisans. Dictez ou photographiez, l'IA génère votre facture conforme en 10 secondes.",
+      "sameAs": []
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Photofacto",
+      "url": "https://photofacto.fr/",
+      "inLanguage": "fr-FR"
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
