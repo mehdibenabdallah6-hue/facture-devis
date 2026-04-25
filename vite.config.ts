@@ -50,7 +50,7 @@ export default defineConfig(({mode}) => {
       vercelApiPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'],
         manifest: {
           name: 'Photofacto',
           short_name: 'Photofacto',

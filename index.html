@@ -8,13 +8,16 @@
     <meta name="theme-color" content="#E8621A" />
     <link rel="canonical" href="https://photofacto.fr/" />
 
-    <!-- Favicon stack — Google's crawler reads /favicon.ico first, modern
-         browsers prefer the SVG, and we keep PNG fallbacks for older clients. -->
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Favicon stack — the real Photofacto brand mark lives in the PNG
+         icons (orange hexagon "PF"), so we point every reference at those.
+         The ?v= query string busts aggressive browser/SW favicon caches when
+         the artwork changes — bump the version on every favicon edit.
+         Note: no SVG link, because the PNG icons are the source of truth and
+         a hand-coded SVG would drift from the brand mark. -->
+    <link rel="icon" href="/favicon.ico?v=20260425b" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png?v=20260425b" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png?v=20260425b" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=20260425b" />
 
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
