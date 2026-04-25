@@ -57,7 +57,11 @@
   --color-surface-container-low: #FAFAF9;
   --color-surface-container: #F5F5F4;
   --color-surface-container-high: #E9EBEF;
-  --color-surface-container-highest: #1E2430;
+  /* highest must remain LIGHT — a slightly darker shade than `high` for hover
+     states & elevated surfaces. Setting this to the charcoal-deep value caused
+     dark-on-dark text everywhere it was used as a background (Pro card,
+     Factur-X / Imprimer PDF buttons, inline catalog hint, etc.). */
+  --color-surface-container-highest: #DFE3E9;
 
   /* ── Outline ──────────────────────────────────────────────── */
   --color-outline: #9CA3AF;

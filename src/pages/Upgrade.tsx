@@ -91,32 +91,36 @@ export default function Upgrade() {
     setLoadingCode(null);
   };
 
-  const PriceDisplay = ({ planId }: { planId: 'starter' | 'pro' }) => {
+  const PriceDisplay = ({ planId, onDark = false }: { planId: 'starter' | 'pro'; onDark?: boolean }) => {
     const basePrice = PLAN_PRICING[planId][billingCycle];
     const discountedPrice = getDiscountedPrice(basePrice);
     const monthlyEquivalent =
       billingCycle === 'annual' ? discountedPrice / 12 : getMonthlyEquivalent(planId, billingCycle);
 
+    const priceClass = onDark ? 'text-white' : 'text-on-surface';
+    const subClass = onDark ? 'text-white/70' : 'text-on-surface-variant';
+    const strikeClass = onDark ? 'text-white/40' : 'text-on-surface-variant/40';
+
     return (
       <div className="flex flex-col items-center mb-6">
         <div className="flex items-baseline gap-1">
           {activeDiscount && (
-             <span className="text-lg line-through text-on-surface-variant/40 font-headline mr-2">
+             <span className={`text-lg line-through font-headline mr-2 ${strikeClass}`}>
                {formatEuroPrice(basePrice / (billingCycle === 'annual' ? 12 : 1))}
              </span>
           )}
-          <span className="text-5xl font-extrabold text-on-surface tracking-tight font-headline">
+          <span className={`text-5xl font-extrabold tracking-tight font-headline ${priceClass}`}>
             {formatEuroPrice(monthlyEquivalent)}
           </span>
-          <span className="text-on-surface-variant font-medium text-sm">/mois</span>
+          <span className={`font-medium text-sm ${subClass}`}>/mois</span>
         </div>
-        
+
         {billingCycle === 'annual' && (
           <div className="mt-1 flex flex-col items-center">
             <span className="text-xs font-bold text-primary px-2 py-0.5 bg-primary/10 rounded-full mb-1">
               Paiement annuel
             </span>
-            <span className="text-sm text-on-surface-variant font-medium">
+            <span className={`text-sm font-medium ${subClass}`}>
               soit {formatEuroPrice(discountedPrice)} / an
             </span>
           </div>
@@ -258,37 +262,37 @@ export default function Upgrade() {
           </button>
         </div>
 
-        {/* Pro Plan */}
-        <div className="bg-surface-container-highest border-2 border-transparent relative shadow-2xl rounded-2xl p-8 flex flex-col items-center overflow-hidden">
+        {/* Pro Plan — premium dark card with light text */}
+        <div className="bg-spark-charcoal-deep border-2 border-transparent relative shadow-2xl rounded-2xl p-8 flex flex-col items-center overflow-hidden text-white">
           <div className="absolute top-0 right-0 py-1 px-12 bg-gradient-to-r from-secondary to-primary text-white text-[10px] font-black uppercase tracking-widest rotate-45 translate-x-[30%] translate-y-[50%] shadow-md">
             VIP
           </div>
           <div className="w-16 h-16 bg-gradient-to-br from-secondary to-primary rounded-full flex items-center justify-center mb-4">
             <Crown className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-headline font-bold mb-2 text-on-surface">Pro</h2>
-          <p className="text-sm text-on-surface-variant mb-6 text-center">Pour les entreprises établies.</p>
-          
-          <PriceDisplay planId="pro" />
+          <h2 className="text-2xl font-headline font-bold mb-2 text-white">Pro</h2>
+          <p className="text-sm text-white/70 mb-6 text-center">Pour les entreprises établies.</p>
+
+          <PriceDisplay planId="pro" onDark />
 
           <div className="w-full text-left space-y-3 mb-8 flex-1">
-            <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline-variant/20 pb-2 mb-4">
+            <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-white/60 border-b border-white/15 pb-2 mb-4">
               <span>Le pack complet</span>
             </div>
-            <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
+            <li className="flex items-start gap-2 text-sm text-white font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <span>Facturation illimitée</span>
             </li>
-            <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
+            <li className="flex items-start gap-2 text-sm text-white font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <span>IA en illimité</span>
             </li>
-            <li className="flex items-start gap-2 text-sm text-on-surface text-secondary font-bold">
-              <Check className="w-4 h-4 mt-0.5 shrink-0" />
+            <li className="flex items-start gap-2 text-sm text-white font-bold">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <span>Photos de chantier (PDF)</span>
             </li>
-            <li className="flex items-start gap-2 text-sm text-on-surface text-secondary font-bold">
-              <Check className="w-4 h-4 mt-0.5 shrink-0" />
+            <li className="flex items-start gap-2 text-sm text-white font-bold">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <span>Export FEC & Chorus Pro <span className="text-[10px] opacity-70">(Bientôt)</span></span>
             </li>
           </div>
