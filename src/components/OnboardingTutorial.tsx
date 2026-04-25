@@ -47,6 +47,7 @@ export function OnboardingTutorial() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {
     if (!user) return;
@@ -65,10 +66,9 @@ export function OnboardingTutorial() {
       return;
     }
     
-    setTimeout(() => {
+    window.setTimeout(() => {
       let targetId = currentStep.id;
       if (window.innerWidth < 768) {
-        // Try fallback to mobile specific id if exists
         const mobileFallback = document.querySelector(`${currentStep.id}-mobile`);
         if (mobileFallback) {
           targetId = `${currentStep.id}-mobile`;
@@ -78,16 +78,27 @@ export function OnboardingTutorial() {
       if (el) {
         setTargetRect(el.getBoundingClientRect());
       } else {
-        // If element is not found on screen (e.g., hidden mobile menu), just center it
         setTargetRect(null);
       }
-    }, 100);
+    }, 80);
   }, [currentStepIndex, isActive]);
 
   useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      updateTargetRect();
+    };
+
     updateTargetRect();
-    window.addEventListener('resize', updateTargetRect);
-    return () => window.removeEventListener('resize', updateTargetRect);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    window.addEventListener('scroll', updateTargetRect, true);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener('scroll', updateTargetRect, true);
+    };
   }, [updateTargetRect]);
 
   if (!isActive) return null;
@@ -116,8 +127,6 @@ export function OnboardingTutorial() {
     transform: 'translate(-50%, -50%)',
   };
 
-  let isMobile = window.innerWidth < 768;
-
   if (targetRect && !isMobile) {
     if (currentStep.placement === 'right') {
       popupStyle = {
@@ -137,10 +146,11 @@ export function OnboardingTutorial() {
   // On mobile, force center or bottom to avoid overflow
   if (isMobile) {
     popupStyle = {
-      bottom: '10%',
+      bottom: 'calc(env(safe-area-inset-bottom) + 88px)',
       left: '50%',
       transform: 'translateX(-50%)',
-      width: '90%',
+      width: 'calc(100vw - 24px)',
+      maxWidth: 380,
     };
   }
 
@@ -164,9 +174,9 @@ export function OnboardingTutorial() {
       />
       
       {/* Target Highlight Outline (optional, nice visual effect) */}
-      {targetRect && !isMobile && (
+      {targetRect && (
         <div 
-          className="absolute border-2 border-primary rounded-xl animate-pulse"
+          className="absolute border-2 border-primary rounded-xl animate-pulse pointer-events-none"
           style={{
             top: targetRect.top - 8,
             left: targetRect.left - 8,
@@ -178,19 +188,20 @@ export function OnboardingTutorial() {
 
       {/* Tutorial Card */}
       <div 
-        className="absolute w-[350px] bg-surface-container-lowest rounded-2xl p-6 shadow-2xl transition-all duration-500 pointer-events-auto flex flex-col gap-4 border border-outline-variant/20"
+        className="absolute w-[350px] max-w-[calc(100vw_-_24px)] bg-surface-container-lowest rounded-2xl p-5 md:p-6 shadow-2xl transition-all duration-300 pointer-events-auto flex flex-col gap-4 border border-outline-variant/20"
         style={popupStyle}
       >
         <button 
           onClick={handleComplete}
-          className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface p-1 rounded-lg transition-colors"
+          className="absolute top-3 right-3 min-touch text-on-surface-variant hover:text-on-surface rounded-lg transition-colors flex items-center justify-center"
+          aria-label="Fermer le tutoriel"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div>
           <span className="text-xs font-bold uppercase tracking-widest text-primary mb-2 block">Étape {currentStepIndex + 1} sur {steps.length}</span>
-          <h3 className="text-xl font-bold font-headline text-on-surface mb-2 leading-tight flex items-center pr-6">
+          <h3 className="text-lg md:text-xl font-bold font-headline text-on-surface mb-2 leading-tight flex items-center pr-8">
             {currentStep.title}
           </h3>
           <p className="text-on-surface-variant text-sm leading-relaxed">
@@ -201,14 +212,14 @@ export function OnboardingTutorial() {
         <div className="flex items-center justify-between mt-2">
           <button 
             onClick={handleComplete}
-            className="text-xs font-bold text-on-surface-variant hover:text-on-surface py-2 px-1 underline underline-offset-4"
+            className="min-touch text-xs font-bold text-on-surface-variant hover:text-on-surface px-2 underline underline-offset-4"
           >
             Sortir du guide
           </button>
           
           <button 
             onClick={handleNext}
-            className="btn-glow flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold shadow-spark-cta hover:shadow-xl active:scale-95 transition-all"
+            className="btn-glow min-touch flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold shadow-spark-cta active:scale-95 transition-all"
           >
             {currentStepIndex === steps.length - 1 ? (
               <>Terminer <Check className="w-4 h-4" /></>

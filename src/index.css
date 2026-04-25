@@ -1,4 +1,7 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+
+@source "./";
+@source "../index.html";
 
 @theme {
   /* ═══════════════════════════════════════════════════════════════
@@ -132,6 +135,15 @@
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    width: 100%;
+    overflow-x: clip;
   }
 
   body {
@@ -140,6 +152,7 @@
     color: var(--color-on-background);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -158,7 +171,16 @@
   }
 
   input, select, textarea {
+    font-size: 16px;
     transition: box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 }
 
@@ -242,6 +264,13 @@
   .border-b-spark { border-bottom: 1.5px solid rgba(0,0,0,0.07); }
   .border-t-spark { border-top: 1.5px solid rgba(0,0,0,0.07); }
   .border-r-spark { border-right: 1.5px solid rgba(0,0,0,0.07); }
+
+  /* Mobile/PWA safe-area helpers */
+  .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .pt-safe { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+  .bottom-safe { bottom: env(safe-area-inset-bottom); }
+  .min-touch { min-height: 44px; min-width: 44px; }
+  .mobile-page-gutter { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
 }
 
 /* Card hover */

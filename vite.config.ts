@@ -14,6 +14,7 @@ const vercelApiPlugin = () => ({
           const buffers = [];
           for await (const chunk of req) buffers.push(chunk);
           const bodyStr = Buffer.concat(buffers).toString();
+          req.rawBody = bodyStr;
           req.body = bodyStr ? JSON.parse(bodyStr) : {};
           
           // Since it's a Vercel-like handler, polyfill res.status and res.json
@@ -54,10 +55,14 @@ export default defineConfig(({mode}) => {
           name: 'Photofacto',
           short_name: 'Photofacto',
           description: 'Facturation intelligente pour artisans',
+          start_url: '/app',
+          scope: '/',
+          lang: 'fr',
+          categories: ['business', 'finance', 'productivity'],
           theme_color: '#0d9488',
           background_color: '#f5f5f4',
           display: 'standalone',
-          orientation: 'portrait',
+          orientation: 'portrait-primary',
           icons: [
             {
               src: 'icons/icon-192.png',
@@ -69,6 +74,22 @@ export default defineConfig(({mode}) => {
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
+            }
+          ],
+          shortcuts: [
+            {
+              name: 'Nouveau document',
+              short_name: 'Créer',
+              description: 'Créer une facture ou un devis',
+              url: '/app/invoices/new',
+              icons: [{ src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' }]
+            },
+            {
+              name: 'Documents',
+              short_name: 'Docs',
+              description: 'Voir les factures et devis',
+              url: '/app/invoices',
+              icons: [{ src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' }]
             }
           ]
         },

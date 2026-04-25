@@ -1,4 +1,5 @@
 import { useData } from '../contexts/DataContext';
+import { hasPaidAccessForStatus } from '../lib/billing';
 
 export interface PlanLimits {
   canAddPhotosToPDF: boolean;
@@ -59,8 +60,10 @@ export function usePlan() {
   const lastResetYear = company?.monthlyResetAt ? new Date(company.monthlyResetAt).getFullYear() : -1;
   const needsMonthlyReset = currentMonth !== lastResetMonth || currentYear !== lastResetYear;
 
-  // New users default to 'free'. Legacy users with active subscription default to 'starter'.
-  const currentPlan = company?.plan || (company?.subscriptionStatus === 'active' ? 'starter' : 'free');
+  const hasPaidAccess = hasPaidAccessForStatus(company?.subscriptionStatus);
+  const isPendingActivation = company?.subscriptionStatus === 'pending_activation';
+  const paidPlan = company?.plan && company.plan !== 'free' ? company.plan : 'starter';
+  const currentPlan = hasPaidAccess ? paidPlan : 'free';
   const limits = PLAN_LIMITS[currentPlan];
 
   const checkInvoiceLimit = () => {
@@ -87,6 +90,8 @@ export function usePlan() {
     isPro,
     isStarter,
     isFree,
+    hasPaidAccess,
+    isPendingActivation,
     checkInvoiceLimit,
     checkAiLimit,
     activeDiscount,

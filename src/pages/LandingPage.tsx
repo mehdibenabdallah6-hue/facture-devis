@@ -180,7 +180,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
       <div className="accent-bar-spark" />
 
       {/* ── Nav ────────────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between px-6 md:px-14 py-4 bg-white border-b-spark">
+      <nav className="flex items-center justify-between gap-3 px-4 md:px-14 py-3 md:py-4 bg-white border-b-spark">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
             <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
@@ -213,7 +213,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           </button>
           <button
             onClick={login}
-            className="inline-flex items-center gap-1.5 bg-primary text-white px-5 py-2 rounded-[10px] text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform"
+            className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-4 sm:px-5 py-2 rounded-[10px] text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform whitespace-nowrap"
           >
             Essai gratuit →
           </button>
@@ -221,18 +221,18 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────── */}
-      <section className="max-w-[1200px] mx-auto px-6 md:px-14 py-14 md:py-20 grid md:grid-cols-[1fr_460px] gap-10 lg:gap-16 items-center">
+      <section className="max-w-[1200px] mx-auto px-4 md:px-14 py-8 md:py-20 grid md:grid-cols-[1fr_460px] gap-7 lg:gap-16 items-center">
         <div>
-          <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-3.5 py-1.5 mb-7">
+          <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-3 py-1.5 mb-5 md:mb-7">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
             <span className="text-xs font-semibold text-primary-dim">
               + de 500 artisans · Conforme Factur-X 2026
             </span>
           </div>
-          <h1 className="font-headline font-extrabold text-[42px] sm:text-[52px] lg:text-[62px] leading-[1.06] text-secondary-dim mb-5">
+          <h1 className="font-headline font-extrabold text-4xl sm:text-[52px] lg:text-[62px] leading-[1.06] text-secondary-dim mb-5">
             {heroTitle}
           </h1>
-          <p className="text-[17px] text-on-surface-variant leading-[1.7] max-w-[480px] mb-8">
+          <p className="text-base md:text-[17px] text-on-surface-variant leading-[1.7] max-w-[480px] mb-7 md:mb-8">
             Artisans — dictez votre prestation depuis le chantier. L'IA Gemini génère une{' '}
             <strong className="text-on-surface">facture conforme</strong> instantanément. Fini
             l'Excel et le papier.
@@ -240,13 +240,13 @@ export default function LandingPage({ profession }: LandingPageProps) {
           <div className="flex flex-col gap-3">
             <button
               onClick={login}
-              className="btn-glow inline-flex items-center gap-2.5 bg-primary text-white border-none px-7 py-4 rounded-2xl font-bold text-base shadow-spark-cta-lg w-fit active:scale-[0.98] transition-transform"
+              className="btn-glow min-touch inline-flex items-center justify-center gap-2.5 bg-primary text-white border-none px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base shadow-spark-cta-lg w-full sm:w-fit active:scale-[0.98] transition-transform"
             >
               <Mic className="w-[18px] h-[18px]" />
               Démarrer l'essai gratuit — 14 jours
               <ArrowRight className="w-4 h-4" />
             </button>
-            <div className="flex flex-wrap gap-5">
+            <div className="flex flex-wrap gap-3 sm:gap-5">
               {['Sans carte bancaire', 'Annulation facile', '100% conforme 2026'].map(t => (
                 <div
                   key={t}
@@ -263,7 +263,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
         </div>
 
         {/* Mockup card */}
-        <div className="bg-white rounded-[20px] shadow-spark-lg border-spark overflow-hidden">
+        <div className="w-full max-w-[420px] mx-auto md:mx-0 bg-white rounded-[20px] shadow-spark-lg border-spark overflow-hidden">
           <div className="bg-primary px-5 py-3.5 flex items-center gap-2.5">
             <Zap className="w-4 h-4 text-white fill-white" />
             <div className="flex-1">
@@ -276,7 +276,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </div>
           </div>
           <div className="px-5 py-5">
-            <div className="flex justify-between mb-3.5">
+            <div className="flex justify-between gap-3 mb-3.5">
               <div>
                 <div className="text-[9px] text-on-surface-variant font-bold uppercase tracking-wide">
                   Facture
@@ -296,10 +296,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
               <div className="text-[10px] text-on-surface-variant font-semibold mb-0.5">
                 CLIENT
               </div>
-              <div className="font-bold text-[13px] text-on-surface">
+              <div className="font-bold text-[13px] text-on-surface break-words">
                 Karim Boulanger · Plomberie Boulanger
               </div>
-              <div className="text-xs text-on-surface-variant">
+              <div className="text-xs text-on-surface-variant break-words">
                 12 rue des Lilas, 75013 Paris · SIREN 845 123 456
               </div>
             </div>
@@ -310,10 +310,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ].map(([l, p]) => (
               <div
                 key={l}
-                className="flex justify-between py-2 border-b border-background text-xs"
+                className="flex justify-between gap-3 py-2 border-b border-background text-xs"
               >
-                <span className="text-on-surface">{l}</span>
-                <span className="font-bold text-on-surface">{p}</span>
+                <span className="text-on-surface min-w-0">{l}</span>
+                <span className="font-bold text-on-surface shrink-0">{p}</span>
               </div>
             ))}
             <div className="grid grid-cols-2 gap-1.5 mt-3 text-[11px] text-on-surface-variant">
@@ -324,20 +324,20 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 TVA 20% : <strong className="text-on-surface">212,50 €</strong>
               </div>
             </div>
-            <div className="flex justify-between items-center mt-2 bg-primary/[0.06] rounded-[10px] px-3.5 py-2.5 border border-primary/[0.12]">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mt-2 bg-primary/[0.06] rounded-[10px] px-3.5 py-2.5 border border-primary/[0.12]">
               <span className="font-extrabold text-[13px] text-on-surface">NET À PAYER</span>
               <span className="font-headline font-extrabold text-xl text-primary">1 275,00 €</span>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
                 onClick={login}
-                className="bg-primary text-white rounded-[10px] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+                className="min-touch bg-primary text-white rounded-[10px] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
               >
                 <Send className="w-3 h-3" /> Envoyer
               </button>
               <button
                 onClick={login}
-                className="bg-background border-spark text-on-surface rounded-[10px] py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5"
+                className="min-touch bg-background border-spark text-on-surface rounded-[10px] py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5"
               >
                 <Download className="w-3 h-3" /> PDF
               </button>
@@ -347,8 +347,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Stats ──────────────────────────────────────────────── */}
-      <section className="bg-white border-y-spark py-7">
-        <div className="max-w-[1200px] mx-auto px-6 md:px-14 flex flex-wrap items-center justify-between gap-y-5">
+      <section className="bg-white border-y-spark py-5 md:py-7">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-14 grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             ['500+', 'artisans actifs'],
             ['10s', 'par facture'],
@@ -356,7 +356,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ['4.9/5', 'note moyenne'],
             ['100%', 'conforme 2026'],
           ].map(([v, l], i) => (
-            <div key={v as string} className="flex items-center gap-5">
+            <div key={v as string} className="flex items-center justify-center gap-5 rounded-2xl bg-background/70 px-3 py-3 sm:bg-transparent sm:px-0 sm:py-0">
               {i > 0 && <div className="hidden md:block w-px h-10 bg-outline-variant" />}
               <div className="text-center">
                 <div className="font-headline text-[28px] font-bold text-primary">{v}</div>
@@ -368,10 +368,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── How it works ───────────────────────────────────────── */}
-      <section className="py-16 px-6 md:px-14 bg-background">
+      <section className="py-10 md:py-16 px-4 md:px-14 bg-background">
         <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-11">
-            <h2 className="font-headline font-extrabold text-[40px] text-secondary-dim mb-2.5">
+          <div className="text-center mb-8 md:mb-11">
+            <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
               La facturation sans effort
             </h2>
             <p className="text-[15px] text-on-surface-variant max-w-md mx-auto">
@@ -401,7 +401,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ].map(({ n, icon, t, d }) => (
               <div
                 key={n}
-                className="bg-white rounded-[18px] p-7 border-spark shadow-spark-md relative overflow-hidden"
+                className="bg-white rounded-[18px] p-5 md:p-7 border-spark shadow-spark-md relative overflow-hidden"
               >
                 <div className="absolute top-3.5 right-4 font-headline font-extrabold text-[54px] text-primary/[0.06] leading-none">
                   {n}
@@ -420,15 +420,15 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Features ───────────────────────────────────────────── */}
-      <section id="features" className="pb-16 px-6 md:px-14 bg-background">
+      <section id="features" className="pb-10 md:pb-16 px-4 md:px-14 bg-background">
         <div className="max-w-[1200px] mx-auto">
-          <h2 className="font-headline font-extrabold text-[40px] text-secondary-dim mb-2 text-center">
+          <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2 text-center">
             Tout ce qu'il vous faut
           </h2>
-          <p className="text-[15px] text-on-surface-variant text-center mb-10">
+          <p className="text-[15px] text-on-surface-variant text-center mb-8 md:mb-10">
             Un outil complet, pensé par et pour les artisans.
           </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {[
               {
                 icon: <FileText className="w-[18px] h-[18px] text-primary" />,
@@ -467,9 +467,9 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Testimonials ───────────────────────────────────────── */}
-      <section id="testimonials" className="py-12 px-6 md:px-14 bg-white border-y-spark">
+      <section id="testimonials" className="py-10 md:py-12 px-4 md:px-14 bg-white border-y-spark">
         <div className="max-w-[1200px] mx-auto">
-          <h2 className="font-headline font-extrabold text-4xl text-secondary-dim text-center mb-8">
+          <h2 className="font-headline font-extrabold text-3xl md:text-4xl text-secondary-dim text-center mb-8">
             Ils nous font confiance
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
@@ -515,10 +515,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Pricing ────────────────────────────────────────────── */}
-      <section id="pricing" className="py-14 px-6 md:px-14 bg-background border-b-spark">
+      <section id="pricing" className="py-10 md:py-14 px-4 md:px-14 bg-background border-b-spark">
         <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-11">
-            <h2 className="font-headline font-extrabold text-[40px] text-secondary-dim mb-2.5">
+          <div className="text-center mb-8 md:mb-11">
+            <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
               Démarrez gratuitement
             </h2>
             <p className="text-[15px] text-on-surface-variant">
@@ -571,7 +571,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ].map(({ name, price, per, sub, features, cta, highlight }) => (
               <div
                 key={name}
-                className={`rounded-[20px] p-7 relative overflow-hidden ${
+                className={`rounded-[20px] p-5 md:p-7 relative overflow-hidden ${
                   highlight
                     ? 'bg-primary text-white shadow-spark-cta-xl'
                     : 'bg-white border-spark shadow-spark-md'
@@ -640,7 +640,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </div>
                 <button
                   onClick={login}
-                  className={`w-full rounded-[10px] py-3 text-[13px] font-bold ${
+                  className={`w-full min-touch rounded-[10px] py-3 text-[13px] font-bold ${
                     highlight
                       ? 'bg-white text-primary'
                       : 'bg-primary text-white shadow-spark-cta'
@@ -655,8 +655,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── CTA final ──────────────────────────────────────────── */}
-      <section className="bg-secondary-dim py-14 px-6 text-center">
-        <h2 className="font-headline font-extrabold text-[40px] text-white mb-2.5">
+      <section className="bg-secondary-dim py-10 md:py-14 px-4 md:px-6 text-center">
+        <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-white mb-2.5">
           Prêt à gagner 2h par semaine ?
         </h2>
         <p className="text-[15px] text-white/50 mb-8">
@@ -664,7 +664,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
         </p>
         <button
           onClick={login}
-          className="inline-flex items-center gap-2.5 bg-primary text-white px-9 py-4 rounded-2xl font-bold text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform"
+          className="min-touch inline-flex items-center justify-center gap-2.5 bg-primary text-white px-6 sm:px-9 py-4 rounded-2xl font-bold text-sm sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform w-full sm:w-auto"
         >
           <Mic className="w-[18px] h-[18px]" />
           Créer mon compte gratuitement
@@ -678,7 +678,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="bg-secondary-dim border-t border-white/10 px-6 md:px-14 py-8">
+      <footer className="bg-secondary-dim border-t border-white/10 px-4 md:px-14 py-8">
         <div className="max-w-[1200px] mx-auto">
           <div className="grid md:grid-cols-[2fr_1fr_1fr_1fr] gap-10 mb-7">
             <div>

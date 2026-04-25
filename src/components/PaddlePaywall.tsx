@@ -3,13 +3,15 @@ import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Sparkles, ArrowRight, ShieldCheck, Check, Loader2 } from 'lucide-react';
+import { formatEuroPrice, PLAN_PRICING } from '../lib/billing';
 
 interface PaddlePaywallProps {
   onSuccess: () => void;
   onCancel?: () => void;
+  pendingActivation?: boolean;
 }
 
-export default function PaddlePaywall({ onSuccess, onCancel }: PaddlePaywallProps) {
+export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation = false }: PaddlePaywallProps) {
   const { user } = useAuth();
   const { activateSubscription } = useData();
   const [paddle, setPaddle] = useState<Paddle | null>(null);
@@ -25,11 +27,9 @@ export default function PaddlePaywall({ onSuccess, onCancel }: PaddlePaywallProp
           eventCallback: async (event) => {
             if (event.name === 'checkout.completed') {
               console.log('Payment successful!', event.data);
-              await activateSubscription();
               setLoading(true);
-              setTimeout(() => {
-                onSuccess();
-              }, 1500);
+              await activateSubscription('starter', 'annual');
+              onSuccess();
             }
           }
         });
@@ -91,8 +91,21 @@ export default function PaddlePaywall({ onSuccess, onCancel }: PaddlePaywallProp
         </h2>
         
         <p className="text-center text-on-surface-variant mb-8 text-lg">
-          Débloquez le résultat et profitez de Photofacto en illimité. 
-          Offre Solo à seulement <strong className="text-primary">10.75€/mois</strong> (payé annuellement).
+          {pendingActivation ? (
+            <>
+              Paiement reçu. Nous confirmons votre abonnement avec Paddle.
+              Cette étape prend généralement quelques secondes.
+            </>
+          ) : (
+            <>
+              Débloquez le résultat et profitez de Photofacto en illimité.
+              Offre Solo à seulement{' '}
+              <strong className="text-primary">
+                {formatEuroPrice(PLAN_PRICING.starter.annual / 12)}/mois
+              </strong>{' '}
+              (payé annuellement).
+            </>
+          )}
         </p>
 
         <ul className="space-y-4 mb-10 w-full text-left">
@@ -113,16 +126,16 @@ export default function PaddlePaywall({ onSuccess, onCancel }: PaddlePaywallProp
 
         <button
           onClick={openCheckout}
-          disabled={loading}
+          disabled={loading || pendingActivation}
           className="w-full btn-glow bg-primary text-on-primary py-4 px-6 rounded-2xl font-bold transition-all active:scale-95 flex items-center justify-center gap-3 text-lg shadow-spark-cta-lg hover:scale-[1.02] disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Débloquer maintenant'}
-          {!loading && <ArrowRight className="w-5 h-5" />}
+          {loading || pendingActivation ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Débloquer maintenant'}
+          {!loading && !pendingActivation && <ArrowRight className="w-5 h-5" />}
         </button>
 
         <div className="mt-6 flex items-center gap-2 text-xs text-on-surface-variant">
           <ShieldCheck className="w-4 h-4" />
-          <span>Paiement annuel (129€). Sécurisé par Paddle.</span>
+          <span>Paiement annuel ({formatEuroPrice(PLAN_PRICING.starter.annual)}). Sécurisé par Paddle.</span>
         </div>
       </div>
     </div>

@@ -169,7 +169,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────── */}
-      <main className="flex-1 md:ml-[240px] min-h-screen flex flex-col pb-24 md:pb-0">
+      <main className="flex-1 md:ml-[240px] min-h-dvh flex flex-col pb-24 md:pb-0">
         {/* Offline banner */}
         {isOffline && (
           <div className="bg-error text-white px-4 py-2.5 text-center text-sm font-bold flex flex-wrap items-center justify-center gap-2 sticky top-0 z-[100] shadow-md">
@@ -181,23 +181,23 @@ export default function Layout() {
         {/* Top bar */}
         <header
           className={cn(
-            'sticky top-0 z-40 bg-background/80 backdrop-blur-xl flex justify-between items-center w-full px-5 md:px-7 py-3 border-b-spark',
+            'sticky top-0 z-40 bg-background/90 backdrop-blur-xl flex justify-between items-center w-full mobile-page-gutter md:px-7 py-2.5 md:py-3 border-b-spark',
             isOffline && 'mt-0'
           )}
         >
-          <div className="flex items-center gap-3">
-            <div className="md:hidden w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="md:hidden w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden shrink-0">
               <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="wordmark-photofacto text-lg md:hidden">
+            <h1 className="wordmark-photofacto text-[17px] md:hidden min-w-0">
               <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               id="tour-new-doc-mobile"
               onClick={() => navigate('/app/invoices/new')}
-              className="flex md:hidden items-center gap-2 bg-primary text-on-primary font-bold px-4 py-2 rounded-[10px] text-sm shadow-spark-cta active:scale-95 transition-transform"
+              className="min-touch flex md:hidden items-center gap-1.5 bg-primary text-on-primary font-bold px-3.5 py-2 rounded-[10px] text-sm shadow-spark-cta active:scale-95 transition-transform"
             >
               <Plus className="w-4 h-4" strokeWidth={2.5} />
               Créer
@@ -207,7 +207,7 @@ export default function Layout() {
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary/30 transition"
+                className="min-touch rounded-full bg-primary/10 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary/30 transition"
               >
                 {user?.photoURL ? (
                   <img
@@ -278,7 +278,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <div className="flex-1 p-5 md:p-7 lg:p-8">
+        <div className="flex-1 px-3.5 py-4 md:p-7 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -294,7 +294,7 @@ export default function Layout() {
       </main>
 
       {/* Bottom Nav Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-6 pt-2 bg-white/95 backdrop-blur-xl border-t-spark shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 grid grid-cols-4 items-center gap-1 px-2 pb-safe pt-2 bg-white/95 backdrop-blur-xl border-t-spark shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
         {navItems.map(item => (
           <NavLink
             key={item.to}
@@ -304,6 +304,7 @@ export default function Layout() {
             className={({ isActive }) =>
               cn(
                 'flex flex-col items-center justify-center px-4 py-1.5 rounded-2xl transition-colors min-w-[56px]',
+                'min-h-[58px]',
                 isActive ? 'text-primary' : 'text-on-surface-variant'
               )
             }

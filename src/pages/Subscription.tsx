@@ -4,35 +4,39 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { usePlan } from '../hooks/usePlan';
 import { ArrowLeft, Crown, CreditCard, AlertCircle, Mail, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
+import { PLAN_DISPLAY_NAMES, PLAN_FEATURES, PLAN_PRICING, formatEuroPrice } from '../lib/billing';
 
 export default function Subscription() {
   const { company } = useData();
   const { user } = useAuth();
-  const { plan, isPro, isStarter, isFree } = usePlan();
+  const { plan, isPro, isStarter, isFree, hasPaidAccess, isPendingActivation } = usePlan();
   const navigate = useNavigate();
 
   const planFeatures: Record<string, { name: string; features: string[]; price: string; current: boolean }> = {
     free: {
-      name: 'Gratuit',
+      name: PLAN_DISPLAY_NAMES.free,
       price: '0€/mois',
       current: isFree,
-      features: ['10 factures/mois', '5 usages IA/mois', 'Conformité de base', 'Pas de photos PDF'],
+      features: PLAN_FEATURES.free,
     },
     starter: {
-      name: 'Starter',
-      price: '9€/mois',
+      name: PLAN_DISPLAY_NAMES.starter,
+      price: `${formatEuroPrice(PLAN_PRICING.starter.monthly)}/mois`,
       current: isStarter,
-      features: ['Factures illimitées', '20 usages IA/mois', 'Conformité Factur-X', 'Envoi emails auto'],
+      features: PLAN_FEATURES.starter,
     },
     pro: {
-      name: 'Pro',
-      price: '29€/mois',
+      name: PLAN_DISPLAY_NAMES.pro,
+      price: `${formatEuroPrice(PLAN_PRICING.pro.monthly)}/mois`,
       current: isPro,
-      features: ['Tout illimité', 'Photos dans PDF', 'Export CSV/FEC', 'Parrainage illimité'],
+      features: PLAN_FEATURES.pro,
     },
   };
 
   const currentPlan = planFeatures[plan || 'free'];
+  const displayedPlan = isPendingActivation
+    ? planFeatures[company?.pendingPlan || 'starter']
+    : currentPlan;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -49,7 +53,7 @@ export default function Subscription() {
         </div>
         <div>
           <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Mon abonnement</h1>
-          <p className="text-on-surface-variant">Plan actuel : <span className="font-bold text-on-surface">{currentPlan.name} — {currentPlan.price}</span></p>
+          <p className="text-on-surface-variant">Plan actuel : <span className="font-bold text-on-surface">{displayedPlan.name} — {displayedPlan.price}</span></p>
         </div>
       </div>
 
@@ -63,12 +67,18 @@ export default function Subscription() {
           )}
           <div>
             <h2 className="text-xl font-bold font-headline text-on-surface mb-2">
-              {isFree ? 'Vous êtes sur le plan gratuit' : `Abonnement ${currentPlan.name} actif`}
+              {isPendingActivation
+                ? `Activation du plan ${PLAN_DISPLAY_NAMES[company?.pendingPlan || 'starter']} en cours`
+                : isFree
+                  ? 'Vous êtes sur le plan gratuit'
+                : `Abonnement ${displayedPlan.name} actif`}
             </h2>
             <p className="text-on-surface-variant text-sm">
-              {isFree
+              {isPendingActivation
+                ? 'Votre paiement a bien été reçu. Paddle confirme encore votre abonnement.'
+                : isFree
                 ? 'Passez à un plan supérieur pour débloquer toutes les fonctionnalités.'
-                : `Votre abonnement ${company?.subscriptionStatus === 'active' ? 'est actif' : 'est en cours d\'activation'}. Vous pouvez le gérer ci-dessous.`
+                : `Votre abonnement ${hasPaidAccess ? 'est actif' : 'est en cours d\'activation'}. Vous pouvez le gérer ci-dessous.`
               }
             </p>
           </div>
@@ -76,7 +86,7 @@ export default function Subscription() {
 
         {/* Features */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          {currentPlan.features.map((feature, i) => (
+          {displayedPlan.features.map((feature, i) => (
             <div key={i} className="flex items-center gap-2 text-sm text-on-surface-variant">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
               {feature}
@@ -94,6 +104,11 @@ export default function Subscription() {
               <Crown className="w-5 h-5" />
               Passer au plan supérieur
             </button>
+          ) : isPendingActivation ? (
+            <div className="flex-1 flex items-center justify-center gap-2 bg-surface-container-high text-on-surface px-6 py-3.5 rounded-xl font-bold border border-outline-variant/10">
+              <AlertCircle className="w-5 h-5" />
+              Activation en cours...
+            </div>
           ) : (
             <>
               <button

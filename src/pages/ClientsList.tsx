@@ -135,7 +135,57 @@ export default function ClientsList() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="md:hidden divide-y divide-surface-container-low">
+            {filteredClients.map((client) => (
+              <article key={client.id} className="bg-surface-container-lowest p-4">
+                <div className="flex items-start gap-3">
+                  <button
+                    onClick={() => navigate(`/app/clients/${client.id}`)}
+                    className={`min-touch w-12 h-12 rounded-[14px] flex items-center justify-center font-bold text-sm shadow-inner shrink-0 active:scale-95 transition-transform ${client.type === 'B2B' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}
+                    aria-label={`Voir ${client.name}`}
+                  >
+                    {client.type === 'B2B' ? <Briefcase className="w-5 h-5"/> : <UserIcon className="w-5 h-5"/>}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      onClick={() => navigate(`/app/clients/${client.id}`)}
+                      className="font-bold text-on-surface text-base hover:text-primary transition-colors text-left truncate block max-w-full"
+                    >
+                      {client.name}
+                    </button>
+                    <span className={`text-[10px] uppercase font-bold tracking-widest ${client.type === 'B2B' ? 'text-secondary' : 'text-primary'}`}>
+                      {client.type === 'B2B' ? 'Pro' : 'Particulier'}
+                    </span>
+                    <div className="mt-2 space-y-1 text-sm text-on-surface-variant">
+                      <p className="truncate">{client.email || 'Email non renseigné'}</p>
+                      <p className="truncate">{client.phone || 'Téléphone non renseigné'}</p>
+                      {client.address && <p className="line-clamp-2">{client.address}</p>}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleOpenModal(client)}
+                    className="min-touch flex items-center justify-center gap-2 rounded-xl bg-surface-container-high text-on-surface px-3 py-2.5 text-xs font-bold"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Modifier
+                  </button>
+                  <button
+                    disabled={isDeleting === client.id}
+                    onClick={() => handleDeleteClick(client.id)}
+                    className="min-touch flex items-center justify-center gap-2 rounded-xl bg-error-container text-error px-3 py-2.5 text-xs font-bold disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-surface-container-low/30 border-b border-outline-variant/10 text-on-surface-variant">
@@ -188,13 +238,14 @@ export default function ClientsList() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-8 text-center border border-outline-variant/10 animate-scale-in">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-5 sm:p-8 text-center border border-outline-variant/10 animate-scale-in pb-safe">
             <div className="w-20 h-20 bg-error-container text-error rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
               <Trash2 className="w-10 h-10" />
             </div>
@@ -202,17 +253,17 @@ export default function ClientsList() {
             <p className="text-on-surface-variant text-base mb-8">
               Cette action est irréversible. Le client sera définitivement supprimé de votre carnet.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4">
               <button 
                 onClick={() => setDeleteModalOpen(null)} 
-                className="flex-1 py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors"
+                className="flex-1 min-touch py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors"
               >
                 Annuler
               </button>
               <button 
                 onClick={confirmDelete} 
                 disabled={!!isDeleting}
-                className="flex-1 py-3.5 bg-error text-on-error rounded-xl font-bold shadow-lg shadow-error/20 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50"
+                className="flex-1 min-touch py-3.5 bg-error text-on-error rounded-xl font-bold shadow-lg shadow-error/20 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50"
               >
                 {isDeleting ? 'Suppression...' : 'Supprimer'}
               </button>
@@ -223,20 +274,20 @@ export default function ClientsList() {
 
       {/* Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-outline-variant/10 animate-scale-in flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center px-8 py-6 border-b border-surface-container-low shrink-0 bg-surface-container-lowest z-10">
-              <h2 className="text-2xl font-extrabold font-headline text-on-surface">{editingClient ? 'Modifier le client' : 'Nouveau client'}</h2>
-              <button onClick={handleCloseModal} className="p-2.5 bg-surface-container-high hover:bg-surface-container-highest rounded-full transition-colors">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-outline-variant/10 animate-scale-in flex flex-col max-h-[calc(100dvh-24px)]">
+            <div className="flex justify-between items-center px-5 sm:px-8 py-4 sm:py-6 border-b border-surface-container-low shrink-0 bg-surface-container-lowest z-10">
+              <h2 className="text-xl sm:text-2xl font-extrabold font-headline text-on-surface">{editingClient ? 'Modifier le client' : 'Nouveau client'}</h2>
+              <button onClick={handleCloseModal} className="min-touch bg-surface-container-high hover:bg-surface-container-highest rounded-full transition-colors flex items-center justify-center" aria-label="Fermer la fenêtre client">
                 <X className="w-5 h-5 text-on-surface" />
               </button>
             </div>
             
-            <div className="overflow-y-auto px-8 py-6">
+            <div className="overflow-y-auto px-5 sm:px-8 py-5 sm:py-6">
               <form id="client-form" onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Type de client *</label>
-                  <div className="flex bg-surface-container-high p-1.5 rounded-xl w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row bg-surface-container-high p-1.5 rounded-xl w-full sm:w-auto gap-1 sm:gap-0">
                     <button 
                       type="button"
                       onClick={() => setFormData({...formData, type: 'B2C'})}
@@ -335,15 +386,15 @@ export default function ClientsList() {
               </form>
             </div>
 
-            <div className="px-8 py-5 border-t border-surface-container-low shrink-0 bg-surface-container-lowest z-10 flex flex-col-reverse sm:flex-row justify-end gap-4 rounded-b-[2rem]">
-              <button type="button" onClick={handleCloseModal} className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors">
+            <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-surface-container-low shrink-0 bg-surface-container-lowest z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 rounded-b-[2rem] pb-safe">
+              <button type="button" onClick={handleCloseModal} className="w-full sm:w-auto min-touch px-8 py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors">
                 Annuler
               </button>
               <button 
                 form="client-form" 
                 disabled={isSaving} 
                 type="submit" 
-                className="btn-glow w-full sm:w-auto px-8 py-3.5 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:transform-none"
+                className="btn-glow w-full sm:w-auto min-touch px-8 py-3.5 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:transform-none"
               >
                 {isSaving ? 'Enregistrement...' : (editingClient ? 'Enregistrer les modifications' : 'Créer le client')}
               </button>

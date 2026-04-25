@@ -3,6 +3,7 @@ import { collection, doc, onSnapshot, query, where, setDoc, addDoc, updateDoc, d
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from './AuthContext';
 import { startOfMonth } from 'date-fns';
+import { AppPlan, AppSubscriptionStatus, BillingCycle } from '../lib/billing';
 
 // Referral tracking + discount rewards — called after user completes onboarding
 // Rewards: both referrer & referred get -50% on monthly plan or -15% on annual plan
@@ -42,8 +43,14 @@ export interface CompanySettings {
   name: string;
   profession?: string;
   trialStartedAt?: string;
-  subscriptionStatus?: 'trial' | 'active' | 'expired';
-  plan?: 'free' | 'starter' | 'pro';
+  subscriptionStatus?: AppSubscriptionStatus;
+  plan?: AppPlan;
+  pendingPlan?: AppPlan | null;
+  billingCycle?: BillingCycle | null;
+  pendingBillingCycle?: BillingCycle | null;
+  paddleSubscriptionId?: string;
+  paddlePriceId?: string | null;
+  paddleLastEventAt?: string | null;
   monthlyInvoiceCount?: number;
   monthlyAiUsageCount?: number;
   monthlyResetAt?: string; // ISO date — quand les compteurs ont été reset pour la dernière fois
@@ -163,7 +170,7 @@ interface DataContextType {
   updateInvoice: (id: string, data: Partial<Invoice>) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;
   shareQuoteForSignature: (invoiceId: string) => Promise<string>;
-  activateSubscription: () => Promise<void>;
+  activateSubscription: (pendingPlan?: AppPlan, billingCycle?: BillingCycle) => Promise<void>;
   importCatalog: (items: any[]) => Promise<void>;
   addArticle: (data: Omit<Article, 'id' | 'usageCount' | 'updatedAt'>) => Promise<string>;
   updateArticle: (id: string, data: Partial<Article>) => Promise<void>;
@@ -278,12 +285,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const activateSubscription = async () => {
+  const activateSubscription = async (pendingPlan?: AppPlan, billingCycle?: BillingCycle) => {
     if (!user) return;
     try {
       const companyRef = doc(db, 'companies', user.uid);
       await setDoc(companyRef, { 
-        subscriptionStatus: 'active',
+        subscriptionStatus: 'pending_activation',
+        pendingPlan: pendingPlan || null,
+        pendingBillingCycle: billingCycle || null,
         updatedAt: new Date().toISOString() 
       }, { merge: true });
     } catch (error) {

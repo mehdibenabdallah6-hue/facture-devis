@@ -1,25 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Crown, Zap, Check, Sparkles, ArrowRight, X, Tag, Gift, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
+import { BillingCycle, PLAN_PRICING, formatEuroPrice, getMonthlyEquivalent } from '../lib/billing';
 
 export default function Upgrade() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activateSubscription, saveCompany, company } = useData();
-  const { activeDiscount } = usePlan();
+  const { activateSubscription, company } = useData();
+  const { activeDiscount, isPendingActivation } = usePlan();
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const [loadingCode, setLoadingCode] = useState<string | null>(null);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
-
-  // New Pricing Strategy
-  const PRICES = {
-    starter: { monthly: 14.9, annual: 129 },
-    pro: { monthly: 29.9, annual: 249 }
-  };
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
+  const pendingCheckoutRef = useRef<{ planId: 'starter' | 'pro'; billingCycle: BillingCycle } | null>(null);
 
   // Calculate discounted prices
   const getDiscountedPrice = (basePrice: number): number => {
@@ -33,11 +29,6 @@ export default function Upgrade() {
     return basePrice;
   };
 
-  const formatPrice = (price: number) => {
-    if (price % 1 === 0) return `${price}€`;
-    return `${price.toFixed(2)}€`;
-  };
-
   useEffect(() => {
     const initPaddle = async () => {
       try {
@@ -48,9 +39,14 @@ export default function Upgrade() {
           eventCallback: async (event) => {
             if (event.name === 'checkout.completed') {
               console.log('Payment successful!', event.data);
-              await activateSubscription();
-              await saveCompany({ plan: 'pro' }); 
-              navigate('/app');
+              if (pendingCheckoutRef.current) {
+                setLoadingCode(pendingCheckoutRef.current.planId);
+                await activateSubscription(
+                  pendingCheckoutRef.current.planId,
+                  pendingCheckoutRef.current.billingCycle,
+                );
+                navigate('/app/abonnement');
+              }
             }
           }
         });
@@ -62,7 +58,7 @@ export default function Upgrade() {
       }
     };
     initPaddle();
-  }, [activateSubscription, saveCompany, navigate]);
+  }, [activateSubscription, navigate]);
 
   const openCheckout = (planId: 'starter' | 'pro') => {
     if (!paddle) {
@@ -71,6 +67,7 @@ export default function Upgrade() {
     }
     
     setLoadingCode(planId);
+    pendingCheckoutRef.current = { planId, billingCycle };
 
     const starterMonthlyId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ID || 'pri_01starter'; 
     const proMonthlyId = import.meta.env.VITE_PADDLE_PRICE_PRO_ID || 'pri_01pro'; 
@@ -95,20 +92,21 @@ export default function Upgrade() {
   };
 
   const PriceDisplay = ({ planId }: { planId: 'starter' | 'pro' }) => {
-    const basePrice = billingCycle === 'monthly' ? PRICES[planId].monthly : PRICES[planId].annual;
+    const basePrice = PLAN_PRICING[planId][billingCycle];
     const discountedPrice = getDiscountedPrice(basePrice);
-    const monthlyEquivalent = billingCycle === 'annual' ? discountedPrice / 12 : discountedPrice;
+    const monthlyEquivalent =
+      billingCycle === 'annual' ? discountedPrice / 12 : getMonthlyEquivalent(planId, billingCycle);
 
     return (
       <div className="flex flex-col items-center mb-6">
         <div className="flex items-baseline gap-1">
           {activeDiscount && (
              <span className="text-lg line-through text-on-surface-variant/40 font-headline mr-2">
-               {formatPrice(basePrice / (billingCycle === 'annual' ? 12 : 1))}
+               {formatEuroPrice(basePrice / (billingCycle === 'annual' ? 12 : 1))}
              </span>
           )}
           <span className="text-5xl font-extrabold text-on-surface tracking-tight font-headline">
-            {formatPrice(monthlyEquivalent)}
+            {formatEuroPrice(monthlyEquivalent)}
           </span>
           <span className="text-on-surface-variant font-medium text-sm">/mois</span>
         </div>
@@ -119,7 +117,7 @@ export default function Upgrade() {
               Paiement annuel
             </span>
             <span className="text-sm text-on-surface-variant font-medium">
-              soit {formatPrice(discountedPrice)} / an
+              soit {formatEuroPrice(discountedPrice)} / an
             </span>
           </div>
         )}
@@ -150,6 +148,15 @@ export default function Upgrade() {
               {activeDiscount.source === 'referral'
                 ? '🎉 Parrainage actif : -50% mensuel ou -15% annuel'
                 : `⏰ Offre bienvenue : -20% sur le plan annuel (expire dans ${Math.max(0, Math.round((new Date(company?.welcomeDiscountExpiry || '').getTime() - Date.now()) / (1000 * 60 * 60)))}h)`}
+            </span>
+          </div>
+        )}
+
+        {isPendingActivation && (
+          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-secondary/10 border border-secondary/20 text-on-surface text-sm font-medium shadow-sm">
+            <Loader2 className="w-5 h-5 text-secondary animate-spin shrink-0" />
+            <span className="font-bold text-secondary">
+              Paiement reçu. Activation de votre abonnement en cours...
             </span>
           </div>
         )}

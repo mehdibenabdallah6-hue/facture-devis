@@ -420,7 +420,125 @@ export default function InvoicesList() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="md:hidden divide-y divide-surface-container-low">
+            {filteredInvoices.map((invoice) => (
+              <article
+                key={invoice.id}
+                onClick={() => navigate(`/app/invoices/${invoice.id}`)}
+                className="bg-surface-container-lowest p-4 active:bg-surface-container-low/60 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-headline font-extrabold text-on-surface tracking-wide truncate">
+                      {invoice.number}
+                    </div>
+                    <div className="mt-1 font-bold text-on-surface truncate">
+                      {invoice.clientName}
+                    </div>
+                    <div className="mt-1 text-xs font-medium text-on-surface-variant">
+                      {format(new Date(invoice.date), 'dd MMM yyyy', { locale: fr })}
+                      {typeFilter === 'invoice' && invoice.dueDate
+                        ? ` · Éch. ${format(new Date(invoice.dueDate), 'dd MMM', { locale: fr })}`
+                        : ''}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-headline font-extrabold text-primary text-lg">
+                      {formatCurrency(invoice.totalTTC)}
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${getStatusColor(invoice.status)}`}>
+                      {getStatusLabel(invoice.status)}
+                    </span>
+                  </div>
+                </div>
+
+                {invoice.type === 'invoice' && invoice.vatRegime !== 'franchise' && (
+                  <div className="mt-3">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                      invoice.chorusStatus === 'submitted'
+                        ? 'bg-tertiary-container/60 text-tertiary border border-tertiary/20'
+                        : invoice.chorusStatus === 'error'
+                        ? 'bg-error-container/60 text-error border border-error/20'
+                        : 'bg-amber-100 text-amber-700 border border-amber-300/40'
+                    }`}>
+                      {invoice.chorusStatus === 'submitted' ? 'Déposée Chorus'
+                        : invoice.chorusStatus === 'error' ? 'Erreur Chorus'
+                        : 'À déposer Chorus'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {invoice.type === 'quote' && (invoice.status === 'accepted' || invoice.status === 'sent') && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/new?fromQuote=${invoice.id}`); }}
+                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-primary-container text-primary px-3 py-2.5 text-xs font-bold"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Convertir
+                    </button>
+                  )}
+                  {invoice.status === 'draft' && (
+                    <button
+                      disabled={isUpdating === invoice.id}
+                      onClick={(e) => handleStatusChange(invoice.id, 'sent', e)}
+                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-secondary-container text-secondary px-3 py-2.5 text-xs font-bold disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                      Envoyé
+                    </button>
+                  )}
+                  {invoice.type === 'quote' && (invoice.status === 'sent' || invoice.status === 'draft') && (
+                    <button
+                      disabled={isSharing === invoice.id}
+                      onClick={(e) => handleShare(invoice.id, e)}
+                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-primary/10 text-primary px-3 py-2.5 text-xs font-bold disabled:opacity-50"
+                    >
+                      {copiedLink === invoice.id ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                      {copiedLink === invoice.id ? 'Copié' : 'Signer'}
+                    </button>
+                  )}
+                  {invoice.type === 'invoice' && invoice.status === 'sent' && (
+                    <button
+                      disabled={isUpdating === invoice.id}
+                      onClick={(e) => handleStatusChange(invoice.id, 'paid', e)}
+                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-tertiary-container text-tertiary px-3 py-2.5 text-xs font-bold disabled:opacity-50"
+                    >
+                      <Euro className="w-4 h-4" />
+                      Payée
+                    </button>
+                  )}
+                  {invoice.type === 'invoice' && invoice.status === 'overdue' && (
+                    <button
+                      onClick={(e) => handleWhatsAppReminder(invoice, e)}
+                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-green-500/10 text-green-700 px-3 py-2.5 text-xs font-bold"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Relancer
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${invoice.id}`); }}
+                    className="min-touch flex items-center justify-center gap-2 rounded-xl bg-surface-container-high text-on-surface px-3 py-2.5 text-xs font-bold"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Ouvrir
+                  </button>
+                  <button
+                    disabled={isDeleting === invoice.id}
+                    onClick={(e) => handleDeleteClick(invoice.id, e)}
+                    className="min-touch flex items-center justify-center gap-2 rounded-xl bg-error-container text-error px-3 py-2.5 text-xs font-bold disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-surface-container-low/30 border-b border-outline-variant/10 text-on-surface-variant">
@@ -547,13 +665,14 @@ export default function InvoicesList() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
-          <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-8 text-center border border-outline-variant/10 animate-scale-in">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-5 sm:p-8 text-center border border-outline-variant/10 animate-scale-in pb-safe">
             <div className="w-20 h-20 bg-error-container text-error rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
               <Trash2 className="w-10 h-10" />
             </div>
@@ -561,17 +680,17 @@ export default function InvoicesList() {
             <p className="text-on-surface-variant text-base mb-8">
               Cette action est irréversible. Le document sera définitivement supprimé.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4">
               <button 
                 onClick={() => setDeleteModalOpen(null)} 
-                className="flex-1 py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors"
+                className="flex-1 min-touch py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors"
               >
                 Annuler
               </button>
               <button 
                 onClick={confirmDelete} 
                 disabled={!!isDeleting}
-                className="flex-1 py-3.5 bg-error text-on-error rounded-xl font-bold shadow-lg shadow-error/20 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50"
+                className="flex-1 min-touch py-3.5 bg-error text-on-error rounded-xl font-bold shadow-lg shadow-error/20 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50"
               >
                 {isDeleting ? 'Suppression...' : 'Supprimer'}
               </button>

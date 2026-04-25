@@ -7,11 +7,12 @@ import { usePlan } from '../hooks/usePlan';
 import { compressImageToDataURL } from '../services/imageUtils';
 import * as XLSX from 'xlsx';
 import ReferralCard from '../components/ReferralCard';
+import { PLAN_DISPLAY_NAMES } from '../lib/billing';
 
 export default function Settings() {
   const { company, saveCompany, importCatalog, articles, addArticle, updateArticle, deleteArticle } = useData();
   const { user } = useAuth();
-  const { plan } = usePlan();
+  const { plan, hasPaidAccess, isPendingActivation } = usePlan();
   const letterheadRef = useRef<HTMLInputElement>(null);
   const catalogRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -206,17 +207,22 @@ export default function Settings() {
             </div>
             <div>
               <h3 className="font-bold text-on-surface mb-1 text-lg font-headline">Abonnement</h3>
-              {plan !== 'free' ? (
+              {hasPaidAccess ? (
                 <p className="text-sm text-on-surface-variant flex items-center justify-center sm:justify-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-tertiary" /> 
-                  <span className="font-bold text-tertiary">Actif</span> Plan {plan === 'pro' ? 'Pro' : 'Starter'}
+                  <span className="font-bold text-tertiary">Actif</span> Plan {PLAN_DISPLAY_NAMES[plan]}
+                </p>
+              ) : isPendingActivation ? (
+                <p className="text-sm text-on-surface-variant flex items-center justify-center sm:justify-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-primary" />
+                  <span className="font-bold text-primary">Activation en cours</span>
                 </p>
               ) : (
                 <p className="text-sm text-on-surface-variant">Plan actuel : <span className="font-bold text-on-surface text-base">Gratuit</span></p>
               )}
             </div>
           </div>
-          {plan === 'free' ? (
+          {!hasPaidAccess && !isPendingActivation ? (
             <Link to="/app/upgrade" className="btn-glow bg-secondary text-on-secondary px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto text-center">
               Voir les offres
             </Link>
@@ -231,7 +237,7 @@ export default function Settings() {
           )}
         </div>
         
-        {company?.subscriptionStatus === 'active' && (
+        {hasPaidAccess && (
           <div className="w-full bg-surface-container-low p-4 rounded-xl flex items-start gap-3 mt-2 border border-outline-variant/20">
             <AlertCircle className="w-5 h-5 text-on-surface-variant shrink-0 mt-0.5" />
             <div className="text-sm text-on-surface-variant">
@@ -492,8 +498,8 @@ export default function Settings() {
               </button>
             </div>
 
-            <div className="bg-surface-container-low rounded-2xl border border-outline-variant/10 overflow-hidden">
-              <table className="w-full text-left text-sm">
+            <div className="bg-surface-container-low rounded-2xl border border-outline-variant/10 overflow-x-auto">
+              <table className="w-full min-w-[620px] text-left text-sm">
                 <thead className="bg-surface-container border-b border-outline-variant/10 text-on-surface-variant font-medium text-xs uppercase tracking-wider">
                   <tr>
                     <th className="p-4">Description</th>
@@ -515,8 +521,8 @@ export default function Settings() {
                         <input type="number" value={newArticleData.vatRate} onChange={e => setNewArticleData({...newArticleData, vatRate: parseFloat(e.target.value) || 0})} className="w-full bg-surface-container-high rounded-lg px-2 py-2 text-sm border-none focus:ring-1 focus:ring-primary/50 text-right" />
                       </td>
                       <td className="p-3 text-right flex justify-end gap-2">
-                        <button type="button" onClick={handleAddArticle} className="p-2 bg-tertiary/10 text-tertiary hover:bg-tertiary/20 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setIsAddingArticle(false)} className="p-2 bg-error/10 text-error hover:bg-error/20 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                        <button type="button" onClick={handleAddArticle} className="min-touch bg-tertiary/10 text-tertiary hover:bg-tertiary/20 rounded-lg transition-colors flex items-center justify-center"><Save className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setIsAddingArticle(false)} className="min-touch bg-error/10 text-error hover:bg-error/20 rounded-lg transition-colors flex items-center justify-center"><X className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   )}
@@ -553,13 +559,13 @@ export default function Settings() {
                         <td className="p-3 flex justify-end gap-2">
                           {editingArticleId === article.id ? (
                             <>
-                              <button type="button" onClick={() => handleUpdateArticle(article.id)} className="p-2 bg-tertiary/10 text-tertiary hover:bg-tertiary/20 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
-                              <button type="button" onClick={() => setEditingArticleId(null)} className="p-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => handleUpdateArticle(article.id)} className="min-touch bg-tertiary/10 text-tertiary hover:bg-tertiary/20 rounded-lg transition-colors flex items-center justify-center"><Save className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => setEditingArticleId(null)} className="min-touch bg-surface-container-high text-on-surface hover:bg-surface-container-highest rounded-lg transition-colors flex items-center justify-center"><X className="w-4 h-4" /></button>
                             </>
                           ) : (
                             <>
-                              <button type="button" onClick={() => handleStartEditArticle(article)} className="p-2 bg-surface-container text-on-surface-variant hover:text-on-surface rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
-                              <button type="button" onClick={() => handleDeleteArticle(article.id)} className="p-2 bg-error/5 text-error/70 hover:text-error hover:bg-error/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => handleStartEditArticle(article)} className="min-touch bg-surface-container text-on-surface-variant hover:text-on-surface rounded-lg transition-colors flex items-center justify-center"><Edit2 className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => handleDeleteArticle(article.id)} className="min-touch bg-error/5 text-error/70 hover:text-error hover:bg-error/10 rounded-lg transition-colors flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
                             </>
                           )}
                         </td>

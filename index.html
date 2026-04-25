@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#E8621A" />
     <link rel="icon" type="image/png" href="/icons/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Photofacto" />
@@ -31,16 +31,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Unregister any previously registered service workers
-      // (we removed SW support, so clean up old registrations)
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-    </script>
   </body>
 </html>

@@ -278,11 +278,11 @@ export default function InvoiceCreate() {
   const typeParam = searchParams.get('type') as 'invoice' | 'quote' | null;
   const clientIdParam = searchParams.get('clientId');
 
-  const [step, setStep] = useState<'upload' | 'analyzing' | 'edit' | 'paywall'>(id || fromQuoteId ? 'edit' : 'upload');
+  const [step, setStep] = useState<'upload' | 'analyzing' | 'edit' | 'paywall' | 'activation_pending'>(id || fromQuoteId ? 'edit' : 'upload');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isPro, isFree, plan, checkInvoiceLimit, limits } = usePlan();
+  const { isPro, isFree, plan, checkInvoiceLimit, limits, hasPaidAccess, isPendingActivation } = usePlan();
   const [showUpsellModal, setShowUpsellModal] = useState<string | null>(null);
   const [showCameraGuide, setShowCameraGuide] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -515,7 +515,7 @@ export default function InvoiceCreate() {
           notes: data.notes || prev.notes,
         }));
         incrementAiUsage();
-        if (company?.subscriptionStatus !== 'active') {
+        if (!hasPaidAccess) {
           setStep('paywall');
         } else {
           setStep('edit');
@@ -659,7 +659,7 @@ export default function InvoiceCreate() {
           });
 
           incrementAiUsage();
-          if (company?.subscriptionStatus !== 'active') {
+          if (!hasPaidAccess) {
             setStep('paywall');
           } else {
             setStep('edit');
@@ -797,12 +797,18 @@ export default function InvoiceCreate() {
       if (extractedData.notes) newData.notes = extractedData.notes;
       return newData;
     });
-    if (company?.subscriptionStatus !== 'active') {
+    if (!hasPaidAccess) {
       setStep('paywall');
     } else {
       setStep('edit');
     }
   };
+
+  useEffect(() => {
+    if (hasPaidAccess && (step === 'paywall' || step === 'activation_pending')) {
+      setStep('edit');
+    }
+  }, [hasPaidAccess, step]);
 
   const handleExtractionError = (err: any) => {
     console.error(err);
@@ -1399,12 +1405,12 @@ export default function InvoiceCreate() {
           onCancel={() => setShowCameraGuide(false)}
         />
       )}
-      <div className="max-w-5xl mx-auto py-10 md:py-20 px-4 line-clamp-none">
-        <div className="animate-fade-in-up text-center space-y-4 mb-14">
-          <h1 className="text-4xl md:text-6xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
+      <div className="max-w-5xl mx-auto py-6 md:py-20 px-1 sm:px-4 line-clamp-none">
+        <div className="animate-fade-in-up text-center space-y-3 mb-8 md:mb-14">
+          <h1 className="text-3xl md:text-6xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
             Rapide. Sans effort.
           </h1>
-          <p className="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto font-medium">
+          <p className="text-base md:text-xl text-on-surface-variant max-w-2xl mx-auto font-medium">
             10 secondes pour créer votre document. Dictez-le ou prenez en photo un brouillon.
           </p>
         </div>
@@ -1416,9 +1422,9 @@ export default function InvoiceCreate() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6 lg:gap-10 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 relative">
           {isOffline && (
-            <div className="absolute inset-0 z-20 bg-surface-container-lowest/70 backdrop-blur-sm rounded-[3rem] flex flex-col items-center justify-center p-8 text-center border border-outline-variant/20">
+            <div className="absolute inset-0 z-20 bg-surface-container-lowest/80 backdrop-blur-sm rounded-2xl md:rounded-[3rem] flex flex-col items-center justify-center p-5 md:p-8 text-center border border-outline-variant/20">
               <div className="w-16 h-16 bg-error/10 text-error rounded-full flex items-center justify-center mb-4">
                 <WifiOff className="w-8 h-8" />
               </div>
@@ -1435,25 +1441,25 @@ export default function InvoiceCreate() {
           )}
 
           <div 
-            className={`animate-fade-in-up animation-delay-100 relative bg-surface-container-lowest border-2 rounded-[3rem] p-8 md:p-10 text-center cursor-pointer transition-all overflow-hidden ${
+            className={`animate-fade-in-up animation-delay-100 relative min-h-[230px] bg-surface-container-lowest border-2 rounded-2xl md:rounded-[2rem] p-5 md:p-8 text-center cursor-pointer transition-all overflow-hidden ${
               isDictating 
                 ? "border-error shadow-2xl shadow-error/20 bg-error/5 scale-[1.02]" 
                 : "border-primary/20 hover:border-primary card-hover group hover:shadow-2xl hover:shadow-primary/10"
             }`}
-            onClick={(isDictating || isOffline || isFree) ? (isFree && !isOffline ? () => setShowUpsellModal('La dictée vocale est disponible à partir du plan Starter (9€/mois).') : undefined) : handleDictation}
+            onClick={(isDictating || isOffline || isFree) ? (isFree && !isOffline ? () => setShowUpsellModal('La dictée vocale est disponible à partir du plan Solo (14,90€/mois).') : undefined) : handleDictation}
             style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
           >
             {!isDictating && <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>}
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-5 py-4">
-              <div className={`w-24 h-24 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
+            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 py-2 md:py-4">
+              <div className={`w-16 h-16 md:w-24 md:h-24 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
                 isDictating 
                   ? "bg-error text-white shadow-error/40 scale-110 animate-pulse" 
                   : "bg-primary text-on-primary shadow-primary/30 group-hover:scale-110"
               }`}>
-                <Mic className="w-10 h-10" />
+                <Mic className="w-7 h-7 md:w-10 md:h-10" />
               </div>
               <div className="space-y-2">
-                <h3 className={`text-2xl lg:text-3xl font-extrabold font-headline ${
+                <h3 className={`text-xl md:text-2xl lg:text-3xl font-extrabold font-headline ${
                   isDictating ? "text-error" : "text-on-surface"
                 }`}>
                   {isDictating ? "Écoute en cours..." : "Dicter"}
@@ -1465,7 +1471,7 @@ export default function InvoiceCreate() {
                     </div>
                     <button 
                       onClick={(e) => { e.stopPropagation(); stopDictation(); }}
-                      className="mt-2 bg-error text-white px-8 py-3.5 rounded-2xl font-bold text-base hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-error/30 flex items-center justify-center gap-2 mx-auto"
+                      className="mt-2 min-touch bg-error text-white px-6 py-3 rounded-xl font-bold text-sm md:text-base active:scale-95 transition-all shadow-lg shadow-error/30 flex items-center justify-center gap-2 mx-auto"
                     >
                       <MicOff className="w-5 h-5" />
                       J'ai terminé
@@ -1473,7 +1479,7 @@ export default function InvoiceCreate() {
                   </>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-on-surface-variant font-medium">Dictez tout d'une traite, appuyez quand c'est fini</p>
+                    <p className="text-sm md:text-base text-on-surface-variant font-medium">Dictez tout d'une traite, appuyez quand c'est fini</p>
                     <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-left space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1.5">💡 Que dire ?</p>
                       <p className="text-xs text-on-surface-variant">• <strong>Client :</strong> "Pour Monsieur Martin"</p>
@@ -1487,9 +1493,9 @@ export default function InvoiceCreate() {
           </div>
 
           <div 
-            className="animate-fade-in-up animation-delay-200 card-hover group relative bg-surface-container-lowest border-2 border-secondary/20 hover:border-secondary rounded-[3rem] p-8 md:p-10 text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-secondary/10 overflow-hidden"
+            className="animate-fade-in-up animation-delay-200 card-hover group relative min-h-[230px] bg-surface-container-lowest border-2 border-secondary/20 hover:border-secondary rounded-2xl md:rounded-[2rem] p-5 md:p-8 text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-secondary/10 overflow-hidden"
             onClick={() => { 
-              if (isFree) { setShowUpsellModal('L\'extraction IA par photo est disponible à partir du plan Starter (9€/mois).'); return; }
+              if (isFree) { setShowUpsellModal('L\'extraction IA par photo est disponible à partir du plan Solo (14,90€/mois).'); return; }
               if (!isOffline) setShowCameraGuide(true); 
             }}
             style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
@@ -1503,23 +1509,22 @@ export default function InvoiceCreate() {
               className="hidden" 
             />
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-6 py-6">
-              <div className="w-24 h-24 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-xl shadow-secondary/30 group-hover:scale-110 transition-transform duration-300">
-                <Camera className="w-10 h-10" />
+            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 py-2 md:py-6">
+              <div className="w-16 h-16 md:w-24 md:h-24 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-xl shadow-secondary/30 group-hover:scale-110 transition-transform duration-300">
+                <Camera className="w-7 h-7 md:w-10 md:h-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Photographier</h3>
-                <p className="text-on-surface-variant font-medium">Devis papier, brouillon, notes chantier</p>
+                <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Photographier</h3>
+                <p className="text-sm md:text-base text-on-surface-variant font-medium">Devis papier, brouillon, notes chantier</p>
               </div>
             </div>
           </div>
-        </div>
 
           {/* Third card: Import Document */}
           <div 
-            className="animate-fade-in-up animation-delay-300 card-hover group relative bg-surface-container-lowest border-2 border-tertiary/20 hover:border-tertiary rounded-[3rem] p-8 md:p-10 text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-tertiary/10 overflow-hidden md:col-span-2 lg:col-span-1"
+            className="animate-fade-in-up animation-delay-300 card-hover group relative min-h-[230px] bg-surface-container-lowest border-2 border-tertiary/20 hover:border-tertiary rounded-2xl md:rounded-[2rem] p-5 md:p-8 text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-tertiary/10 overflow-hidden md:col-span-2 lg:col-span-1"
             onClick={() => { 
-              if (isFree) { setShowUpsellModal('L\'import de documents est disponible à partir du plan Starter (9€/mois).'); return; }
+              if (isFree) { setShowUpsellModal('L\'import de documents est disponible à partir du plan Solo (14,90€/mois).'); return; }
               if (!isOffline) docInputRef.current?.click(); 
             }}
             style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
@@ -1532,21 +1537,22 @@ export default function InvoiceCreate() {
               className="hidden" 
             />
             <div className="absolute inset-0 bg-gradient-to-br from-tertiary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-6 py-6">
-              <div className="w-24 h-24 bg-tertiary text-on-tertiary rounded-full flex items-center justify-center shadow-xl shadow-tertiary/30 group-hover:scale-110 transition-transform duration-300">
-                <FileSpreadsheet className="w-10 h-10" />
+            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 py-2 md:py-6">
+              <div className="w-16 h-16 md:w-24 md:h-24 bg-tertiary text-on-tertiary rounded-full flex items-center justify-center shadow-xl shadow-tertiary/30 group-hover:scale-110 transition-transform duration-300">
+                <FileSpreadsheet className="w-7 h-7 md:w-10 md:h-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Importer</h3>
-                <p className="text-on-surface-variant font-medium">PDF, Excel, CSV — factures, devis, bons</p>
+                <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Importer</h3>
+                <p className="text-sm md:text-base text-on-surface-variant font-medium">PDF, Excel, CSV — factures, devis, bons</p>
               </div>
             </div>
           </div>
+        </div>
 
-        <div className="animate-fade-in-up animation-delay-300 text-center pt-12 pb-8">
+        <div className="animate-fade-in-up animation-delay-300 text-center pt-8 md:pt-12 pb-6 md:pb-8">
           <button 
             onClick={() => setStep('edit')}
-            className="text-on-surface-variant hover:text-on-surface font-bold text-sm transition-all focus:outline-none"
+            className="min-touch text-on-surface-variant hover:text-on-surface font-bold text-sm transition-all focus:outline-none px-3"
           >
             Ou remplissez les champs manuellement <ArrowRight className="inline w-4 h-4 ml-1 -mt-0.5" />
           </button>
@@ -1591,25 +1597,26 @@ export default function InvoiceCreate() {
   return (
     <div className="relative">
       <UpsellModal />
-      {step === 'paywall' && (
+      {(step === 'paywall' || step === 'activation_pending') && (
         <PaddlePaywall 
-          onSuccess={() => setStep('edit')} 
-          onCancel={() => setStep('upload')} 
+          onSuccess={() => setStep('activation_pending')}
+          onCancel={step === 'paywall' ? () => setStep('upload') : undefined}
+          pendingActivation={step === 'activation_pending' || isPendingActivation}
         />
       )}
-      <div className={`animate-fade-in grid grid-cols-1 lg:grid-cols-12 gap-8 transition-all duration-700 ${step === 'paywall' ? 'blur-md pointer-events-none opacity-50' : ''}`}>
+      <div className={`animate-fade-in grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 transition-all duration-700 ${(step === 'paywall' || step === 'activation_pending') ? 'blur-md pointer-events-none opacity-50' : ''}`}>
       {/* Form Column */}
-      <div className="lg:col-span-7 space-y-8 pb-10">
+      <div className="lg:col-span-7 space-y-5 md:space-y-8 pb-10">
         <header className="space-y-2 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
           <div>
-            <button onClick={() => navigate('/app/invoices')} className="flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-sm font-bold mb-3 transition-colors group">
+            <button onClick={() => navigate('/app/invoices')} className="min-touch flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-sm font-bold mb-3 transition-colors group -ml-2 px-2">
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               Retour à la liste
             </button>
-            <h1 className="text-4xl md:text-5xl font-headline font-extrabold text-on-surface tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-headline font-extrabold text-on-surface tracking-tight">
               {id ? 'Document' : 'Vérification'}
             </h1>
-            <p className="text-on-surface-variant font-medium text-lg">
+            <p className="text-on-surface-variant font-medium text-base md:text-lg">
               {previewUrl ? "L'IA a fait le plus gros, vérifiez juste les détails." : "Remplissez votre document ci-dessous."}
             </p>
           </div>
@@ -1633,7 +1640,7 @@ export default function InvoiceCreate() {
             </div>
             <button
               onClick={() => setShowLegalModal(true)}
-              className="shrink-0 bg-amber text-on-amber px-4 py-2 rounded-xl text-xs font-bold hover:opacity-90 active:scale-95 transition-all"
+              className="shrink-0 min-touch bg-amber text-on-amber px-4 py-2 rounded-xl text-xs font-bold hover:opacity-90 active:scale-95 transition-all"
             >
               Compléter maintenant
             </button>
@@ -1704,7 +1711,7 @@ export default function InvoiceCreate() {
           </div>
         )}
 
-        <section className="bg-surface-container-lowest rounded-2xl p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-8">
+        <section className="bg-surface-container-lowest rounded-2xl p-4 sm:p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-6 md:space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2 col-span-full md:col-span-1">
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Type de document</label>
@@ -1749,7 +1756,8 @@ export default function InvoiceCreate() {
                     <button
                       type="button"
                       onClick={() => { setFormData(prev => ({ ...prev, clientId: '', clientName: '' })); setClientSearch(''); }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-error transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 min-touch text-on-surface-variant/50 hover:text-error transition-colors flex items-center justify-center"
+                      aria-label="Effacer le client sélectionné"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1758,7 +1766,7 @@ export default function InvoiceCreate() {
                 <button
                   type="button"
                   onClick={() => setShowNewClientModal(true)}
-                  className="shrink-0 bg-primary text-on-primary px-4 py-4 rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center gap-2 text-sm"
+                  className="shrink-0 min-touch bg-primary text-on-primary px-4 py-4 rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
                   title="Ajouter un nouveau client"
                 >
                   <UserPlus className="w-5 h-5" />
@@ -1818,7 +1826,7 @@ export default function InvoiceCreate() {
                   <button
                     onClick={handleQuickAddClient}
                     disabled={isAddingClient}
-                    className="shrink-0 bg-secondary text-on-secondary px-5 py-2.5 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all text-sm disabled:opacity-50"
+                    className="shrink-0 min-touch bg-secondary text-on-secondary px-5 py-2.5 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all text-sm disabled:opacity-50"
                   >
                     {isAddingClient ? 'Création...' : 'Créer ce client'}
                   </button>
@@ -1827,24 +1835,24 @@ export default function InvoiceCreate() {
 
               {/* Inline New Client Modal */}
               {showNewClientModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
-                  <div className="bg-surface-container-lowest rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-outline-variant/10 animate-scale-in">
-                    <div className="flex items-center justify-between p-6 pb-0">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
+                  <div className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[calc(100dvh-24px)] overflow-y-auto shadow-2xl border border-outline-variant/10 animate-scale-in">
+                    <div className="flex items-center justify-between p-5 sm:p-6 pb-0">
                       <h3 className="font-headline text-xl font-extrabold text-on-surface">Nouveau client</h3>
-                      <button onClick={() => setShowNewClientModal(false)} className="p-2 rounded-xl hover:bg-surface-container-high transition-colors">
+                      <button onClick={() => setShowNewClientModal(false)} className="min-touch rounded-xl hover:bg-surface-container-high transition-colors flex items-center justify-center" aria-label="Fermer la fenêtre nouveau client">
                         <X className="w-5 h-5 text-on-surface-variant" />
                       </button>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-5 sm:p-6 space-y-4 pb-safe">
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setNewClientType('B2C')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newClientType === 'B2C' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant'}`}>Particulier</button>
-                        <button type="button" onClick={() => setNewClientType('B2B')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newClientType === 'B2B' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant'}`}>Professionnel</button>
+                        <button type="button" onClick={() => setNewClientType('B2C')} className={`flex-1 min-touch py-2.5 rounded-xl text-sm font-bold transition-all ${newClientType === 'B2C' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant'}`}>Particulier</button>
+                        <button type="button" onClick={() => setNewClientType('B2B')} className={`flex-1 min-touch py-2.5 rounded-xl text-sm font-bold transition-all ${newClientType === 'B2B' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant'}`}>Professionnel</button>
                       </div>
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">Nom <span className="text-error">*</span></label>
                         <input type="text" value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Ex: Martin Jean" className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20" autoFocus />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">Email</label>
                           <input type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} placeholder="email@" className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20" />
@@ -1858,9 +1866,9 @@ export default function InvoiceCreate() {
                         <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1.5">Adresse</label>
                         <input type="text" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} placeholder="12 rue..." className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20" />
                       </div>
-                      <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setShowNewClientModal(false)} className="flex-1 py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors">Annuler</button>
-                        <button type="button" onClick={handleInlineAddClient} disabled={!newClientName.trim() || isAddingClient} className="flex-1 bg-primary text-on-primary py-3.5 rounded-xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50">
+                      <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                        <button type="button" onClick={() => setShowNewClientModal(false)} className="flex-1 min-touch py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors">Annuler</button>
+                        <button type="button" onClick={handleInlineAddClient} disabled={!newClientName.trim() || isAddingClient} className="flex-1 min-touch bg-primary text-on-primary py-3.5 rounded-xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50">
                           {isAddingClient ? 'Création...' : 'Ajouter'}
                         </button>
                       </div>
@@ -1873,7 +1881,7 @@ export default function InvoiceCreate() {
             <div className="space-y-2 col-span-full md:col-span-1">
               <label className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">
                 Numéro *
-                <button type="button" onClick={() => setIsNumberEditable(!isNumberEditable)} className="text-[10px] text-primary bg-primary/10 hover:bg-primary hover:text-on-primary px-2 py-0.5 rounded shadow-sm transition-colors">
+                <button type="button" onClick={() => setIsNumberEditable(!isNumberEditable)} className="min-h-[32px] text-[10px] text-primary bg-primary/10 hover:bg-primary hover:text-on-primary px-2 py-0.5 rounded shadow-sm transition-colors">
                   {isNumberEditable ? 'Verrouiller' : 'Modifier'}
                 </button>
               </label>
@@ -1916,7 +1924,7 @@ export default function InvoiceCreate() {
               {(formData.items || []).map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-3 items-center bg-surface-container-low/70 p-4 pt-5 rounded-2xl relative">
                   {/* Delete Button on top right of the item card for mobile focus */}
-                  <button onClick={() => removeItem(index)} className="absolute top-2 right-2 text-error/40 hover:text-error bg-surface-container-highest/50 hover:bg-error-container p-1.5 rounded-lg transition-colors">
+                  <button onClick={() => removeItem(index)} className="absolute top-2 right-2 min-touch text-error/60 hover:text-error bg-surface-container-highest/70 hover:bg-error-container rounded-lg transition-colors flex items-center justify-center" aria-label="Supprimer cette ligne">
                     <Trash2 className="w-4 h-4" />
                   </button>
 
@@ -1936,7 +1944,7 @@ export default function InvoiceCreate() {
                       <button 
                         type="button" 
                         onClick={() => setActiveCalculatorIndex(activeCalculatorIndex === index ? null : index)}
-                        className="text-primary hover:text-primary/70 transition-colors p-0.5 rounded"
+                        className="min-h-[32px] min-w-[32px] text-primary hover:text-primary/70 transition-colors rounded flex items-center justify-center"
                         title="Calculateur (L x l x h)"
                       >
                         <Calculator className="w-3.5 h-3.5" />
@@ -1983,9 +1991,9 @@ export default function InvoiceCreate() {
                     <div className="col-span-12 bg-primary/5 rounded-2xl p-4 mt-2 border border-primary/20 animate-scale-in">
                       <div className="flex justify-between items-center mb-4">
                          <span className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-1.5"><Calculator className="w-4 h-4"/> Calcul de surface/volume</span>
-                         <button type="button" onClick={() => setActiveCalculatorIndex(null)} className="text-on-surface-variant hover:text-primary p-1 bg-white rounded-full transition-colors"><X className="w-4 h-4"/></button>
+                         <button type="button" onClick={() => setActiveCalculatorIndex(null)} className="min-touch text-on-surface-variant hover:text-primary bg-white rounded-full transition-colors flex items-center justify-center"><X className="w-4 h-4"/></button>
                       </div>
-                      <div className="grid grid-cols-3 gap-3 items-end">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                          <div>
                            <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Longueur (m)</label>
                            <input type="number" id={`calc-l-${index}`} placeholder="0" className="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary/30 shadow-sm" />
@@ -2058,19 +2066,19 @@ export default function InvoiceCreate() {
           </div>
 
           <div className="bg-surface-container-low rounded-2xl p-6 md:p-8 space-y-4 shadow-inner">
-            <div className="flex justify-between items-center text-on-surface-variant">
+            <div className="flex justify-between items-center gap-3 text-on-surface-variant">
               <span className="font-bold text-sm">Total HT</span>
               <span className="font-black text-lg">{formatCurrency(totalHT)}</span>
             </div>
             {formData.vatRegime === 'standard' && (
-              <div className="flex justify-between items-center text-on-surface-variant border-b border-outline-variant/10 pb-4">
+              <div className="flex justify-between items-center gap-3 text-on-surface-variant border-b border-outline-variant/10 pb-4">
                 <span className="font-bold text-sm">TVA</span>
                 <span className="font-black text-lg">{formatCurrency(totalVAT)}</span>
               </div>
             )}
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
               <span className="text-xl font-headline font-black text-on-surface">TOTAL {formData.type === 'quote' ? 'ESTIMÉ' : 'À PAYER'}</span>
-              <span className="text-3xl font-headline font-black text-primary drop-shadow-sm">{formatCurrency(totalTTC)}</span>
+              <span className="text-3xl font-headline font-black text-primary drop-shadow-sm break-words">{formatCurrency(totalTTC)}</span>
             </div>
           </div>
         </section>
@@ -2080,7 +2088,7 @@ export default function InvoiceCreate() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={handleFacturXDownload}
-              className="flex items-center justify-center gap-3 bg-surface-container-highest text-on-surface py-5 px-6 rounded-2xl font-black text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
+              className="min-touch flex items-center justify-center gap-3 bg-surface-container-highest text-on-surface py-5 px-6 rounded-2xl font-black text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
             >
               <Shield className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
               Factur-X (Basic)
@@ -2088,7 +2096,7 @@ export default function InvoiceCreate() {
 
             <button
               onClick={() => generatePDF(true)}
-              className="flex items-center justify-center gap-3 bg-surface-container-highest text-on-surface py-5 px-6 rounded-2xl font-black text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
+              className="min-touch flex items-center justify-center gap-3 bg-surface-container-highest text-on-surface py-5 px-6 rounded-2xl font-black text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
             >
               <Printer className="w-6 h-6 text-secondary group-hover:scale-110 transition-transform" />
               Imprimer PDF
@@ -2097,7 +2105,7 @@ export default function InvoiceCreate() {
             <button
               onClick={handleSendEmail}
               disabled={isSendingEmail}
-              className="sm:col-span-2 flex items-center justify-center gap-3 bg-primary text-on-primary py-6 px-6 rounded-2xl font-black text-xl shadow-spark-cta-lg hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 group btn-glow"
+              className="sm:col-span-2 min-touch flex items-center justify-center gap-3 bg-primary text-on-primary py-6 px-6 rounded-2xl font-black text-xl shadow-spark-cta-lg hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 group btn-glow"
             >
               {isSendingEmail ? (
                 <>
@@ -2119,7 +2127,7 @@ export default function InvoiceCreate() {
           <button
             onClick={() => handleSave('draft')}
             disabled={isSaving}
-            className="w-full flex items-center justify-center gap-3 bg-primary text-on-primary py-6 px-6 rounded-2xl font-black text-2xl shadow-spark-cta-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 btn-glow"
+            className="w-full min-touch flex items-center justify-center gap-3 bg-primary text-on-primary py-5 sm:py-6 px-6 rounded-2xl font-black text-xl sm:text-2xl shadow-spark-cta-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 btn-glow"
           >
             {isSaving ? (
               <>
