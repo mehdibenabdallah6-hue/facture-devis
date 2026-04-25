@@ -1,4 +1,9 @@
-export async function extractInvoiceData(base64Image: string, mimeType: string, catalogContext?: string) {
+export async function extractInvoiceData(
+  base64Image: string,
+  mimeType: string,
+  catalogContext?: string,
+  promptText?: string
+) {
   try {
     const response = await fetch('/api/gemini', {
       method: 'POST',
@@ -9,7 +14,8 @@ export async function extractInvoiceData(base64Image: string, mimeType: string, 
         mode: 'image',
         base64Image,
         mimeType,
-        catalogContext
+        catalogContext,
+        promptText
       })
     });
 

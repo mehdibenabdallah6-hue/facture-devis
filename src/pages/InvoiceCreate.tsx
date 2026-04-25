@@ -4,7 +4,6 @@ import { useToast } from '../contexts/ToastContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import PaddlePaywall from '../components/PaddlePaywall';
-import CameraGuide from '../components/CameraGuide';
 import LegalInfoModal from '../components/LegalInfoModal';
 
 // Rest of imports...
@@ -278,13 +277,15 @@ export default function InvoiceCreate() {
   const typeParam = searchParams.get('type') as 'invoice' | 'quote' | null;
   const clientIdParam = searchParams.get('clientId');
 
-  const [step, setStep] = useState<'upload' | 'analyzing' | 'edit' | 'paywall' | 'activation_pending'>(id || fromQuoteId ? 'edit' : 'upload');
+  const [step, setStep] = useState<'upload' | 'photo_details' | 'analyzing' | 'edit' | 'paywall' | 'activation_pending'>(id || fromQuoteId ? 'edit' : 'upload');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isPro, isFree, plan, checkInvoiceLimit, checkAiLimit, limits, hasPaidAccess, isPendingActivation } = usePlan();
   const [showUpsellModal, setShowUpsellModal] = useState<string | null>(null);
-  const [showCameraGuide, setShowCameraGuide] = useState(false);
+  const [showPhotoSourcePicker, setShowPhotoSourcePicker] = useState(false);
+  const [photoDescription, setPhotoDescription] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<{ base64: string; mimeType: string } | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photosInputRef = useRef<HTMLInputElement>(null);
   const [isOffline, setIsOffline] = useState(!window.navigator.onLine);
@@ -305,7 +306,8 @@ export default function InvoiceCreate() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -320,6 +322,7 @@ export default function InvoiceCreate() {
   const [newClientType, setNewClientType] = useState<'B2C' | 'B2B'>('B2C');
   const recognitionRef = useRef<any>(null);
   const [dictationText, setDictationText] = useState('');
+  const [dictationMode, setDictationMode] = useState<'invoice' | 'photo' | null>(null);
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [isNumberEditable, setIsNumberEditable] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
@@ -458,13 +461,17 @@ export default function InvoiceCreate() {
     return false;
   };
 
-  const handleDictation = () => {
+  const handleDictation = (mode: 'invoice' | 'photo' = 'invoice') => {
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       const text = prompt("Votre navigateur ne gère pas la dictée. Tapez votre texte :");
       if (text) {
-        processDictation(text);
+        if (mode === 'photo') {
+          setPhotoDescription(prev => [prev, text].filter(Boolean).join(' ').trim());
+        } else {
+          processDictation(text);
+        }
       }
       return;
     }
@@ -479,6 +486,7 @@ export default function InvoiceCreate() {
 
     recognition.onstart = () => {
       setIsDictating(true);
+      setDictationMode(mode);
       setDictationText('');
       setError(null);
     };
@@ -505,8 +513,13 @@ export default function InvoiceCreate() {
 
     recognition.onend = () => {
       setIsDictating(false);
+      setDictationMode(null);
       if (fullTranscript.trim()) {
-        processDictation(fullTranscript.trim());
+        if (mode === 'photo') {
+          setPhotoDescription(prev => [prev, fullTranscript.trim()].filter(Boolean).join(' ').trim());
+        } else {
+          processDictation(fullTranscript.trim());
+        }
       }
     };
 
@@ -640,10 +653,11 @@ export default function InvoiceCreate() {
     }));
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
+    setShowPhotoSourcePicker(false);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -651,67 +665,56 @@ export default function InvoiceCreate() {
     };
     reader.readAsDataURL(file);
 
-    setStep('analyzing');
-
     try {
       const base64Reader = new FileReader();
-      base64Reader.onloadend = async () => {
+      base64Reader.onloadend = () => {
         const base64Data = (base64Reader.result as string).split(',')[1];
-        try {
-          const extractedData = await extractInvoiceData(base64Data, file.type, getCatalogContext());
-          
-          setFormData(prev => {
-            const newData = { ...prev };
-            if (extractedData.date && /^\d{4}-\d{2}-\d{2}$/.test(extractedData.date)) {
-              newData.date = extractedData.date;
-            }
-            if (extractedData.clientName) {
-              newData.clientName = extractedData.clientName;
-              const matchedClient = clients.find(c => c.name.toLowerCase().includes(extractedData.clientName.toLowerCase()));
-              if (matchedClient) newData.clientId = matchedClient.id;
-            }
-            if (extractedData.items && extractedData.items.length > 0) {
-              newData.items = extractedData.items.map((item: any) => ({
-                description: item.description || '',
-                quantity: item.quantity || 1,
-                unitPrice: item.unitPrice || 0,
-                vatRate: item.vatRate !== undefined ? item.vatRate : (company?.defaultVat || 20)
-              }));
-            }
-            if (extractedData.notes) newData.notes = extractedData.notes;
-            return newData;
-          });
-
-          incrementAiUsage();
-          if (!hasPaidAccess) {
-            setStep('paywall');
-          } else {
-            setStep('edit');
-          }
-        } catch (err: any) {
-          console.error(err);
-          const msg = err?.message || String(err);
-          let errorMsg = "L'IA n'a pas réussi à lire ce document. Utilisez une image plus nette ou saisissez manuellement.";
-          
-          if (msg.includes('API key')) {
-            errorMsg = "Erreur de configuration serveur. Contactez le support.";
-          } else if (msg.includes('network') || msg.includes('fetch')) {
-            errorMsg = "Erreur réseau. Vérifiez votre connexion.";
-          } else if (msg.includes('not found') || msg.includes('model')) {
-            errorMsg = `Erreur IA: Modèle introuvable ou indisponible. (${msg})`;
-          } else if (msg.length < 100) {
-            errorMsg = `Erreur: ${msg}`;
-          }
-          
-          setError(errorMsg);
-          setStep('upload');
-        }
+        setSelectedPhoto({ base64: base64Data, mimeType: file.type || 'image/jpeg' });
+        setStep('photo_details');
       };
       base64Reader.readAsDataURL(file);
     } catch (err: any) {
       console.error(err);
       setError("Erreur de format de l'image. Veuillez réessayer.");
       setStep('upload');
+    } finally {
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+    }
+  };
+
+  const resetPhotoFlow = () => {
+    if (isDictating) stopDictation();
+    setSelectedPhoto(null);
+    setPreviewUrl(null);
+    setPhotoDescription('');
+    setDictationText('');
+    setStep('upload');
+  };
+
+  const handleGenerateFromPhoto = async () => {
+    if (!selectedPhoto) {
+      setError('Ajoutez une photo avant de générer la facture.');
+      return;
+    }
+    if (!photoDescription.trim()) {
+      setError('Décrivez la prestation en quelques mots avant de lancer l’IA.');
+      return;
+    }
+    if (!tryUseAi()) return;
+
+    setError(null);
+    setStep('analyzing');
+    try {
+      const extractedData = await extractInvoiceData(
+        selectedPhoto.base64,
+        selectedPhoto.mimeType,
+        getCatalogContext(),
+        photoDescription.trim()
+      );
+      applyExtractedData(extractedData);
+    } catch (err: any) {
+      handleExtractionError(err);
     }
   };
 
@@ -1416,19 +1419,60 @@ export default function InvoiceCreate() {
     </div>
   ) : null;
 
+  const PhotoSourcePicker = () => showPhotoSourcePicker ? (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in" onClick={() => setShowPhotoSourcePicker(false)}>
+      <div className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl p-4 md:p-6 border border-outline-variant/10 animate-scale-in pb-safe" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-lg font-headline font-extrabold text-on-surface">Ajouter une photo</h3>
+            <p className="text-sm text-on-surface-variant font-medium">Prenez une photo maintenant ou choisissez-en une dans votre galerie.</p>
+          </div>
+          <button onClick={() => setShowPhotoSourcePicker(false)} className="min-touch rounded-xl hover:bg-surface-container-high transition-colors flex items-center justify-center" aria-label="Fermer le choix photo">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            className="min-touch rounded-2xl bg-secondary text-on-secondary p-4 font-bold shadow-lg shadow-secondary/20 active:scale-95 transition-all flex flex-col items-center gap-2"
+          >
+            <Camera className="w-7 h-7" />
+            Prendre photo
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            className="min-touch rounded-2xl bg-surface-container-high text-on-surface p-4 font-bold border border-outline-variant/10 active:scale-95 transition-all flex flex-col items-center gap-2"
+          >
+            <ImagePlus className="w-7 h-7 text-secondary" />
+            Galerie
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   if (step === 'upload') {
     return (
       <>
       <UpsellModal />
-      {showCameraGuide && (
-        <CameraGuide 
-          onAccept={() => {
-            setShowCameraGuide(false);
-            fileInputRef.current?.click();
-          }}
-          onCancel={() => setShowCameraGuide(false)}
-        />
-      )}
+      <PhotoSourcePicker />
+      <input
+        type="file"
+        ref={cameraInputRef}
+        onChange={handlePhotoSelected}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={galleryInputRef}
+        onChange={handlePhotoSelected}
+        accept="image/*"
+        className="hidden"
+      />
       <div className="max-w-5xl mx-auto py-3 md:py-20 px-0 sm:px-4 line-clamp-none">
         <div className="animate-fade-in-up text-center space-y-2 mb-5 md:mb-14">
           <h1 className="text-2xl md:text-6xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
@@ -1470,7 +1514,7 @@ export default function InvoiceCreate() {
                 ? "border-error shadow-2xl shadow-error/20 bg-error/5 scale-[1.02]" 
                 : "border-primary/20 hover:border-primary card-hover group hover:shadow-2xl hover:shadow-primary/10"
             }`}
-            onClick={(isDictating || isOffline) ? undefined : () => { if (tryUseAi()) handleDictation(); }}
+            onClick={(isDictating || isOffline) ? undefined : () => { if (tryUseAi()) handleDictation('invoice'); }}
             style={isOffline ? { opacity: 0.5, pointerEvents: 'none' } : {}}
           >
             {!isDictating && <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>}
@@ -1520,19 +1564,10 @@ export default function InvoiceCreate() {
             className="animate-fade-in-up animation-delay-200 card-hover group relative min-h-[104px] md:min-h-[230px] bg-surface-container-lowest border border-secondary/20 hover:border-secondary rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-left md:text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-secondary/10 overflow-hidden"
             onClick={() => {
               if (isOffline) return;
-              if (!tryUseAi()) return;
-              setShowCameraGuide(true);
+              setShowPhotoSourcePicker(true);
             }}
             style={isOffline ? { opacity: 0.5, pointerEvents: 'none' } : {}}
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              accept="image/*" 
-              capture="environment"
-              className="hidden" 
-            />
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="relative z-10 flex flex-row md:flex-col items-center md:justify-center h-full gap-4 md:gap-0 md:space-y-4 py-0 md:py-6">
               <div className="w-12 h-12 md:w-24 md:h-24 bg-secondary text-on-secondary rounded-2xl md:rounded-full flex items-center justify-center shadow-lg md:shadow-xl shadow-secondary/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
@@ -1540,7 +1575,7 @@ export default function InvoiceCreate() {
               </div>
               <div className="min-w-0 flex-1 space-y-1 md:space-y-2">
                 <h3 className="text-lg md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Photographier</h3>
-                <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">Devis papier, brouillon, notes chantier</p>
+                <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">Photo + description rapide</p>
               </div>
             </div>
           </div>
@@ -1588,6 +1623,134 @@ export default function InvoiceCreate() {
     );
   }
 
+  if (step === 'photo_details') {
+    return (
+      <>
+        <UpsellModal />
+        <PhotoSourcePicker />
+        <input
+          type="file"
+          ref={cameraInputRef}
+          onChange={handlePhotoSelected}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+        />
+        <input
+          type="file"
+          ref={galleryInputRef}
+          onChange={handlePhotoSelected}
+          accept="image/*"
+          className="hidden"
+        />
+        <div className="max-w-3xl mx-auto py-3 md:py-14 px-0 sm:px-4">
+          <button
+            onClick={resetPhotoFlow}
+            className="min-touch flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-xs md:text-sm font-bold mb-3 transition-colors -ml-2 px-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Revenir
+          </button>
+
+          <section className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl shadow-sm overflow-hidden animate-fade-in-up">
+            <div className="p-4 md:p-6 border-b border-outline-variant/10">
+              <div className="inline-flex items-center gap-2 bg-secondary/10 text-secondary px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider mb-3">
+                <Camera className="w-3.5 h-3.5" />
+                Photo + description
+              </div>
+              <h1 className="text-2xl md:text-4xl font-headline font-extrabold text-on-surface tracking-tight leading-tight mb-2">
+                Décrivez la prestation
+              </h1>
+              <p className="text-sm md:text-base text-on-surface-variant font-medium leading-relaxed max-w-xl">
+                Ajoutez une photo, décrivez la prestation en quelques mots, l'IA prépare votre facture.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-[260px_1fr] gap-0">
+              <div className="bg-surface-container-low p-4 md:p-5">
+                <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-surface-container-high border border-outline-variant/10 shadow-inner">
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Photo du chantier" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
+                      <ImageIcon className="w-10 h-10" />
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoSourcePicker(true)}
+                  className="mt-3 min-touch w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-outline-variant/10 px-4 py-3 text-sm font-bold text-on-surface active:scale-95 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4 text-secondary" />
+                  Changer la photo
+                </button>
+              </div>
+
+              <div className="p-4 md:p-6 space-y-4">
+                {error && (
+                  <div className="bg-error-container text-on-error-container p-3 rounded-xl flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p className="text-xs font-semibold">{error}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                    Décrivez la prestation
+                  </label>
+                  <textarea
+                    value={photoDescription}
+                    onChange={e => setPhotoDescription(e.target.value)}
+                    placeholder="Ex : Pose carrelage salon 45m², ragréage, main d’œuvre…"
+                    className="w-full min-h-[128px] bg-surface-container-high border-none rounded-2xl px-4 py-3.5 focus:ring-2 focus:ring-secondary/25 text-base font-medium resize-none"
+                  />
+                </div>
+
+                {isDictating && dictationMode === 'photo' && (
+                  <div className="bg-secondary/10 border border-secondary/20 rounded-2xl p-3 animate-fade-in">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-secondary mb-2">Dictée en cours</p>
+                    <p className="text-sm font-medium text-on-surface min-h-[36px]">
+                      {dictationText || 'Parlez maintenant…'}
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-3">
+                  <button
+                    type="button"
+                    onClick={() => isDictating && dictationMode === 'photo' ? stopDictation() : handleDictation('photo')}
+                    className={`min-touch flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold text-sm active:scale-95 transition-all ${
+                      isDictating && dictationMode === 'photo'
+                        ? 'bg-error text-white shadow-lg shadow-error/20'
+                        : 'bg-surface-container-high text-on-surface border border-outline-variant/10'
+                    }`}
+                  >
+                    {isDictating && dictationMode === 'photo' ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-secondary" />}
+                    {isDictating && dictationMode === 'photo' ? "J'ai terminé" : 'Dicter'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGenerateFromPhoto}
+                    disabled={!selectedPhoto || !photoDescription.trim()}
+                    className="btn-glow min-touch flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary px-5 py-3 font-black text-sm shadow-spark-cta active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Générer ma facture
+                  </button>
+                </div>
+
+                <p className="text-xs leading-relaxed text-on-surface-variant bg-primary/5 border border-primary/10 rounded-xl p-3">
+                  La photo sert de contexte visuel. Pour éviter les erreurs, l'IA se base surtout sur votre description et vous propose un brouillon modifiable.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </>
+    );
+  }
+
   if (step === 'analyzing') {
     const isPhoto = !!previewUrl;
     return (
@@ -1609,11 +1772,11 @@ export default function InvoiceCreate() {
         </div>
         <div className="animate-fade-in-up">
           <h2 className="text-3xl font-extrabold font-headline mb-3 text-on-surface">
-            {isPhoto ? "Analyse visuelle en cours..." : "L'IA retranscrit votre voix..."}
+            {isPhoto ? "Préparation de la proposition..." : "L'IA retranscrit votre voix..."}
           </h2>
           <p className="text-lg text-on-surface-variant max-w-sm mx-auto flex items-center justify-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-secondary" />
-            {isPhoto ? "Extraction du texte et des montants." : "Restitution des lignes de la facture."}
+            {isPhoto ? "L'IA croise votre photo avec votre description." : "Restitution des lignes de la facture."}
           </p>
         </div>
       </div>
@@ -1643,7 +1806,7 @@ export default function InvoiceCreate() {
               {id ? 'Document' : 'Vérification'}
             </h1>
             <p className="text-on-surface-variant font-medium text-sm md:text-lg leading-snug">
-              {previewUrl ? "L'IA a fait le plus gros, vérifiez juste les détails." : "Remplissez votre document ci-dessous."}
+              {previewUrl ? "Proposition IA : vérifiez, corrigez ou ajoutez des lignes avant validation." : "Remplissez votre document ci-dessous."}
             </p>
           </div>
           {previewUrl && (

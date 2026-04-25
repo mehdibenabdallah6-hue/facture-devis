@@ -52,8 +52,25 @@ export default async function handler(req: any, res: any) {
       if (!base64Image || !mimeType) {
         return res.status(400).json({ error: 'Missing base64Image or mimeType' });
       }
+      const userDescription = typeof promptText === 'string' ? promptText.trim() : '';
+      const photoPrompt = userDescription
+        ? `Tu es un assistant expert en facturation pour artisans. Génère une PROPOSITION de facture modifiable à partir de deux sources :
+
+1. Description de l'artisan, source principale et prioritaire :
+${userDescription}
+
+2. Photo jointe, utilisée uniquement comme contexte visuel secondaire.
+
+Règles importantes :
+- Ne prétends pas détecter automatiquement toutes les surfaces, quantités ou détails depuis la photo.
+- Ne devine pas les m², dimensions, matériaux, prix ou détails non indiqués par l'artisan.
+- Base les lignes de facture surtout sur la description texte/voix.
+- Utilise la photo seulement pour confirmer le contexte général du chantier si elle aide.
+- Si une information manque, laisse-la vide ou mets une valeur prudente plutôt que d'inventer.
+- Ne renvoie que du JSON valide correspondant au schéma.`
+        : `Tu es un assistant expert en facturation. Analyse cette image seulement comme contexte visuel pour pré-remplir une proposition de facture. Ne prétends pas détecter automatiquement les surfaces, quantités, matériaux ou prix depuis une seule photo. Si des informations manquent, laisse vide plutôt que d'inventer. Ne renvoie que du JSON valide correspondant au schéma.`;
       parts = [
-        { text: "Tu es un assistant expert en facturation. Extrait les informations de cette image (photo de devis, note manuscrite, facture, brouillon) pour pré-remplir un formulaire de facturation. Si des informations manquent, devine les de manière logique ou laisse vide. Ne renvoie que du JSON valide correspondant au schéma." + catalogPrompt },
+        { text: photoPrompt + catalogPrompt },
         { inlineData: { data: base64Image, mimeType } }
       ];
     } else if (mode === 'document') {
