@@ -539,6 +539,32 @@ export default function InvoiceCreate() {
     return topArticles.map(a => `[Nom: ${a.description}, Prix: ${a.unitPrice}€, TVA: ${a.vatRate}%]`).join(' | ');
   };
 
+  const photoQuickSuggestions = [
+    'Main d’œuvre',
+    'Déplacement',
+    'Fournitures',
+    'Pose carrelage',
+    'Peinture',
+    'Plomberie',
+    'Électricité',
+    'Nettoyage chantier',
+  ];
+
+  const addPhotoSuggestion = (suggestion: string) => {
+    setPhotoDescription(prev => {
+      const clean = prev.trim();
+      if (!clean) return suggestion;
+      return `${clean} + ${suggestion}`;
+    });
+  };
+
+  const isPhotoDescriptionTooVague = (text: string) => {
+    const clean = text.trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    const hasConcreteDetail = /(\d|€|euro|m2|m²|mètre|metre|pose|remplacement|réparation|reparation|installation|ragréage|rageage|carrelage|peinture|plomberie|électricité|electricite|main d’œuvre|main d'oeuvre|fourniture|déplacement|deplacement|nettoyage)/i.test(clean);
+    return words.length > 0 && words.length <= 4 && !hasConcreteDetail;
+  };
+
   const processDictation = async (text: string) => {
     try {
       setStep('analyzing');
@@ -698,7 +724,11 @@ export default function InvoiceCreate() {
       return;
     }
     if (!photoDescription.trim()) {
-      setError('Décrivez la prestation en quelques mots avant de lancer l’IA.');
+      setError('Décrivez la prestation en quelques mots pour générer une facture plus précise.');
+      return;
+    }
+    if (isPhotoDescriptionTooVague(photoDescription)) {
+      setError('Votre description est un peu courte. Ajoutez la surface, les matériaux ou le type de prestation pour une facture plus précise.');
       return;
     }
     if (!tryUseAi()) return;
@@ -1479,7 +1509,7 @@ export default function InvoiceCreate() {
             Rapide. Sans effort.
           </h1>
           <p className="text-sm md:text-xl text-on-surface-variant max-w-2xl mx-auto font-medium leading-relaxed">
-            10 secondes pour créer votre document. Dictez-le ou prenez en photo un brouillon.
+            Photo + description rapide = facture prête à valider.
           </p>
         </div>
 
@@ -1575,7 +1605,7 @@ export default function InvoiceCreate() {
               </div>
               <div className="min-w-0 flex-1 space-y-1 md:space-y-2">
                 <h3 className="text-lg md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Photographier</h3>
-                <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">Photo + description rapide</p>
+                <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">Photo + description = proposition fiable</p>
               </div>
             </div>
           </div>
@@ -1662,7 +1692,7 @@ export default function InvoiceCreate() {
                 Décrivez la prestation
               </h1>
               <p className="text-sm md:text-base text-on-surface-variant font-medium leading-relaxed max-w-xl">
-                Ajoutez une photo, décrivez la prestation en quelques mots, l'IA prépare votre facture.
+                Ajoutez une photo, décrivez la prestation en quelques mots, l'IA prépare une proposition de facture modifiable.
               </p>
             </div>
 
@@ -1705,6 +1735,27 @@ export default function InvoiceCreate() {
                     placeholder="Ex : Pose carrelage salon 45m², ragréage, main d’œuvre…"
                     className="w-full min-h-[128px] bg-surface-container-high border-none rounded-2xl px-4 py-3.5 focus:ring-2 focus:ring-secondary/25 text-base font-medium resize-none"
                   />
+                  <p className="text-xs text-on-surface-variant font-medium">
+                    L'IA utilise votre description comme source principale. La photo sert de contexte.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                    Ajouter vite
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {photoQuickSuggestions.map(suggestion => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => addPhotoSuggestion(suggestion)}
+                        className="min-touch rounded-full bg-surface-container-high hover:bg-secondary/10 border border-outline-variant/10 hover:border-secondary/20 px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:text-secondary active:scale-95 transition-all"
+                      >
+                        + {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {isDictating && dictationMode === 'photo' && (
@@ -1732,7 +1783,7 @@ export default function InvoiceCreate() {
                   <button
                     type="button"
                     onClick={handleGenerateFromPhoto}
-                    disabled={!selectedPhoto || !photoDescription.trim()}
+                    disabled={!selectedPhoto}
                     className="btn-glow min-touch flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary px-5 py-3 font-black text-sm shadow-spark-cta active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
                   >
                     <Sparkles className="w-4 h-4" />
@@ -1741,7 +1792,7 @@ export default function InvoiceCreate() {
                 </div>
 
                 <p className="text-xs leading-relaxed text-on-surface-variant bg-primary/5 border border-primary/10 rounded-xl p-3">
-                  La photo sert de contexte visuel. Pour éviter les erreurs, l'IA se base surtout sur votre description et vous propose un brouillon modifiable.
+                  L'IA assiste l'artisan, elle ne remplace pas sa validation. Vérifiez les lignes avant validation.
                 </p>
               </div>
             </div>
@@ -1803,16 +1854,16 @@ export default function InvoiceCreate() {
               Retour à la liste
             </button>
             <h1 className="text-[26px] md:text-5xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
-              {id ? 'Document' : 'Vérification'}
+              {id ? 'Document' : previewUrl ? 'Proposition de facture' : 'Vérification'}
             </h1>
             <p className="text-on-surface-variant font-medium text-sm md:text-lg leading-snug">
-              {previewUrl ? "Proposition IA : vérifiez, corrigez ou ajoutez des lignes avant validation." : "Remplissez votre document ci-dessous."}
+              {previewUrl ? "Brouillon modifiable : vérifiez les lignes avant validation." : "Remplissez votre document ci-dessous."}
             </p>
           </div>
           {previewUrl && (
             <div className="bg-tertiary-container/50 text-tertiary px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 border border-tertiary/20 shadow-sm whitespace-nowrap">
               <Sparkles className="w-4 h-4" />
-              Pré-rempli par l'IA
+              Brouillon IA
             </div>
           )}
         </header>

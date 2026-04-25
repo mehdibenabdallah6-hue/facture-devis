@@ -45,7 +45,12 @@ export default async function handler(req: any, res: any) {
     
     // Ajout d'une antisèche pour l'IA si un catalogue existe
     const catalogPrompt = catalogContext 
-      ? `\n\n[TRÈS IMPORTANT] Voici mon catalogue de produits enregistrés (Articles et Prix connus) : ${catalogContext}. Si les éléments mentionnés dans la pièce jointe ou le texte correspondent à des articles de ce catalogue, DOIS utiliser le prix unitaire et la description exacts de ce catalogue.` 
+      ? `\n\n[CATALOGUE PRIORITAIRE] Voici le catalogue de prestations/prix de l'artisan : ${catalogContext}.
+Règles catalogue :
+- Si une prestation de la description correspond à un élément du catalogue, utilise le nom, le prix unitaire et le taux de TVA du catalogue.
+- Si une quantité/surface est donnée par l'artisan, applique-la avec le prix catalogue correspondant.
+- Si aucun prix fiable n'est trouvé, mets unitPrice à 0 pour que l'artisan le complète.
+- Ne crée pas de prix inventé quand le catalogue ne permet pas de le justifier.`
       : '';
 
     if (mode === 'image') {
@@ -53,22 +58,32 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Missing base64Image or mimeType' });
       }
       const userDescription = typeof promptText === 'string' ? promptText.trim() : '';
-      const photoPrompt = userDescription
-        ? `Tu es un assistant expert en facturation pour artisans. Génère une PROPOSITION de facture modifiable à partir de deux sources :
+      if (!userDescription) {
+        return res.status(400).json({
+          error: 'Décrivez la prestation en quelques mots pour générer une facture plus précise.'
+        });
+      }
+      const photoPrompt = `Tu es un assistant expert en facturation pour artisans. Génère une PROPOSITION de facture modifiable, pas une facture définitive.
 
-1. Description de l'artisan, source principale et prioritaire :
+Priorité des sources :
+1. Description de l'artisan = source principale.
+2. Catalogue/prix existants = source prioritaire pour les noms de prestations, prix et TVA.
+3. Photo jointe = contexte visuel secondaire uniquement.
+
+Description de l'artisan :
 ${userDescription}
 
-2. Photo jointe, utilisée uniquement comme contexte visuel secondaire.
-
 Règles importantes :
-- Ne prétends pas détecter automatiquement toutes les surfaces, quantités ou détails depuis la photo.
-- Ne devine pas les m², dimensions, matériaux, prix ou détails non indiqués par l'artisan.
 - Base les lignes de facture surtout sur la description texte/voix.
-- Utilise la photo seulement pour confirmer le contexte général du chantier si elle aide.
-- Si une information manque, laisse-la vide ou mets une valeur prudente plutôt que d'inventer.
-- Ne renvoie que du JSON valide correspondant au schéma.`
-        : `Tu es un assistant expert en facturation. Analyse cette image seulement comme contexte visuel pour pré-remplir une proposition de facture. Ne prétends pas détecter automatiquement les surfaces, quantités, matériaux ou prix depuis une seule photo. Si des informations manquent, laisse vide plutôt que d'inventer. Ne renvoie que du JSON valide correspondant au schéma.`;
+- Utilise la photo seulement pour confirmer le contexte général du chantier.
+- Ne devine jamais les mètres carrés, quantités, prix, matériaux précis ou détails invisibles si l'artisan ne les donne pas.
+- Si une information manque, utilise une ligne générique claire plutôt qu'une estimation risquée.
+- Préfère peu de lignes simples et réalistes plutôt que beaucoup de lignes incertaines.
+- Si une prestation du catalogue correspond à la description, utilise son nom et son prix.
+- Si aucun prix fiable n'est trouvé, mets unitPrice à 0 pour laisser l'artisan compléter.
+- Ne présente jamais le résultat comme parfaitement automatique ou certain.
+- La facture doit rester facilement modifiable par l'artisan.
+- Ne renvoie que du JSON valide correspondant au schéma.`;
       parts = [
         { text: photoPrompt + catalogPrompt },
         { inlineData: { data: base64Image, mimeType } }
