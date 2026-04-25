@@ -183,29 +183,29 @@ export default function Settings() {
   const trialDaysLeft = calculateTrialDaysLeft();
 
   return (
-    <div className="space-y-5 md:space-y-8 max-w-4xl mx-auto">
-      <header className="animate-fade-in-up">
+    <div className="space-y-5 md:space-y-8 max-w-4xl mx-auto min-w-0 w-full">
+      <header className="animate-fade-in-up min-w-0">
         <h1 className="font-headline text-[26px] md:text-4xl font-extrabold text-on-surface tracking-tight mb-1 leading-tight">Paramètres</h1>
         <p className="text-on-surface-variant font-medium text-sm md:text-lg leading-snug">Gérez les informations de votre entreprise et vos préférences.</p>
       </header>
 
-      <div className="animate-fade-in-up animation-delay-100 bg-primary-container/30 border-2 border-primary/20 p-4 md:p-6 rounded-2xl flex flex-row md:flex-row items-start gap-3 md:gap-4">
+      <div className="animate-fade-in-up animation-delay-100 bg-primary-container/30 border-2 border-primary/20 p-4 md:p-6 rounded-2xl flex flex-row md:flex-row items-start gap-3 md:gap-4 min-w-0">
         <div className="w-11 h-11 md:w-16 md:h-16 bg-primary/10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
           <ShieldCheck className="w-6 h-6 md:w-8 md:h-8 text-primary" />
         </div>
-        <div className="text-left min-w-0">
+        <div className="text-left min-w-0 flex-1">
           <h3 className="font-bold text-primary text-base md:text-lg mb-1 font-headline leading-tight">Facturation électronique 2026</h3>
           <p className="text-sm text-on-surface-variant leading-relaxed">Photofacto génère des factures au format Factur-X (standard officiel 2026). <span className="text-primary font-medium">Connexion directe Chorus Pro / PPF : Bientôt disponible.</span></p>
         </div>
       </div>
 
-      <div className="animate-fade-in-up animation-delay-200 card-hover bg-surface-container-lowest border border-outline-variant/10 p-4 md:p-8 rounded-2xl flex flex-col items-start gap-4 md:gap-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-4 md:gap-6 text-left">
-          <div className="flex items-center gap-3 md:gap-5">
+      <div className="animate-fade-in-up animation-delay-200 card-hover bg-surface-container-lowest border border-outline-variant/10 p-4 md:p-8 rounded-2xl flex flex-col items-start gap-4 md:gap-6 shadow-sm min-w-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-4 md:gap-6 text-left min-w-0">
+          <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
             <div className={`w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 ${plan !== 'free' ? 'bg-tertiary/10 text-tertiary' : 'bg-surface-container-high text-on-surface-variant'}`}>
               <CreditCard className="w-6 h-6 md:w-7 md:h-7" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="font-bold text-on-surface mb-1 text-base md:text-lg font-headline">Abonnement</h3>
               {hasPaidAccess ? (
                 <p className="text-sm text-on-surface-variant flex items-center justify-center sm:justify-start gap-2">

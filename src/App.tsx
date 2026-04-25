@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
@@ -19,23 +19,28 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
 import PublicSignature from './pages/PublicSignature';
 import { initPostHog, initSentry, identifyUser } from './services/analytics';
+import { lazyWithRetry, clearChunkReloadFlag } from './lib/lazyWithRetry';
 
 // Initialize analytics (no-op if env vars not set)
 initPostHog();
 initSentry();
 
-// Lazy-loaded pages (code-splitting)
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const InvoicesList = lazy(() => import('./pages/InvoicesList'));
-const InvoiceCreate = lazy(() => import('./pages/InvoiceCreate'));
-const ClientsList = lazy(() => import('./pages/ClientsList'));
-const ClientDetail = lazy(() => import('./pages/ClientDetail'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Subscription = lazy(() => import('./pages/Subscription'));
-const Upgrade = lazy(() => import('./pages/Upgrade'));
-const Contact = lazy(() => import('./pages/Contact'));
-const Changelog = lazy(() => import('./pages/Changelog'));
-const ReferralPage = lazy(() => import('./pages/ReferralPage'));
+// App mounted successfully → clear stale reload flag so future deploys can use it.
+clearChunkReloadFlag();
+
+// Lazy-loaded pages (code-splitting) — wrapped in lazyWithRetry so a stale-chunk
+// error after a deploy auto-reloads instead of breaking the route.
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const InvoicesList = lazyWithRetry(() => import('./pages/InvoicesList'));
+const InvoiceCreate = lazyWithRetry(() => import('./pages/InvoiceCreate'));
+const ClientsList = lazyWithRetry(() => import('./pages/ClientsList'));
+const ClientDetail = lazyWithRetry(() => import('./pages/ClientDetail'));
+const Settings = lazyWithRetry(() => import('./pages/Settings'));
+const Subscription = lazyWithRetry(() => import('./pages/Subscription'));
+const Upgrade = lazyWithRetry(() => import('./pages/Upgrade'));
+const Contact = lazyWithRetry(() => import('./pages/Contact'));
+const Changelog = lazyWithRetry(() => import('./pages/Changelog'));
+const ReferralPage = lazyWithRetry(() => import('./pages/ReferralPage'));
 
 // Loading fallback for lazy routes
 const PageLoader = () => (

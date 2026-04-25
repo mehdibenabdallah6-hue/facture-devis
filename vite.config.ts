@@ -96,6 +96,15 @@ export default defineConfig(({mode}) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB
+          // Critical: clean up old chunks on each deploy + activate new SW immediately.
+          // Without these, users hit "text/html is not a valid JavaScript MIME type"
+          // when the SW tries to serve a stale lazy-chunk path that no longer exists.
+          cleanupOutdatedCaches: true,
+          skipWaiting: true,
+          clientsClaim: true,
+          // Don't cache navigation requests for /app/* via the SW — let the network handle
+          // them so users always get the latest index.html (with fresh chunk hashes).
+          navigateFallback: null,
           // Cache Firestore calls if possible or handle offline manually via Firebase
           runtimeCaching: [
             {

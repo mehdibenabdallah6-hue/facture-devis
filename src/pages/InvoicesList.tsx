@@ -284,19 +284,19 @@ export default function InvoicesList() {
   };
 
   return (
-    <div className="space-y-5 md:space-y-8">
-      <header className="animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6">
-        <div>
+    <div className="space-y-5 md:space-y-8 min-w-0 w-full">
+      <header className="animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6 min-w-0">
+        <div className="min-w-0">
           <h1 className="font-headline text-[26px] md:text-4xl font-extrabold text-on-surface tracking-tight mb-1 leading-tight">Documents</h1>
           <p className="text-on-surface-variant font-medium text-sm">Factures, devis et relances — tout au même endroit.</p>
         </div>
       </header>
 
       {/* Toolbar */}
-      <div className="animate-fade-in-up animation-delay-100 flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center justify-between">
-        
+      <div className="animate-fade-in-up animation-delay-100 flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center justify-between min-w-0 w-full">
+
         {/* Type Tabs */}
-        <div className="flex bg-surface-container-high p-1 rounded-2xl w-full sm:w-auto overflow-x-auto shadow-sm">
+        <div className="flex bg-surface-container-high p-1 rounded-2xl w-full sm:w-auto overflow-x-auto shadow-sm min-w-0">
           <button 
             onClick={() => {setTypeFilter('invoice'); setStatusFilter('all');}}
             className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 text-sm font-bold rounded-xl transition-all ${
@@ -320,55 +320,55 @@ export default function InvoicesList() {
         </div>
 
         {/* Search & Actions */}
-        <div className="flex flex-col sm:flex-row items-center gap-2.5 md:gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-64">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 md:gap-3 w-full md:w-auto min-w-0">
+          <div className="relative w-full sm:w-64 min-w-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder={`Rechercher un ${typeFilter === 'invoice' ? 'client ou n°' : 'devis'}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-2xl pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-medium shadow-sm"
+              className="w-full min-w-0 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-medium shadow-sm"
             />
           </div>
-          
-          
-          <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto">
+
+
+          <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto min-w-0">
             <button
               onClick={exportCSV}
               title="Export Liste CSV (PRO)"
-              className="min-touch flex items-center justify-center gap-1.5 px-3 md:px-4 py-2.5 md:py-3 bg-tertiary-container text-on-tertiary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
+              className="min-touch min-w-0 flex items-center justify-center gap-1.5 px-2 md:px-4 py-2.5 md:py-3 bg-tertiary-container text-on-tertiary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
             >
-              <FileSpreadsheet className="w-5 h-5" />
+              <FileSpreadsheet className="w-5 h-5 shrink-0" />
               <span className="hidden sm:inline">CSV</span>
               {!isPro && <span className="text-[9px] bg-tertiary text-on-tertiary px-1.5 py-0.5 rounded-full ml-1">PRO</span>}
             </button>
             <button
               onClick={exportFEC}
               title="Export Comptable FEC (PRO)"
-              className="min-touch flex items-center justify-center gap-1.5 px-3 md:px-4 py-2.5 md:py-3 bg-secondary-container text-on-secondary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
+              className="min-touch min-w-0 flex items-center justify-center gap-1.5 px-2 md:px-4 py-2.5 md:py-3 bg-secondary-container text-on-secondary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
             >
-              <FileSpreadsheet className="w-5 h-5" />
+              <FileSpreadsheet className="w-5 h-5 shrink-0" />
               <span className="hidden sm:inline">FEC</span>
               {!isPro && <span className="text-[9px] bg-secondary text-on-secondary px-1.5 py-0.5 rounded-full ml-1">PRO</span>}
             </button>
             <button
               onClick={exportZIP}
               title="Export ZIP Comptable (PDFs + FEC)"
-              className="min-touch flex items-center justify-center gap-1.5 px-3 md:px-4 py-2.5 md:py-3 bg-primary-container text-on-primary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
+              className="min-touch min-w-0 flex items-center justify-center gap-1.5 px-2 md:px-4 py-2.5 md:py-3 bg-primary-container text-on-primary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
             >
-              <Archive className="w-5 h-5" />
+              <Archive className="w-5 h-5 shrink-0" />
               <span className="hidden sm:inline">ZIP</span>
               {!isPro && <span className="text-[9px] bg-primary text-on-primary px-1.5 py-0.5 rounded-full ml-1">PRO</span>}
             </button>
           </div>
 
-          <button 
+          <button
             onClick={() => navigate(typeFilter === 'quote' ? '/app/invoices/new?type=quote' : '/app/invoices/new')}
-            className="btn-glow min-touch flex items-center justify-center gap-2 px-5 md:px-6 py-3 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto whitespace-nowrap text-sm"
+            className="btn-glow min-touch min-w-0 flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto whitespace-nowrap text-sm"
           >
-            <Plus className="w-5 h-5" />
-            Nouveau {typeFilter === 'invoice' ? 'document' : 'devis'}
+            <Plus className="w-5 h-5 shrink-0" />
+            <span className="truncate">Nouveau {typeFilter === 'invoice' ? 'document' : 'devis'}</span>
           </button>
         </div>
       </div>

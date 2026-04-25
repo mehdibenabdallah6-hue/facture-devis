@@ -169,7 +169,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────── */}
-      <main className="flex-1 md:ml-[240px] min-h-dvh flex flex-col pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0">
+      <main className="flex-1 md:ml-[240px] min-h-dvh flex flex-col pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 min-w-0 max-w-full overflow-x-hidden">
         {/* Offline banner */}
         {isOffline && (
           <div className="bg-error text-white px-4 py-2.5 text-center text-sm font-bold flex flex-wrap items-center justify-center gap-2 sticky top-0 z-[100] shadow-md">
@@ -278,7 +278,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <div className="flex-1 mobile-page-gutter py-3 md:p-7 lg:p-8 min-w-0">
+        <div className="flex-1 mobile-page-gutter py-3 md:p-7 lg:p-8 min-w-0 max-w-full overflow-x-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -286,6 +286,7 @@ export default function Layout() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              className="min-w-0 max-w-full"
             >
               <Outlet />
             </motion.div>
