@@ -153,6 +153,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -271,6 +272,20 @@
   .bottom-safe { bottom: env(safe-area-inset-bottom); }
   .min-touch { min-height: 44px; min-width: 44px; }
   .mobile-page-gutter { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+}
+
+@media (max-width: 640px) {
+  .mobile-page-gutter {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .border-spark,
+  .border-b-spark,
+  .border-t-spark,
+  .border-r-spark {
+    border-width: 1px;
+  }
 }
 
 /* Card hover */

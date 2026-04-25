@@ -86,16 +86,16 @@ export default function ClientsList() {
   };
 
   return (
-    <div className="space-y-8">
-      <header className="animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-5 md:space-y-8">
+      <header className="animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6">
         <div>
-          <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-1">Clients</h1>
+          <h1 className="font-headline text-[26px] md:text-4xl font-extrabold text-on-surface tracking-tight mb-1 leading-tight">Clients</h1>
           <p className="text-on-surface-variant font-medium text-sm">Votre carnet d'adresses professionnel.</p>
         </div>
       </header>
 
       {/* Toolbar */}
-      <div className="animate-fade-in-up animation-delay-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="animate-fade-in-up animation-delay-100 flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
           <input 
@@ -103,12 +103,12 @@ export default function ClientsList() {
             placeholder="Rechercher par nom, email..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-medium shadow-sm"
+            className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-2xl pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-medium shadow-sm"
           />
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="btn-glow flex items-center justify-center gap-2 w-full sm:w-auto bg-primary text-on-primary px-6 py-3.5 rounded-2xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all whitespace-nowrap"
+          className="btn-glow min-touch flex items-center justify-center gap-2 w-full sm:w-auto bg-primary text-on-primary px-5 md:px-6 py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold text-sm shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all whitespace-nowrap"
         >
           <Plus className="w-5 h-5" />
           Nouveau client
@@ -117,19 +117,19 @@ export default function ClientsList() {
 
       <div className="animate-fade-in-up animation-delay-200 bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/10">
         {filteredClients.length === 0 && searchTerm ? (
-          <div className="p-16">
+          <div className="p-5 md:p-16">
             <EmptySearchState message={`Aucun client ne correspond à "${searchTerm}"`} onClear={() => setSearchTerm('')} />
           </div>
         ) : filteredClients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="w-24 h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-6">
-              <Users className="w-10 h-10 text-outline" />
+          <div className="flex flex-col items-center justify-center py-14 md:py-24 px-5 md:px-6 text-center">
+            <div className="w-16 h-16 md:w-24 md:h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-4 md:mb-6">
+              <Users className="w-8 h-8 md:w-10 md:h-10 text-outline" />
             </div>
-            <h3 className="font-headline text-2xl font-bold text-on-surface mb-2 tracking-tight">Aucun client</h3>
-            <p className="text-on-surface-variant max-w-sm mb-8 text-lg">Vous n'avez pas encore ajouté de client. Commencez dès maintenant pour fluidifier vos devis.</p>
+            <h3 className="font-headline text-xl md:text-2xl font-bold text-on-surface mb-2 tracking-tight">Aucun client</h3>
+            <p className="text-on-surface-variant max-w-sm mb-6 md:mb-8 text-sm md:text-lg">Vous n'avez pas encore ajouté de client. Commencez dès maintenant pour fluidifier vos devis.</p>
             <button 
               onClick={() => handleOpenModal()}
-              className="btn-glow px-8 py-4 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:scale-105 active:scale-95 transition-all"
+              className="btn-glow min-touch px-5 md:px-8 py-3 md:py-4 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
             >
               + Ajouter un client
             </button>
@@ -138,11 +138,11 @@ export default function ClientsList() {
           <>
           <div className="md:hidden divide-y divide-surface-container-low">
             {filteredClients.map((client) => (
-              <article key={client.id} className="bg-surface-container-lowest p-4">
+              <article key={client.id} className="bg-surface-container-lowest p-3.5">
                 <div className="flex items-start gap-3">
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}`)}
-                    className={`min-touch w-12 h-12 rounded-[14px] flex items-center justify-center font-bold text-sm shadow-inner shrink-0 active:scale-95 transition-transform ${client.type === 'B2B' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}
+                    className={`min-touch w-11 h-11 rounded-[14px] flex items-center justify-center font-bold text-sm shadow-inner shrink-0 active:scale-95 transition-transform ${client.type === 'B2B' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}
                     aria-label={`Voir ${client.name}`}
                   >
                     {client.type === 'B2B' ? <Briefcase className="w-5 h-5"/> : <UserIcon className="w-5 h-5"/>}
@@ -157,14 +157,14 @@ export default function ClientsList() {
                     <span className={`text-[10px] uppercase font-bold tracking-widest ${client.type === 'B2B' ? 'text-secondary' : 'text-primary'}`}>
                       {client.type === 'B2B' ? 'Pro' : 'Particulier'}
                     </span>
-                    <div className="mt-2 space-y-1 text-sm text-on-surface-variant">
+                    <div className="mt-2 space-y-1 text-xs md:text-sm text-on-surface-variant">
                       <p className="truncate">{client.email || 'Email non renseigné'}</p>
                       <p className="truncate">{client.phone || 'Téléphone non renseigné'}</p>
                       {client.address && <p className="line-clamp-2">{client.address}</p>}
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleOpenModal(client)}
                     className="min-touch flex items-center justify-center gap-2 rounded-xl bg-surface-container-high text-on-surface px-3 py-2.5 text-xs font-bold"
@@ -276,39 +276,39 @@ export default function ClientsList() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in">
           <div className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-outline-variant/10 animate-scale-in flex flex-col max-h-[calc(100dvh-24px)]">
-            <div className="flex justify-between items-center px-5 sm:px-8 py-4 sm:py-6 border-b border-surface-container-low shrink-0 bg-surface-container-lowest z-10">
-              <h2 className="text-xl sm:text-2xl font-extrabold font-headline text-on-surface">{editingClient ? 'Modifier le client' : 'Nouveau client'}</h2>
+            <div className="flex justify-between items-center px-4 sm:px-8 py-3.5 sm:py-6 border-b border-surface-container-low shrink-0 bg-surface-container-lowest z-10">
+              <h2 className="text-lg sm:text-2xl font-extrabold font-headline text-on-surface">{editingClient ? 'Modifier le client' : 'Nouveau client'}</h2>
               <button onClick={handleCloseModal} className="min-touch bg-surface-container-high hover:bg-surface-container-highest rounded-full transition-colors flex items-center justify-center" aria-label="Fermer la fenêtre client">
                 <X className="w-5 h-5 text-on-surface" />
               </button>
             </div>
             
-            <div className="overflow-y-auto px-5 sm:px-8 py-5 sm:py-6">
-              <form id="client-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
+              <form id="client-form" onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Type de client *</label>
-                    <div className="flex flex-col sm:flex-row bg-surface-container-high p-1.5 rounded-xl w-full sm:w-auto gap-1 sm:gap-0">
+                    <div className="flex bg-surface-container-high p-1 rounded-xl w-full sm:w-auto gap-1 sm:gap-0">
                     <button 
                       type="button"
                       onClick={() => setFormData({...formData, type: 'B2C'})}
-                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold rounded-lg transition-all ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
                         formData.type === 'B2C' 
                           ? 'bg-surface-container-lowest text-primary shadow-sm' 
                           : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      <UserIcon className="w-4 h-4"/> Particulier (B2C)
+                      <UserIcon className="w-4 h-4"/> Particulier
                     </button>
                     <button 
                       type="button"
                       onClick={() => setFormData({...formData, type: 'B2B'})}
-                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold rounded-lg transition-all ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
                         formData.type === 'B2B' 
                           ? 'bg-surface-container-lowest text-secondary shadow-sm' 
                           : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      <Briefcase className="w-4 h-4"/> Entreprise (B2B)
+                      <Briefcase className="w-4 h-4"/> Entreprise
                     </button>
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export default function ClientsList() {
                 </div>
                 
                 {formData.type === 'B2B' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fade-in">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 animate-fade-in">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">SIREN</label>
                       <input 
@@ -348,7 +348,7 @@ export default function ClientsList() {
                   </div>
                 )}
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Email</label>
                     <input 
@@ -386,15 +386,15 @@ export default function ClientsList() {
               </form>
             </div>
 
-            <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-surface-container-low shrink-0 bg-surface-container-lowest z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 rounded-b-[2rem] pb-safe">
-              <button type="button" onClick={handleCloseModal} className="w-full sm:w-auto min-touch px-8 py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors">
+            <div className="px-4 sm:px-8 py-3.5 sm:py-5 border-t border-surface-container-low shrink-0 bg-surface-container-lowest z-10 flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-4 rounded-b-[2rem] pb-safe">
+              <button type="button" onClick={handleCloseModal} className="w-full sm:w-auto min-touch px-6 md:px-8 py-3 md:py-3.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-container-low transition-colors">
                 Annuler
               </button>
               <button 
                 form="client-form" 
                 disabled={isSaving} 
                 type="submit" 
-                className="btn-glow w-full sm:w-auto min-touch px-8 py-3.5 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:transform-none"
+                className="btn-glow w-full sm:w-auto min-touch px-6 md:px-8 py-3 md:py-3.5 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:transform-none"
               >
                 {isSaving ? 'Enregistrement...' : (editingClient ? 'Enregistrer les modifications' : 'Créer le client')}
               </button>

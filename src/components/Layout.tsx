@@ -169,7 +169,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────── */}
-      <main className="flex-1 md:ml-[240px] min-h-dvh flex flex-col pb-24 md:pb-0">
+      <main className="flex-1 md:ml-[240px] min-h-dvh flex flex-col pb-20 md:pb-0">
         {/* Offline banner */}
         {isOffline && (
           <div className="bg-error text-white px-4 py-2.5 text-center text-sm font-bold flex flex-wrap items-center justify-center gap-2 sticky top-0 z-[100] shadow-md">
@@ -181,12 +181,12 @@ export default function Layout() {
         {/* Top bar */}
         <header
           className={cn(
-            'sticky top-0 z-40 bg-background/90 backdrop-blur-xl flex justify-between items-center w-full mobile-page-gutter md:px-7 py-2.5 md:py-3 border-b-spark',
+            'sticky top-0 z-40 bg-background/90 backdrop-blur-xl flex justify-between items-center w-full mobile-page-gutter md:px-7 py-2 md:py-3 border-b-spark',
             isOffline && 'mt-0'
           )}
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="md:hidden w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="md:hidden w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden shrink-0">
               <img src="/icons/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="wordmark-photofacto text-[17px] md:hidden min-w-0">
@@ -197,7 +197,7 @@ export default function Layout() {
             <button
               id="tour-new-doc-mobile"
               onClick={() => navigate('/app/invoices/new')}
-              className="min-touch flex md:hidden items-center gap-1.5 bg-primary text-on-primary font-bold px-3.5 py-2 rounded-[10px] text-sm shadow-spark-cta active:scale-95 transition-transform"
+              className="min-touch flex md:hidden items-center gap-1.5 bg-primary text-on-primary font-bold px-3 py-1.5 rounded-[10px] text-xs shadow-spark-cta active:scale-95 transition-transform"
             >
               <Plus className="w-4 h-4" strokeWidth={2.5} />
               Créer
@@ -278,7 +278,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <div className="flex-1 px-3.5 py-4 md:p-7 lg:p-8">
+        <div className="flex-1 px-3 py-3 md:p-7 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -294,7 +294,7 @@ export default function Layout() {
       </main>
 
       {/* Bottom Nav Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 grid grid-cols-4 items-center gap-1 px-2 pb-safe pt-2 bg-white/95 backdrop-blur-xl border-t-spark shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 grid grid-cols-4 items-center gap-0.5 px-1.5 pb-safe pt-1.5 bg-white/95 backdrop-blur-xl border-t-spark shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
         {navItems.map(item => (
           <NavLink
             key={item.to}
@@ -303,8 +303,8 @@ export default function Layout() {
             id={`${item.tourId}-mobile`}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center px-4 py-1.5 rounded-2xl transition-colors min-w-[56px]',
-                'min-h-[58px]',
+                'flex flex-col items-center justify-center px-1 py-1 rounded-xl transition-colors min-w-0',
+                'min-h-[50px]',
                 isActive ? 'text-primary' : 'text-on-surface-variant'
               )
             }
@@ -313,15 +313,15 @@ export default function Layout() {
               <>
                 <div
                   className={cn(
-                    'p-1.5 rounded-lg mb-0.5 transition-colors',
+                    'p-1 rounded-lg mb-0.5 transition-colors',
                     isActive && 'bg-primary/10'
                   )}
                 >
-                  <item.icon className="w-5 h-5" strokeWidth={2} />
+                  <item.icon className="w-[18px] h-[18px]" strokeWidth={2} />
                 </div>
                 <span
                   className={cn(
-                    'text-[10px] font-medium flex items-center gap-1',
+                    'text-[9px] font-medium flex items-center gap-0.5 leading-tight',
                     isActive && 'font-bold'
                   )}
                 >

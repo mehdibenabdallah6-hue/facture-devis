@@ -235,7 +235,7 @@ function SignatureShareButton({ invoiceId, shareQuoteForSignature }: { invoiceId
       <button
         onClick={handleShare}
         disabled={isSharing}
-        className={`w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl font-bold text-lg transition-all active:scale-95 disabled:opacity-50 ${
+        className={`w-full min-touch flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-3.5 md:py-5 rounded-2xl font-bold text-sm md:text-lg transition-all active:scale-95 disabled:opacity-50 ${
           shared
             ? 'bg-tertiary-container text-tertiary border-2 border-tertiary/20'
             : 'bg-gradient-to-r from-primary/90 to-secondary text-on-primary shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5'
@@ -1374,7 +1374,7 @@ export default function InvoiceCreate() {
   // Upsell modal for Free plan limits
   const UpsellModal = () => showUpsellModal ? (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-xl animate-fade-in" onClick={() => setShowUpsellModal(null)}>
-      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm shadow-2xl p-8 text-center border border-outline-variant/10 animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm shadow-2xl p-5 md:p-8 text-center border border-outline-variant/10 animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="w-20 h-20 bg-primary/10 text-primary rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
           <Sparkles className="w-10 h-10" />
         </div>
@@ -1405,24 +1405,24 @@ export default function InvoiceCreate() {
           onCancel={() => setShowCameraGuide(false)}
         />
       )}
-      <div className="max-w-5xl mx-auto py-6 md:py-20 px-1 sm:px-4 line-clamp-none">
-        <div className="animate-fade-in-up text-center space-y-3 mb-8 md:mb-14">
-          <h1 className="text-3xl md:text-6xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
+      <div className="max-w-5xl mx-auto py-3 md:py-20 px-0 sm:px-4 line-clamp-none">
+        <div className="animate-fade-in-up text-center space-y-2 mb-5 md:mb-14">
+          <h1 className="text-2xl md:text-6xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
             Rapide. Sans effort.
           </h1>
-          <p className="text-base md:text-xl text-on-surface-variant max-w-2xl mx-auto font-medium">
+          <p className="text-sm md:text-xl text-on-surface-variant max-w-2xl mx-auto font-medium leading-relaxed">
             10 secondes pour créer votre document. Dictez-le ou prenez en photo un brouillon.
           </p>
         </div>
 
         {error && (
-          <div className="animate-fade-in bg-error-container text-on-error-container p-4 rounded-xl flex items-start gap-3 mb-8 shadow-sm">
+          <div className="animate-fade-in bg-error-container text-on-error-container p-3 md:p-4 rounded-xl flex items-start gap-3 mb-5 md:mb-8 shadow-sm">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p className="text-sm font-medium">{error}</p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 lg:gap-8 relative">
           {isOffline && (
             <div className="absolute inset-0 z-20 bg-surface-container-lowest/80 backdrop-blur-sm rounded-2xl md:rounded-[3rem] flex flex-col items-center justify-center p-5 md:p-8 text-center border border-outline-variant/20">
               <div className="w-16 h-16 bg-error/10 text-error rounded-full flex items-center justify-center mb-4">
@@ -1432,7 +1432,7 @@ export default function InvoiceCreate() {
               <p className="text-on-surface-variant font-medium mb-6">Vous n'avez pas de connexion internet. L'analyse par intelligence artificielle est désactivée.</p>
               <button 
                 onClick={() => setStep('edit')}
-                className="bg-primary text-on-primary px-8 py-4 rounded-2xl font-bold shadow-spark-cta hover:opacity-90 active:scale-95 transition-all text-sm flex items-center gap-2"
+                className="min-touch bg-primary text-on-primary px-5 md:px-8 py-3 md:py-4 rounded-2xl font-bold shadow-spark-cta hover:opacity-90 active:scale-95 transition-all text-sm flex items-center gap-2"
               >
                 <FileText className="w-5 h-5" />
                 Créer manuellement
@@ -1441,7 +1441,7 @@ export default function InvoiceCreate() {
           )}
 
           <div 
-            className={`animate-fade-in-up animation-delay-100 relative min-h-[230px] bg-surface-container-lowest border-2 rounded-2xl md:rounded-[2rem] p-5 md:p-8 text-center cursor-pointer transition-all overflow-hidden ${
+            className={`animate-fade-in-up animation-delay-100 relative min-h-[104px] md:min-h-[230px] bg-surface-container-lowest border rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-left md:text-center cursor-pointer transition-all overflow-hidden ${
               isDictating 
                 ? "border-error shadow-2xl shadow-error/20 bg-error/5 scale-[1.02]" 
                 : "border-primary/20 hover:border-primary card-hover group hover:shadow-2xl hover:shadow-primary/10"
@@ -1450,23 +1450,23 @@ export default function InvoiceCreate() {
             style={(isOffline || isFree) ? { opacity: 0.5, pointerEvents: isFree ? 'auto' : 'none' } : {}}
           >
             {!isDictating && <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>}
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 py-2 md:py-4">
-              <div className={`w-16 h-16 md:w-24 md:h-24 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
+            <div className="relative z-10 flex flex-row md:flex-col items-center md:justify-center h-full gap-4 md:gap-0 md:space-y-4 py-0 md:py-4">
+              <div className={`w-12 h-12 md:w-24 md:h-24 rounded-2xl md:rounded-full flex items-center justify-center shadow-lg md:shadow-xl transition-all duration-300 shrink-0 ${
                 isDictating 
                   ? "bg-error text-white shadow-error/40 scale-110 animate-pulse" 
                   : "bg-primary text-on-primary shadow-primary/30 group-hover:scale-110"
               }`}>
-                <Mic className="w-7 h-7 md:w-10 md:h-10" />
+                <Mic className="w-6 h-6 md:w-10 md:h-10" />
               </div>
-              <div className="space-y-2">
-                <h3 className={`text-xl md:text-2xl lg:text-3xl font-extrabold font-headline ${
+              <div className="min-w-0 flex-1 space-y-1 md:space-y-2">
+                <h3 className={`text-lg md:text-2xl lg:text-3xl font-extrabold font-headline ${
                   isDictating ? "text-error" : "text-on-surface"
                 }`}>
                   {isDictating ? "Écoute en cours..." : "Dicter"}
                 </h3>
                 {isDictating ? (
                   <>
-                    <div className="bg-surface-container-high rounded-xl p-3 text-left text-sm text-on-surface min-h-[60px] max-h-[120px] overflow-y-auto font-medium">
+                    <div className="bg-surface-container-high rounded-xl p-3 text-left text-sm text-on-surface min-h-[52px] max-h-[100px] md:max-h-[120px] overflow-y-auto font-medium">
                       {dictationText || <span className="text-on-surface-variant/50 italic">En attente de votre voix...</span>}
                     </div>
                     <button 
@@ -1478,9 +1478,9 @@ export default function InvoiceCreate() {
                     </button>
                   </>
                 ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm md:text-base text-on-surface-variant font-medium">Dictez tout d'une traite, appuyez quand c'est fini</p>
-                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-left space-y-1">
+                  <div className="space-y-2 md:space-y-3">
+                    <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">Parlez, puis appuyez quand c'est fini.</p>
+                    <div className="hidden md:block bg-primary/5 border border-primary/10 rounded-xl p-3 text-left space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1.5">💡 Que dire ?</p>
                       <p className="text-xs text-on-surface-variant">• <strong>Client :</strong> "Pour Monsieur Martin"</p>
                       <p className="text-xs text-on-surface-variant">• <strong>Travaux :</strong> "Remplacement chauffe-eau"</p>
@@ -1493,7 +1493,7 @@ export default function InvoiceCreate() {
           </div>
 
           <div 
-            className="animate-fade-in-up animation-delay-200 card-hover group relative min-h-[230px] bg-surface-container-lowest border-2 border-secondary/20 hover:border-secondary rounded-2xl md:rounded-[2rem] p-5 md:p-8 text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-secondary/10 overflow-hidden"
+            className="animate-fade-in-up animation-delay-200 card-hover group relative min-h-[104px] md:min-h-[230px] bg-surface-container-lowest border border-secondary/20 hover:border-secondary rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-left md:text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-secondary/10 overflow-hidden"
             onClick={() => { 
               if (isFree) { setShowUpsellModal('L\'extraction IA par photo est disponible à partir du plan Solo (14,90€/mois).'); return; }
               if (!isOffline) setShowCameraGuide(true); 
@@ -1509,20 +1509,20 @@ export default function InvoiceCreate() {
               className="hidden" 
             />
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 py-2 md:py-6">
-              <div className="w-16 h-16 md:w-24 md:h-24 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-xl shadow-secondary/30 group-hover:scale-110 transition-transform duration-300">
-                <Camera className="w-7 h-7 md:w-10 md:h-10" />
+            <div className="relative z-10 flex flex-row md:flex-col items-center md:justify-center h-full gap-4 md:gap-0 md:space-y-4 py-0 md:py-6">
+              <div className="w-12 h-12 md:w-24 md:h-24 bg-secondary text-on-secondary rounded-2xl md:rounded-full flex items-center justify-center shadow-lg md:shadow-xl shadow-secondary/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
+                <Camera className="w-6 h-6 md:w-10 md:h-10" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Photographier</h3>
-                <p className="text-sm md:text-base text-on-surface-variant font-medium">Devis papier, brouillon, notes chantier</p>
+              <div className="min-w-0 flex-1 space-y-1 md:space-y-2">
+                <h3 className="text-lg md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Photographier</h3>
+                <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">Devis papier, brouillon, notes chantier</p>
               </div>
             </div>
           </div>
 
           {/* Third card: Import Document */}
           <div 
-            className="animate-fade-in-up animation-delay-300 card-hover group relative min-h-[230px] bg-surface-container-lowest border-2 border-tertiary/20 hover:border-tertiary rounded-2xl md:rounded-[2rem] p-5 md:p-8 text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-tertiary/10 overflow-hidden md:col-span-2 lg:col-span-1"
+            className="animate-fade-in-up animation-delay-300 card-hover group relative min-h-[104px] md:min-h-[230px] bg-surface-container-lowest border border-tertiary/20 hover:border-tertiary rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-left md:text-center cursor-pointer transition-all hover:shadow-2xl hover:shadow-tertiary/10 overflow-hidden md:col-span-2 lg:col-span-1"
             onClick={() => { 
               if (isFree) { setShowUpsellModal('L\'import de documents est disponible à partir du plan Solo (14,90€/mois).'); return; }
               if (!isOffline) docInputRef.current?.click(); 
@@ -1537,19 +1537,19 @@ export default function InvoiceCreate() {
               className="hidden" 
             />
             <div className="absolute inset-0 bg-gradient-to-br from-tertiary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 py-2 md:py-6">
-              <div className="w-16 h-16 md:w-24 md:h-24 bg-tertiary text-on-tertiary rounded-full flex items-center justify-center shadow-xl shadow-tertiary/30 group-hover:scale-110 transition-transform duration-300">
-                <FileSpreadsheet className="w-7 h-7 md:w-10 md:h-10" />
+            <div className="relative z-10 flex flex-row md:flex-col items-center md:justify-center h-full gap-4 md:gap-0 md:space-y-4 py-0 md:py-6">
+              <div className="w-12 h-12 md:w-24 md:h-24 bg-tertiary text-on-tertiary rounded-2xl md:rounded-full flex items-center justify-center shadow-lg md:shadow-xl shadow-tertiary/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
+                <FileSpreadsheet className="w-6 h-6 md:w-10 md:h-10" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Importer</h3>
-                <p className="text-sm md:text-base text-on-surface-variant font-medium">PDF, Excel, CSV — factures, devis, bons</p>
+              <div className="min-w-0 flex-1 space-y-1 md:space-y-2">
+                <h3 className="text-lg md:text-2xl lg:text-3xl font-extrabold font-headline text-on-surface">Importer</h3>
+                <p className="text-xs md:text-base text-on-surface-variant font-medium leading-snug">PDF, Excel, CSV</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="animate-fade-in-up animation-delay-300 text-center pt-8 md:pt-12 pb-6 md:pb-8">
+        <div className="animate-fade-in-up animation-delay-300 text-center pt-4 md:pt-12 pb-4 md:pb-8">
           <button 
             onClick={() => setStep('edit')}
             className="min-touch text-on-surface-variant hover:text-on-surface font-bold text-sm transition-all focus:outline-none px-3"
@@ -1604,19 +1604,19 @@ export default function InvoiceCreate() {
           pendingActivation={step === 'activation_pending' || isPendingActivation}
         />
       )}
-      <div className={`animate-fade-in grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 transition-all duration-700 ${(step === 'paywall' || step === 'activation_pending') ? 'blur-md pointer-events-none opacity-50' : ''}`}>
+      <div className={`animate-fade-in grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 transition-all duration-700 ${(step === 'paywall' || step === 'activation_pending') ? 'blur-md pointer-events-none opacity-50' : ''}`}>
       {/* Form Column */}
-      <div className="lg:col-span-7 space-y-5 md:space-y-8 pb-10">
-        <header className="space-y-2 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+      <div className="lg:col-span-7 space-y-4 md:space-y-8 pb-8">
+        <header className="space-y-1.5 md:space-y-2 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 md:gap-4">
           <div>
-            <button onClick={() => navigate('/app/invoices')} className="min-touch flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-sm font-bold mb-3 transition-colors group -ml-2 px-2">
+            <button onClick={() => navigate('/app/invoices')} className="min-touch flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-xs md:text-sm font-bold mb-2 md:mb-3 transition-colors group -ml-2 px-2">
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               Retour à la liste
             </button>
-            <h1 className="text-3xl md:text-5xl font-headline font-extrabold text-on-surface tracking-tight">
+            <h1 className="text-[26px] md:text-5xl font-headline font-extrabold text-on-surface tracking-tight leading-tight">
               {id ? 'Document' : 'Vérification'}
             </h1>
-            <p className="text-on-surface-variant font-medium text-base md:text-lg">
+            <p className="text-on-surface-variant font-medium text-sm md:text-lg leading-snug">
               {previewUrl ? "L'IA a fait le plus gros, vérifiez juste les détails." : "Remplissez votre document ci-dessous."}
             </p>
           </div>
@@ -1649,7 +1649,7 @@ export default function InvoiceCreate() {
 
         {/* Factur-X & Chorus Pro — Top banner for invoices (visible early, not hidden at bottom) */}
         {id && formData.type === 'invoice' && company?.vatRegime !== 'franchise' && formData.vatRegime !== 'franchise' && (
-          <div className="animate-fade-in-up bg-surface-container-lowest rounded-2xl p-5 shadow-sm border border-primary/10 space-y-3">
+          <div className="animate-fade-in-up bg-surface-container-lowest rounded-2xl p-4 md:p-5 shadow-sm border border-primary/10 space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Shield className="w-5 h-5 text-primary" />
@@ -1662,7 +1662,7 @@ export default function InvoiceCreate() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleFacturXDownload}
-                className="flex items-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                className="min-touch flex items-center justify-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm"
               >
                 <Shield className="w-4 h-4" />
                 Télécharger Factur-X
@@ -1702,7 +1702,7 @@ export default function InvoiceCreate() {
             {(formData.status === 'accepted' || formData.status === 'sent') && (
               <button 
                 onClick={() => navigate(`/app/invoices/new?fromQuote=${id}`)}
-                className="btn-glow w-full bg-secondary text-on-secondary px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-3"
+                className="btn-glow w-full bg-secondary text-on-secondary px-5 md:px-8 py-3.5 md:py-4 rounded-2xl font-bold text-base md:text-lg shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 md:gap-3"
               >
                 <RefreshCw className="w-6 h-6" />
                 Convertir ce devis en facture
@@ -1711,14 +1711,14 @@ export default function InvoiceCreate() {
           </div>
         )}
 
-        <section className="bg-surface-container-lowest rounded-2xl p-4 sm:p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-6 md:space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="bg-surface-container-lowest rounded-2xl p-3.5 sm:p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2 col-span-full md:col-span-1">
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Type de document</label>
               <select 
                 value={formData.type}
                 onChange={e => setFormData({...formData, type: e.target.value as any})}
-                className="w-full bg-surface-container-high border-[2px] border-transparent focus:border-primary/20 rounded-2xl px-5 py-4 focus:ring-0 text-sm font-bold text-primary transition-colors cursor-pointer"
+                className="w-full bg-surface-container-high border-[2px] border-transparent focus:border-primary/20 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-0 text-sm font-bold text-primary transition-colors cursor-pointer"
               >
                 <option value="invoice">Facture</option>
                 <option value="quote">Devis</option>
@@ -1732,7 +1732,7 @@ export default function InvoiceCreate() {
               <select 
                 value={formData.vatRegime}
                 onChange={e => setFormData({...formData, vatRegime: e.target.value as any})}
-                className="w-full bg-surface-container-high border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-colors"
+                className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-colors"
               >
                 <option value="standard">Standard</option>
                 <option value="franchise">Franchise en base</option>
@@ -1750,7 +1750,7 @@ export default function InvoiceCreate() {
                     onChange={e => handleClientSearchChange(e.target.value)}
                     onFocus={() => setShowClientDropdown(true)}
                     placeholder="Rechercher ou saisir un client..."
-                    className="w-full bg-surface-container-high border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
+                    className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
                   />
                   {formData.clientId && clientSearch && (
                     <button
@@ -1766,7 +1766,7 @@ export default function InvoiceCreate() {
                 <button
                   type="button"
                   onClick={() => setShowNewClientModal(true)}
-                  className="shrink-0 min-touch bg-primary text-on-primary px-4 py-4 rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
+                  className="shrink-0 min-touch bg-primary text-on-primary px-3.5 md:px-4 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
                   title="Ajouter un nouveau client"
                 >
                   <UserPlus className="w-5 h-5" />
@@ -1890,7 +1890,7 @@ export default function InvoiceCreate() {
                 value={formData.number || ''}
                 onChange={e => setFormData({...formData, number: e.target.value})}
                 readOnly={!isNumberEditable}
-                className={`w-full bg-surface-container-high border-[2px] border-transparent focus:border-primary/20 rounded-2xl px-5 py-4 focus:ring-0 text-sm font-bold text-on-surface transition-colors ${!isNumberEditable ? 'opacity-70 cursor-not-allowed border-none' : ''}`}
+                className={`w-full bg-surface-container-high border-[2px] border-transparent focus:border-primary/20 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-0 text-sm font-bold text-on-surface transition-colors ${!isNumberEditable ? 'opacity-70 cursor-not-allowed border-none' : ''}`}
                 required
               />
             </div>
@@ -1901,7 +1901,7 @@ export default function InvoiceCreate() {
                 type="date" 
                 value={formData.date}
                 onChange={e => setFormData({...formData, date: e.target.value})}
-                className="w-full bg-surface-container-high border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
+                className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
               />
             </div>
             <div className="space-y-2 col-span-full md:col-span-1">
@@ -1910,7 +1910,7 @@ export default function InvoiceCreate() {
                 type="date" 
                 value={formData.dueDate}
                 onChange={e => setFormData({...formData, dueDate: e.target.value})}
-                className="w-full bg-surface-container-high border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
+                className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
               />
             </div>
           </div>
@@ -1922,7 +1922,7 @@ export default function InvoiceCreate() {
             
             <div className="space-y-3">
               {(formData.items || []).map((item, index) => (
-                <div key={index} className="grid grid-cols-12 gap-3 items-center bg-surface-container-low/70 p-4 pt-5 rounded-2xl relative">
+                <div key={index} className="grid grid-cols-12 gap-2.5 md:gap-3 items-center bg-surface-container-low/70 p-3.5 md:p-4 pt-5 rounded-2xl relative">
                   {/* Delete Button on top right of the item card for mobile focus */}
                   <button onClick={() => removeItem(index)} className="absolute top-2 right-2 min-touch text-error/60 hover:text-error bg-surface-container-highest/70 hover:bg-error-container rounded-lg transition-colors flex items-center justify-center" aria-label="Supprimer cette ligne">
                     <Trash2 className="w-4 h-4" />
@@ -1935,10 +1935,10 @@ export default function InvoiceCreate() {
                       placeholder="Désignation" 
                       value={item.description}
                       onChange={e => handleItemChange(index, 'description', e.target.value)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-bold"
+                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3.5 md:px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-bold"
                     />
                   </div>
-                  <div className="col-span-4 lg:col-span-3 space-y-1">
+                  <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2 flex items-center justify-between">
                       Qté
                       <button 
@@ -1955,21 +1955,21 @@ export default function InvoiceCreate() {
                       placeholder="1" 
                       value={item.quantity}
                       onChange={e => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-medium"
+                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 md:px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-medium"
                     />
                   </div>
-                  <div className="col-span-4 lg:col-span-3 space-y-1">
+                  <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2">Prix U.</label>
                     <input 
                       type="number" 
                       placeholder="0.00" 
                       value={item.unitPrice}
                       onChange={e => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-medium"
+                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 md:px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-medium"
                     />
                   </div>
                   {formData.vatRegime === 'standard' && (
-                    <div className="col-span-4 lg:col-span-3 space-y-1">
+                    <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2">TVA</label>
                       <select 
                         value={item.vatRate}
@@ -1983,7 +1983,7 @@ export default function InvoiceCreate() {
                       </select>
                     </div>
                   )}
-                  <div className="col-span-12 lg:col-span-3 lg:mt-5 text-right font-bold text-primary px-2 text-sm">
+                  <div className="col-span-6 sm:col-span-12 lg:col-span-3 lg:mt-5 text-right font-bold text-primary px-2 text-sm self-end pb-1">
                     {formatCurrency(item.quantity * item.unitPrice)}
                   </div>
 
@@ -2013,11 +2013,11 @@ export default function InvoiceCreate() {
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3 pt-1 md:pt-2">
               <button 
                 type="button" 
                 onClick={() => addItem()}
-                className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-outline-variant/30 hover:border-primary/40 hover:bg-primary/5 text-on-surface-variant hover:text-primary py-4 px-6 rounded-2xl font-bold transition-all text-sm active:scale-95 group"
+                className="min-touch flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-outline-variant/30 hover:border-primary/40 hover:bg-primary/5 text-on-surface-variant hover:text-primary py-3 md:py-4 px-4 md:px-6 rounded-xl md:rounded-2xl font-bold transition-all text-sm active:scale-95 group"
               >
                 <PlusCircle className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                 Ajouter une ligne
@@ -2027,7 +2027,7 @@ export default function InvoiceCreate() {
                 <div className="relative flex-1 group">
                    <button 
                     type="button" 
-                    className="w-full flex items-center justify-center gap-2 bg-surface-container-high border border-outline-variant/10 text-on-surface py-4 px-6 rounded-2xl font-bold transition-all text-sm group-hover:bg-surface-container-highest"
+                    className="min-touch w-full flex items-center justify-center gap-2 bg-surface-container-high border border-outline-variant/10 text-on-surface py-3 md:py-4 px-4 md:px-6 rounded-xl md:rounded-2xl font-bold transition-all text-sm group-hover:bg-surface-container-highest"
                   >
                     <RefreshCw className="w-4 h-4 text-primary" />
                     Prestations habituelles
@@ -2055,17 +2055,17 @@ export default function InvoiceCreate() {
             </div>
           </div>
 
-          <div className="space-y-3 pt-6">
+          <div className="space-y-2.5 md:space-y-3 pt-4 md:pt-6">
             <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Notes & Coordonnées bancaires</label>
             <textarea 
               placeholder="RIB, conditions de règlement, ou message personnalisé..."
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
-              className="w-full bg-surface-container-high border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium min-h-[100px] transition-colors"
+              className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium min-h-[88px] md:min-h-[100px] transition-colors"
             />
           </div>
 
-          <div className="bg-surface-container-low rounded-2xl p-6 md:p-8 space-y-4 shadow-inner">
+          <div className="bg-surface-container-low rounded-2xl p-4 md:p-8 space-y-3 md:space-y-4 shadow-inner">
             <div className="flex justify-between items-center gap-3 text-on-surface-variant">
               <span className="font-bold text-sm">Total HT</span>
               <span className="font-black text-lg">{formatCurrency(totalHT)}</span>
@@ -2077,8 +2077,8 @@ export default function InvoiceCreate() {
               </div>
             )}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
-              <span className="text-xl font-headline font-black text-on-surface">TOTAL {formData.type === 'quote' ? 'ESTIMÉ' : 'À PAYER'}</span>
-              <span className="text-3xl font-headline font-black text-primary drop-shadow-sm break-words">{formatCurrency(totalTTC)}</span>
+              <span className="text-base md:text-xl font-headline font-black text-on-surface">TOTAL {formData.type === 'quote' ? 'ESTIMÉ' : 'À PAYER'}</span>
+              <span className="text-[28px] md:text-3xl font-headline font-black text-primary drop-shadow-sm break-words">{formatCurrency(totalTTC)}</span>
             </div>
           </div>
         </section>
@@ -2088,7 +2088,7 @@ export default function InvoiceCreate() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={handleFacturXDownload}
-              className="min-touch flex items-center justify-center gap-3 bg-surface-container-highest text-on-surface py-5 px-6 rounded-2xl font-black text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
+              className="min-touch flex items-center justify-center gap-2 md:gap-3 bg-surface-container-highest text-on-surface py-3.5 md:py-5 px-4 md:px-6 rounded-2xl font-black text-base md:text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
             >
               <Shield className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
               Factur-X (Basic)
@@ -2096,7 +2096,7 @@ export default function InvoiceCreate() {
 
             <button
               onClick={() => generatePDF(true)}
-              className="min-touch flex items-center justify-center gap-3 bg-surface-container-highest text-on-surface py-5 px-6 rounded-2xl font-black text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
+              className="min-touch flex items-center justify-center gap-2 md:gap-3 bg-surface-container-highest text-on-surface py-3.5 md:py-5 px-4 md:px-6 rounded-2xl font-black text-base md:text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
             >
               <Printer className="w-6 h-6 text-secondary group-hover:scale-110 transition-transform" />
               Imprimer PDF
@@ -2105,7 +2105,7 @@ export default function InvoiceCreate() {
             <button
               onClick={handleSendEmail}
               disabled={isSendingEmail}
-              className="sm:col-span-2 min-touch flex items-center justify-center gap-3 bg-primary text-on-primary py-6 px-6 rounded-2xl font-black text-xl shadow-spark-cta-lg hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 group btn-glow"
+              className="sm:col-span-2 min-touch flex items-center justify-center gap-2 md:gap-3 bg-primary text-on-primary py-4 md:py-6 px-5 md:px-6 rounded-2xl font-black text-base md:text-xl shadow-spark-cta-lg hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 group btn-glow"
             >
               {isSendingEmail ? (
                 <>
@@ -2127,7 +2127,7 @@ export default function InvoiceCreate() {
           <button
             onClick={() => handleSave('draft')}
             disabled={isSaving}
-            className="w-full min-touch flex items-center justify-center gap-3 bg-primary text-on-primary py-5 sm:py-6 px-6 rounded-2xl font-black text-xl sm:text-2xl shadow-spark-cta-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 btn-glow"
+            className="w-full min-touch flex items-center justify-center gap-2 md:gap-3 bg-primary text-on-primary py-4 sm:py-6 px-5 md:px-6 rounded-2xl font-black text-base sm:text-2xl shadow-spark-cta-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 btn-glow"
           >
             {isSaving ? (
               <>

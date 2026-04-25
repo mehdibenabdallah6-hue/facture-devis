@@ -284,22 +284,22 @@ export default function InvoicesList() {
   };
 
   return (
-    <div className="space-y-8">
-      <header className="animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-5 md:space-y-8">
+      <header className="animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6">
         <div>
-          <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-1">Documents</h1>
+          <h1 className="font-headline text-[26px] md:text-4xl font-extrabold text-on-surface tracking-tight mb-1 leading-tight">Documents</h1>
           <p className="text-on-surface-variant font-medium text-sm">Factures, devis et relances — tout au même endroit.</p>
         </div>
       </header>
 
       {/* Toolbar */}
-      <div className="animate-fade-in-up animation-delay-100 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      <div className="animate-fade-in-up animation-delay-100 flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center justify-between">
         
         {/* Type Tabs */}
-        <div className="flex bg-surface-container-high p-1.5 rounded-2xl w-full sm:w-auto overflow-x-auto shadow-sm">
+        <div className="flex bg-surface-container-high p-1 rounded-2xl w-full sm:w-auto overflow-x-auto shadow-sm">
           <button 
             onClick={() => {setTypeFilter('invoice'); setStatusFilter('all');}}
-            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all ${
+            className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 text-sm font-bold rounded-xl transition-all ${
               typeFilter === 'invoice' 
                 ? 'bg-surface-container-lowest text-primary shadow-sm' 
                 : 'text-on-surface-variant hover:text-on-surface'
@@ -309,7 +309,7 @@ export default function InvoicesList() {
           </button>
           <button 
             onClick={() => {setTypeFilter('quote'); setStatusFilter('all');}}
-            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all ${
+            className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 text-sm font-bold rounded-xl transition-all ${
               typeFilter === 'quote' 
                 ? 'bg-surface-container-lowest text-primary shadow-sm' 
                 : 'text-on-surface-variant hover:text-on-surface'
@@ -320,7 +320,7 @@ export default function InvoicesList() {
         </div>
 
         {/* Search & Actions */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 md:gap-3 w-full md:w-auto">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input 
@@ -333,11 +333,11 @@ export default function InvoicesList() {
           </div>
           
           
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto">
             <button
               onClick={exportCSV}
               title="Export Liste CSV (PRO)"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-tertiary-container text-on-tertiary-container rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
+              className="min-touch flex items-center justify-center gap-1.5 px-3 md:px-4 py-2.5 md:py-3 bg-tertiary-container text-on-tertiary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
             >
               <FileSpreadsheet className="w-5 h-5" />
               <span className="hidden sm:inline">CSV</span>
@@ -346,7 +346,7 @@ export default function InvoicesList() {
             <button
               onClick={exportFEC}
               title="Export Comptable FEC (PRO)"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
+              className="min-touch flex items-center justify-center gap-1.5 px-3 md:px-4 py-2.5 md:py-3 bg-secondary-container text-on-secondary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
             >
               <FileSpreadsheet className="w-5 h-5" />
               <span className="hidden sm:inline">FEC</span>
@@ -355,7 +355,7 @@ export default function InvoicesList() {
             <button
               onClick={exportZIP}
               title="Export ZIP Comptable (PDFs + FEC)"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-primary-container text-on-primary-container rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
+              className="min-touch flex items-center justify-center gap-1.5 px-3 md:px-4 py-2.5 md:py-3 bg-primary-container text-on-primary-container rounded-xl md:rounded-2xl font-bold shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all outline-none"
             >
               <Archive className="w-5 h-5" />
               <span className="hidden sm:inline">ZIP</span>
@@ -365,7 +365,7 @@ export default function InvoicesList() {
 
           <button 
             onClick={() => navigate(typeFilter === 'quote' ? '/app/invoices/new?type=quote' : '/app/invoices/new')}
-            className="btn-glow flex items-center justify-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto whitespace-nowrap"
+            className="btn-glow min-touch flex items-center justify-center gap-2 px-5 md:px-6 py-3 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto whitespace-nowrap text-sm"
           >
             <Plus className="w-5 h-5" />
             Nouveau {typeFilter === 'invoice' ? 'document' : 'devis'}
@@ -386,7 +386,7 @@ export default function InvoicesList() {
             <button 
               key={filter}
               onClick={() => setStatusFilter(filter)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all border whitespace-nowrap ${
+              className={`px-3 md:px-4 py-1.5 text-[11px] md:text-xs font-bold rounded-full transition-all border whitespace-nowrap ${
                 statusFilter === filter 
                   ? 'bg-surface-container-high border-outline-variant text-on-surface shadow-sm' 
                   : 'bg-surface-container-lowest border-outline-variant/10 text-on-surface-variant hover:bg-surface-container-low'
@@ -401,19 +401,19 @@ export default function InvoicesList() {
       {/* List */}
       <div className="animate-fade-in-up animation-delay-300 bg-surface rounded-2xl overflow-hidden shadow-spark-md border-spark">
         {filteredInvoices.length === 0 && searchTerm ? (
-          <div className="p-16">
+          <div className="p-5 md:p-16">
             <EmptySearchState message={`Aucun document ne correspond à "${searchTerm}"`} onClear={() => { setSearchTerm(''); setTypeFilter('invoice'); setStatusFilter('all'); }} />
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="w-24 h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-6">
-              <FileText className="w-10 h-10 text-outline" />
+          <div className="flex flex-col items-center justify-center py-14 md:py-24 px-5 md:px-6 text-center">
+            <div className="w-16 h-16 md:w-24 md:h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-4 md:mb-6">
+              <FileText className="w-8 h-8 md:w-10 md:h-10 text-outline" />
             </div>
-            <h3 className="font-headline text-2xl font-bold text-on-surface mb-2 tracking-tight">Aucun document trouvé</h3>
-            <p className="text-on-surface-variant max-w-md mx-auto mb-8 text-lg">Vos factures et devis apparaîtront ici. Créez-en un nouveau avec notre IA ou manuellement.</p>
+            <h3 className="font-headline text-xl md:text-2xl font-bold text-on-surface mb-2 tracking-tight">Aucun document trouvé</h3>
+            <p className="text-on-surface-variant max-w-md mx-auto mb-6 md:mb-8 text-sm md:text-lg">Vos factures et devis apparaîtront ici. Créez-en un nouveau avec notre IA ou manuellement.</p>
             <button 
               onClick={() => navigate('/app/invoices/new')}
-              className="btn-glow flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:scale-105 active:scale-95 transition-all"
+              className="btn-glow min-touch flex items-center gap-2 px-5 md:px-8 py-3 md:py-4 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
             >
               <Plus className="w-5 h-5" />
               Créer mon premier document
@@ -426,7 +426,7 @@ export default function InvoicesList() {
               <article
                 key={invoice.id}
                 onClick={() => navigate(`/app/invoices/${invoice.id}`)}
-                className="bg-surface-container-lowest p-4 active:bg-surface-container-low/60 transition-colors"
+                className="bg-surface-container-lowest p-3.5 active:bg-surface-container-low/60 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -444,7 +444,7 @@ export default function InvoicesList() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-headline font-extrabold text-primary text-lg">
+                    <div className="font-headline font-extrabold text-primary text-base">
                       {formatCurrency(invoice.totalTTC)}
                     </div>
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${getStatusColor(invoice.status)}`}>
@@ -469,7 +469,7 @@ export default function InvoicesList() {
                   </div>
                 )}
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {invoice.type === 'quote' && (invoice.status === 'accepted' || invoice.status === 'sent') && (
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/new?fromQuote=${invoice.id}`); }}

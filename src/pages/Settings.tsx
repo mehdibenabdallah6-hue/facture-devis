@@ -183,30 +183,30 @@ export default function Settings() {
   const trialDaysLeft = calculateTrialDaysLeft();
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-5 md:space-y-8 max-w-4xl mx-auto">
       <header className="animate-fade-in-up">
-        <h1 className="font-headline text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight mb-1">Paramètres</h1>
-        <p className="text-on-surface-variant font-medium text-lg">Gérez les informations de votre entreprise et vos préférences.</p>
+        <h1 className="font-headline text-[26px] md:text-4xl font-extrabold text-on-surface tracking-tight mb-1 leading-tight">Paramètres</h1>
+        <p className="text-on-surface-variant font-medium text-sm md:text-lg leading-snug">Gérez les informations de votre entreprise et vos préférences.</p>
       </header>
 
-      <div className="animate-fade-in-up animation-delay-100 bg-primary-container/30 border-2 border-primary/20 p-6 rounded-2xl flex flex-col md:flex-row items-center md:items-start gap-4">
-        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
-          <ShieldCheck className="w-8 h-8 text-primary" />
+      <div className="animate-fade-in-up animation-delay-100 bg-primary-container/30 border-2 border-primary/20 p-4 md:p-6 rounded-2xl flex flex-row md:flex-row items-start gap-3 md:gap-4">
+        <div className="w-11 h-11 md:w-16 md:h-16 bg-primary/10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+          <ShieldCheck className="w-6 h-6 md:w-8 md:h-8 text-primary" />
         </div>
-        <div className="text-center md:text-left">
-          <h3 className="font-bold text-primary text-lg mb-1 font-headline">Facturation électronique 2026</h3>
+        <div className="text-left min-w-0">
+          <h3 className="font-bold text-primary text-base md:text-lg mb-1 font-headline leading-tight">Facturation électronique 2026</h3>
           <p className="text-sm text-on-surface-variant leading-relaxed">Photofacto génère des factures au format Factur-X (standard officiel 2026). <span className="text-primary font-medium">Connexion directe Chorus Pro / PPF : Bientôt disponible.</span></p>
         </div>
       </div>
 
-      <div className="animate-fade-in-up animation-delay-200 card-hover bg-surface-container-lowest border border-outline-variant/10 p-6 md:p-8 rounded-2xl flex flex-col items-start gap-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-6 text-center sm:text-left">
-          <div className="flex flex-col sm:flex-row items-center gap-5">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${plan !== 'free' ? 'bg-tertiary/10 text-tertiary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-              <CreditCard className="w-7 h-7" />
+      <div className="animate-fade-in-up animation-delay-200 card-hover bg-surface-container-lowest border border-outline-variant/10 p-4 md:p-8 rounded-2xl flex flex-col items-start gap-4 md:gap-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-4 md:gap-6 text-left">
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className={`w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 ${plan !== 'free' ? 'bg-tertiary/10 text-tertiary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+              <CreditCard className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div>
-              <h3 className="font-bold text-on-surface mb-1 text-lg font-headline">Abonnement</h3>
+              <h3 className="font-bold text-on-surface mb-1 text-base md:text-lg font-headline">Abonnement</h3>
               {hasPaidAccess ? (
                 <p className="text-sm text-on-surface-variant flex items-center justify-center sm:justify-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-tertiary" /> 
@@ -223,13 +223,13 @@ export default function Settings() {
             </div>
           </div>
           {!hasPaidAccess && !isPendingActivation ? (
-            <Link to="/app/upgrade" className="btn-glow bg-secondary text-on-secondary px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto text-center">
+            <Link to="/app/upgrade" className="btn-glow min-touch bg-secondary text-on-secondary px-5 md:px-8 py-3 md:py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto text-center">
               Voir les offres
             </Link>
           ) : (
             <Link
               to="/app/abonnement"
-              className="bg-surface-container hover:bg-surface-container-highest text-on-surface px-6 py-3 rounded-xl font-medium text-sm transition-all w-full sm:w-auto inline-flex items-center justify-center gap-2"
+              className="min-touch bg-surface-container hover:bg-surface-container-highest text-on-surface px-5 md:px-6 py-3 rounded-xl font-medium text-sm transition-all w-full sm:w-auto inline-flex items-center justify-center gap-2"
             >
               Gérer mon abonnement
               <ArrowUpRight className="w-4 h-4" />
@@ -238,7 +238,7 @@ export default function Settings() {
         </div>
         
         {hasPaidAccess && (
-          <div className="w-full bg-surface-container-low p-4 rounded-xl flex items-start gap-3 mt-2 border border-outline-variant/20">
+          <div className="w-full bg-surface-container-low p-3.5 md:p-4 rounded-xl flex items-start gap-3 mt-1 md:mt-2 border border-outline-variant/20">
             <AlertCircle className="w-5 h-5 text-on-surface-variant shrink-0 mt-0.5" />
             <div className="text-sm text-on-surface-variant">
               <p className="font-bold text-on-surface mb-1">Pour annuler ou modifier votre carte bancaire :</p>
@@ -255,12 +255,12 @@ export default function Settings() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8 animate-fade-in-up animation-delay-300">
-        <section className="bg-surface-container-lowest rounded-2xl p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-6">
-          <h2 className="text-2xl font-extrabold font-headline text-on-surface">Entreprise</h2>
+      <form onSubmit={handleSubmit} className="space-y-5 md:space-y-8 animate-fade-in-up animation-delay-300">
+        <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">
+          <h2 className="text-xl md:text-2xl font-extrabold font-headline text-on-surface">Entreprise</h2>
           
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-4 md:space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Nom de l'entreprise *</label>
                 <input 
@@ -360,10 +360,10 @@ export default function Settings() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest rounded-2xl p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-6">
+        <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-extrabold font-headline text-on-surface mb-1">Design & Personnalisation</h2>
+              <h2 className="text-xl md:text-2xl font-extrabold font-headline text-on-surface mb-1">Design & Personnalisation</h2>
               <p className="text-sm text-on-surface-variant font-medium">Ajoutez un papier d'en-tête (logo, bordures) pour vos exports PDF.</p>
             </div>
             {formData.letterheadUrl && (
@@ -378,7 +378,7 @@ export default function Settings() {
             )}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start">
             <div className="space-y-4">
               <input
                 type="file"
@@ -390,7 +390,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={() => letterheadRef.current?.click()}
-                className="w-full border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 hover:bg-primary/10 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-colors text-primary"
+                className="min-touch w-full border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 hover:bg-primary/10 rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center gap-3 transition-colors text-primary"
               >
                 <Upload className="w-8 h-8" />
                 <div className="text-center">
@@ -424,11 +424,11 @@ export default function Settings() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest rounded-2xl p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-6">
+        <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-extrabold font-headline text-on-surface mb-1 flex items-center gap-2">
-                <Package className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-extrabold font-headline text-on-surface mb-1 flex items-center gap-2">
+                <Package className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                 Catalogue Produits & IA
               </h2>
               <p className="text-sm text-on-surface-variant font-medium">Importez votre catalogue Excel. L'IA reconnaîtra vos produits selon le nom et récupèrera vos tarifs quand vous dictez !</p>
@@ -438,7 +438,7 @@ export default function Settings() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start">
             <div className="space-y-4">
               <input
                 type="file"
@@ -451,7 +451,7 @@ export default function Settings() {
                 type="button"
                 disabled={isImporting}
                 onClick={() => catalogRef.current?.click()}
-                className="w-full border-2 border-dashed border-secondary/30 hover:border-secondary bg-secondary/5 hover:bg-secondary/10 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-colors text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-touch w-full border-2 border-dashed border-secondary/30 hover:border-secondary bg-secondary/5 hover:bg-secondary/10 rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center gap-3 transition-colors text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FileSpreadsheet className="w-8 h-8" />
                 <div className="text-center">
@@ -528,7 +528,7 @@ export default function Settings() {
                   )}
                   {articles.length === 0 && !isAddingArticle ? (
                     <tr>
-                      <td colSpan={4} className="p-8 text-center text-on-surface-variant text-sm">
+                      <td colSpan={4} className="p-5 md:p-8 text-center text-on-surface-variant text-sm">
                         Aucun article dans votre catalogue pour le moment.
                       </td>
                     </tr>
@@ -578,10 +578,10 @@ export default function Settings() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest rounded-2xl p-6 md:p-10 shadow-sm border border-outline-variant/10 space-y-6">
-          <h2 className="text-2xl font-extrabold font-headline text-on-surface">Facturation</h2>
+        <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">
+          <h2 className="text-xl md:text-2xl font-extrabold font-headline text-on-surface">Facturation</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Régime de TVA</label>
               <select 
@@ -640,7 +640,7 @@ export default function Settings() {
           </div>
         </section>
 
-        <div className="flex flex-col-reverse sm:flex-row items-center gap-4 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row items-center gap-3 md:gap-4 pt-2 md:pt-4">
           {saved && (
              <span className="animate-fade-in flex items-center gap-2 text-tertiary font-bold text-sm bg-tertiary-container px-4 py-2 rounded-xl">
                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
@@ -650,7 +650,7 @@ export default function Settings() {
           <button 
             type="submit" 
             disabled={isSaving}
-            className="btn-glow sm:ml-auto w-full sm:w-auto bg-primary text-on-primary px-10 py-4 rounded-xl font-bold text-base shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:transform-none"
+            className="btn-glow min-touch sm:ml-auto w-full sm:w-auto bg-primary text-on-primary px-7 md:px-10 py-3.5 md:py-4 rounded-xl font-bold text-base shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:transform-none"
           >
             {isSaving ? 'Enregistrement...' : 'Enregistrer'}
           </button>

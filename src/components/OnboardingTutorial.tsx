@@ -146,11 +146,13 @@ export function OnboardingTutorial() {
   // On mobile, force center or bottom to avoid overflow
   if (isMobile) {
     popupStyle = {
-      bottom: 'calc(env(safe-area-inset-bottom) + 88px)',
+      bottom: 'calc(env(safe-area-inset-bottom) + 66px)',
       left: '50%',
       transform: 'translateX(-50%)',
-      width: 'calc(100vw - 24px)',
-      maxWidth: 380,
+      width: 'calc(100vw - 20px)',
+      maxWidth: 360,
+      maxHeight: 'calc(100dvh - 92px)',
+      overflowY: 'auto',
     };
   }
 
@@ -158,7 +160,7 @@ export function OnboardingTutorial() {
     <div className="fixed inset-0 z-[9999] pointer-events-none">
       {/* Dark Backdrop with 'hole' for target */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-all duration-500 pointer-events-auto"
+        className="absolute inset-0 bg-black/50 md:bg-black/60 backdrop-blur-[2px] transition-all duration-500 pointer-events-auto"
         style={targetRect && !isMobile ? {
           clipPath: `polygon(
             0% 0%, 0% 100%, 
@@ -174,7 +176,7 @@ export function OnboardingTutorial() {
       />
       
       {/* Target Highlight Outline (optional, nice visual effect) */}
-      {targetRect && (
+      {targetRect && !isMobile && (
         <div 
           className="absolute border-2 border-primary rounded-xl animate-pulse pointer-events-none"
           style={{
@@ -188,7 +190,7 @@ export function OnboardingTutorial() {
 
       {/* Tutorial Card */}
       <div 
-        className="absolute w-[350px] max-w-[calc(100vw_-_24px)] bg-surface-container-lowest rounded-2xl p-5 md:p-6 shadow-2xl transition-all duration-300 pointer-events-auto flex flex-col gap-4 border border-outline-variant/20"
+        className="absolute w-[350px] max-w-[calc(100vw_-_20px)] bg-surface-container-lowest rounded-2xl p-4 md:p-6 shadow-2xl transition-all duration-300 pointer-events-auto flex flex-col gap-3 md:gap-4 border border-outline-variant/20"
         style={popupStyle}
       >
         <button 
@@ -201,25 +203,25 @@ export function OnboardingTutorial() {
 
         <div>
           <span className="text-xs font-bold uppercase tracking-widest text-primary mb-2 block">Étape {currentStepIndex + 1} sur {steps.length}</span>
-          <h3 className="text-lg md:text-xl font-bold font-headline text-on-surface mb-2 leading-tight flex items-center pr-8">
+          <h3 className="text-base md:text-xl font-bold font-headline text-on-surface mb-1.5 md:mb-2 leading-tight flex items-center pr-8">
             {currentStep.title}
           </h3>
-          <p className="text-on-surface-variant text-sm leading-relaxed">
+          <p className="text-on-surface-variant text-xs md:text-sm leading-relaxed">
             {currentStep.description}
           </p>
         </div>
 
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-between gap-3 mt-1 md:mt-2">
           <button 
             onClick={handleComplete}
-            className="min-touch text-xs font-bold text-on-surface-variant hover:text-on-surface px-2 underline underline-offset-4"
+            className="min-touch text-[11px] md:text-xs font-bold text-on-surface-variant hover:text-on-surface px-2 underline underline-offset-4"
           >
             Sortir du guide
           </button>
           
           <button 
             onClick={handleNext}
-            className="btn-glow min-touch flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold shadow-spark-cta active:scale-95 transition-all"
+            className="btn-glow min-touch flex items-center gap-1.5 md:gap-2 bg-primary text-on-primary px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-sm shadow-spark-cta active:scale-95 transition-all"
           >
             {currentStepIndex === steps.length - 1 ? (
               <>Terminer <Check className="w-4 h-4" /></>

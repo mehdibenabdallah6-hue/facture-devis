@@ -29,17 +29,17 @@ type KpiProps = {
 
 function KpiCard({ label, value, sub, icon, color }: KpiProps) {
   return (
-    <div className="bg-white border-spark rounded-2xl p-5 shadow-spark-sm">
+    <div className="bg-white border-spark rounded-2xl p-3.5 md:p-5 shadow-spark-sm min-w-0">
       <div
-        className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-3"
+        className="w-8 h-8 md:w-9 md:h-9 rounded-[10px] flex items-center justify-center mb-2 md:mb-3"
         style={{ background: `${color}14` }}
       >
         {icon}
       </div>
-      <div className="font-headline text-2xl font-bold text-secondary-dim tracking-tight leading-none mb-1">
+      <div className="font-headline text-xl md:text-2xl font-bold text-secondary-dim tracking-tight leading-none mb-1 truncate">
         {value}
       </div>
-      <div className="text-[11px] font-medium text-on-surface-variant">{label}</div>
+      <div className="text-[10px] md:text-[11px] font-medium text-on-surface-variant leading-tight">{label}</div>
       {sub && <div className="text-[10px] font-semibold text-primary mt-0.5">{sub}</div>}
     </div>
   );
@@ -143,7 +143,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Trial Banner */}
       {showTrialBanner && (
         <div className="bg-primary-container border border-primary/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -170,18 +170,18 @@ export default function Dashboard() {
       )}
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
         <div>
           <p className="text-on-surface-variant font-medium text-xs mb-1">
             {format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}
           </p>
-          <h1 className="font-headline text-3xl md:text-[32px] font-extrabold text-secondary-dim tracking-tight">
+          <h1 className="font-headline text-[26px] md:text-[32px] font-extrabold text-secondary-dim tracking-tight leading-tight">
             Bonjour{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''} 👋
           </h1>
         </div>
         <button
           onClick={() => navigate('/app/invoices/new')}
-          className="btn-glow flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-spark-cta-lg active:scale-95 transition-transform w-fit"
+          className="btn-glow hidden sm:flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-spark-cta-lg active:scale-95 transition-transform w-fit"
         >
           <Plus className="w-[15px] h-[15px]" strokeWidth={2.5} />
           Nouvelle facture
@@ -189,7 +189,7 @@ export default function Dashboard() {
       </header>
 
       {/* KPI Cards */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3.5">
         <KpiCard
           label="Factures ce mois"
           value={`${thisMonthInvoices.length}`}
@@ -300,15 +300,15 @@ export default function Dashboard() {
       {/* Empty state (no invoices) */}
       {invoices.length === 0 && (
         <section>
-          <div className="bg-white rounded-[20px] p-8 md:p-12 text-center border-spark shadow-spark-md">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Zap className="w-10 h-10 text-primary fill-primary" />
+          <div className="bg-white rounded-[20px] p-5 md:p-12 text-center border-spark shadow-spark-md">
+            <div className="w-14 h-14 md:w-20 md:h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+              <Zap className="w-7 h-7 md:w-10 md:h-10 text-primary fill-primary" />
             </div>
-            <h2 className="font-headline text-2xl font-extrabold text-secondary-dim mb-3">
+            <h2 className="font-headline text-xl md:text-2xl font-extrabold text-secondary-dim mb-3">
               Bienvenue ! Voici comment démarrer
             </h2>
 
-            <div className="max-w-sm mx-auto space-y-3 mb-7 text-left">
+            <div className="max-w-sm mx-auto space-y-2.5 md:space-y-3 mb-5 md:mb-7 text-left">
               {[
                 {
                   step: '1',
@@ -331,7 +331,7 @@ export default function Dashboard() {
               ].map(item => (
                 <div
                   key={item.step}
-                  className={`flex items-start gap-3 p-3.5 rounded-xl ${
+                  className={`flex items-start gap-3 p-3 rounded-xl ${
                     item.done
                       ? 'bg-primary/[0.06] border border-primary/15'
                       : 'bg-background border-spark'
@@ -363,14 +363,14 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => navigate('/app/invoices/new')}
-                className="btn-glow flex items-center justify-center gap-2 bg-primary text-white font-bold px-7 py-3.5 rounded-xl shadow-spark-cta-lg active:scale-95 transition-transform"
+                  className="btn-glow flex items-center justify-center gap-2 bg-primary text-white font-bold px-5 md:px-7 py-3 md:py-3.5 rounded-xl shadow-spark-cta-lg active:scale-95 transition-transform"
               >
                 <Camera className="w-5 h-5" />
                 Importer une photo
               </button>
               <button
                 onClick={() => navigate('/app/invoices/new')}
-                className="flex items-center justify-center gap-2 bg-background border-spark text-on-surface font-bold px-7 py-3.5 rounded-xl active:scale-95 transition-transform"
+                  className="flex items-center justify-center gap-2 bg-background border-spark text-on-surface font-bold px-5 md:px-7 py-3 md:py-3.5 rounded-xl active:scale-95 transition-transform"
               >
                 <FileText className="w-5 h-5" />
                 Saisir manuellement
@@ -399,7 +399,7 @@ export default function Dashboard() {
               <div
                 key={invoice.id}
                 onClick={() => navigate(`/app/invoices/${invoice.id}`)}
-                className={`flex items-center px-5 py-3 cursor-pointer hover:bg-background/50 transition-colors ${
+                className={`flex items-center px-3.5 md:px-5 py-3 cursor-pointer hover:bg-background/50 transition-colors ${
                   i < recentInvoices.length - 1 ? 'border-b-spark' : ''
                 }`}
               >
@@ -415,7 +415,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <StatusBadge status={invoice.status} />
-                <div className="font-headline font-bold text-sm text-secondary-dim ml-4 shrink-0">
+                <div className="font-headline font-bold text-xs md:text-sm text-secondary-dim ml-2 md:ml-4 shrink-0">
                   {formatCurrency(invoice.totalTTC)}
                 </div>
               </div>
