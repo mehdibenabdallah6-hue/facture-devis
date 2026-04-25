@@ -286,6 +286,8 @@ export default function InvoiceCreate() {
   const [showPhotoSourcePicker, setShowPhotoSourcePicker] = useState(false);
   const [photoDescription, setPhotoDescription] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<{ base64: string; mimeType: string } | null>(null);
+  const [showRegenerateBox, setShowRegenerateBox] = useState(false);
+  const [regenerateInstruction, setRegenerateInstruction] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photosInputRef = useRef<HTMLInputElement>(null);
   const [isOffline, setIsOffline] = useState(!window.navigator.onLine);
@@ -539,15 +541,30 @@ export default function InvoiceCreate() {
     return topArticles.map(a => `[Nom: ${a.description}, Prix: ${a.unitPrice}€, TVA: ${a.vatRate}%]`).join(' | ');
   };
 
-  const photoQuickSuggestions = [
-    'Main d’œuvre',
-    'Déplacement',
-    'Fournitures',
-    'Pose carrelage',
-    'Peinture',
-    'Plomberie',
-    'Électricité',
-    'Nettoyage chantier',
+  const getProfessionSuggestions = () => {
+    const profession = (company?.profession || '').toLowerCase();
+    if (profession.includes('carreleur')) {
+      return ['Pose carrelage', 'Ragréage', 'Plinthes', 'Joints', 'Dépose ancien carrelage'];
+    }
+    if (profession.includes('peintre')) {
+      return ['Peinture murs', 'Peinture plafond', 'Enduit', 'Préparation support', 'Protection chantier'];
+    }
+    if (profession.includes('plombier')) {
+      return ['Déplacement', 'Recherche de fuite', 'Remplacement robinet', 'Débouchage', 'Main d’œuvre'];
+    }
+    if (profession.includes('électricien') || profession.includes('electricien')) {
+      return ['Déplacement', 'Recherche de panne', 'Pose prise', 'Tableau électrique', 'Main d’œuvre'];
+    }
+    return ['Main d’œuvre', 'Déplacement', 'Fournitures', 'Pose carrelage', 'Peinture', 'Plomberie', 'Électricité', 'Nettoyage chantier'];
+  };
+
+  const photoQuickSuggestions = getProfessionSuggestions();
+  const vagueClarifiers = [
+    { label: 'Quelle surface ?', text: 'Surface : ' },
+    { label: 'Fournitures incluses ?', text: 'Fournitures incluses' },
+    { label: 'Déplacement à facturer ?', text: 'Déplacement à facturer' },
+    { label: 'Main d’œuvre incluse ?', text: 'Main d’œuvre incluse' },
+    { label: 'Type exact de prestation ?', text: 'Type exact de prestation : ' },
   ];
 
   const addPhotoSuggestion = (suggestion: string) => {
@@ -563,6 +580,21 @@ export default function InvoiceCreate() {
     const words = clean.split(/\s+/).filter(Boolean);
     const hasConcreteDetail = /(\d|€|euro|m2|m²|mètre|metre|pose|remplacement|réparation|reparation|installation|ragréage|rageage|carrelage|peinture|plomberie|électricité|electricite|main d’œuvre|main d'oeuvre|fourniture|déplacement|deplacement|nettoyage)/i.test(clean);
     return words.length > 0 && words.length <= 4 && !hasConcreteDetail;
+  };
+
+  const normalizeCatalogText = (value: string) =>
+    value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+  const getCatalogMatch = (item: InvoiceItem) => {
+    const itemName = normalizeCatalogText(item.description || '');
+    if (!itemName || !articles?.length) return null;
+    return articles.find(article => {
+      const articleName = normalizeCatalogText(article.description);
+      const namesMatch = itemName.includes(articleName) || articleName.includes(itemName);
+      const priceMatches = Number(item.unitPrice) > 0 && Math.abs(Number(item.unitPrice) - Number(article.unitPrice)) < 0.01;
+      const vatMatches = Number(item.vatRate ?? 0) === Number(article.vatRate ?? 0);
+      return namesMatch && priceMatches && vatMatches;
+    }) || null;
   };
 
   const processDictation = async (text: string) => {
@@ -715,10 +747,12 @@ export default function InvoiceCreate() {
     setPreviewUrl(null);
     setPhotoDescription('');
     setDictationText('');
+    setShowRegenerateBox(false);
+    setRegenerateInstruction('');
     setStep('upload');
   };
 
-  const handleGenerateFromPhoto = async () => {
+  const handleGenerateFromPhoto = async (extraInstruction = '') => {
     if (!selectedPhoto) {
       setError('Ajoutez une photo avant de générer la facture.');
       return;
@@ -736,16 +770,33 @@ export default function InvoiceCreate() {
     setError(null);
     setStep('analyzing');
     try {
+      const fullDescription = [
+        photoDescription.trim(),
+        extraInstruction.trim() ? `Précision ajoutée : ${extraInstruction.trim()}` : '',
+      ].filter(Boolean).join('\n');
       const extractedData = await extractInvoiceData(
         selectedPhoto.base64,
         selectedPhoto.mimeType,
         getCatalogContext(),
-        photoDescription.trim()
+        fullDescription
       );
       applyExtractedData(extractedData);
+      if (extraInstruction.trim()) {
+        setPhotoDescription(fullDescription);
+        setRegenerateInstruction('');
+        setShowRegenerateBox(false);
+      }
     } catch (err: any) {
       handleExtractionError(err);
     }
+  };
+
+  const handleRegenerateFromProposal = () => {
+    if (!regenerateInstruction.trim()) {
+      setError('Ajoutez une précision avant de régénérer la proposition.');
+      return;
+    }
+    handleGenerateFromPhoto(regenerateInstruction);
   };
 
   // ---------- Document Upload (PDF / Excel) ----------
@@ -1721,7 +1772,23 @@ export default function InvoiceCreate() {
                 {error && (
                   <div className="bg-error-container text-on-error-container p-3 rounded-xl flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <p className="text-xs font-semibold">{error}</p>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold">{error}</p>
+                      {isPhotoDescriptionTooVague(photoDescription) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {vagueClarifiers.map(question => (
+                            <button
+                              key={question.label}
+                              type="button"
+                              onClick={() => addPhotoSuggestion(question.text)}
+                              className="min-touch rounded-full bg-white/70 px-3 py-1.5 text-[11px] font-bold text-on-error-container border border-error/10 active:scale-95 transition-all"
+                            >
+                              {question.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1782,7 +1849,7 @@ export default function InvoiceCreate() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleGenerateFromPhoto}
+                    onClick={() => handleGenerateFromPhoto()}
                     disabled={!selectedPhoto}
                     className="btn-glow min-touch flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary px-5 py-3 font-black text-sm shadow-spark-cta active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
                   >
@@ -1867,6 +1934,49 @@ export default function InvoiceCreate() {
             </div>
           )}
         </header>
+
+        {previewUrl && (
+          <div className="animate-fade-in bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-sm text-on-surface">Vérifiez les lignes avant validation. L'IA peut se tromper.</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Vous restez responsable de la validation des informations.</p>
+                </div>
+              </div>
+              {selectedPhoto && (
+                <button
+                  type="button"
+                  onClick={() => setShowRegenerateBox(prev => !prev)}
+                  className="min-touch shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-outline-variant/10 px-4 py-2.5 text-sm font-bold text-primary active:scale-95 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Régénérer
+                </button>
+              )}
+            </div>
+
+            {showRegenerateBox && (
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto] animate-fade-in">
+                <input
+                  type="text"
+                  value={regenerateInstruction}
+                  onChange={e => setRegenerateInstruction(e.target.value)}
+                  placeholder="Ex : Ajoute aussi le déplacement et les fournitures"
+                  className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={handleRegenerateFromProposal}
+                  className="min-touch rounded-xl bg-primary text-on-primary px-5 py-3 text-sm font-black shadow-spark-cta active:scale-95 transition-all"
+                >
+                  Relancer l'IA
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Warning banner if legal info is missing */}
         {!hasLegalInfo && (
@@ -2161,15 +2271,37 @@ export default function InvoiceCreate() {
             </div>
             
             <div className="space-y-3">
-              {(formData.items || []).map((item, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2.5 md:gap-3 items-center bg-surface-container-low/70 p-3.5 md:p-4 pt-5 rounded-2xl relative">
+              {(formData.items || []).map((item, index) => {
+                const catalogMatch = getCatalogMatch(item);
+                const priceMissing = Number(item.unitPrice) <= 0;
+
+                return (
+                <div key={index} className={`grid grid-cols-12 gap-2.5 md:gap-3 items-center p-3.5 md:p-4 pt-5 rounded-2xl relative border ${
+                  priceMissing
+                    ? 'bg-amber-50/80 border-amber-200/70'
+                    : 'bg-surface-container-low/70 border-transparent'
+                }`}>
                   {/* Delete Button on top right of the item card for mobile focus */}
                   <button onClick={() => removeItem(index)} className="absolute top-2 right-2 min-touch text-error/60 hover:text-error bg-surface-container-highest/70 hover:bg-error-container rounded-lg transition-colors flex items-center justify-center" aria-label="Supprimer cette ligne">
                     <Trash2 className="w-4 h-4" />
                   </button>
 
                   <div className="col-span-12 space-y-1">
-                    <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2">Description</label>
+                    <div className="flex flex-wrap items-center gap-2 ml-2 pr-10">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase">Description</label>
+                      {catalogMatch && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-tertiary-container text-tertiary px-2 py-0.5 text-[10px] font-black">
+                          <Check className="w-3 h-3" />
+                          Prix catalogue utilisé
+                        </span>
+                      )}
+                      {priceMissing && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-black">
+                          <AlertCircle className="w-3 h-3" />
+                          Prix à compléter
+                        </span>
+                      )}
+                    </div>
                     <input 
                       type="text" 
                       placeholder="Désignation" 
@@ -2205,13 +2337,19 @@ export default function InvoiceCreate() {
                     />
                   </div>
                   <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
-                    <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2">Prix U.</label>
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2">
+                      Prix U. {priceMissing && <span className="text-amber-700 normal-case font-black">· à compléter</span>}
+                    </label>
                     <input 
                       type="number" 
                       placeholder="0.00" 
                       value={item.unitPrice}
                       onChange={e => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 md:px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-medium"
+                      className={`w-full bg-surface-container-lowest border rounded-xl px-3 md:px-4 py-3 text-sm focus:ring-2 focus:border-transparent font-medium ${
+                        priceMissing
+                          ? 'border-amber-300 focus:ring-amber-300/30'
+                          : 'border-outline-variant/20 focus:ring-primary/20'
+                      }`}
                     />
                   </div>
                   {formData.vatRegime === 'standard' && (
@@ -2256,7 +2394,8 @@ export default function InvoiceCreate() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3 pt-1 md:pt-2">
@@ -2370,23 +2509,29 @@ export default function InvoiceCreate() {
 
         {/* Initial Save Button */}
         {!id && (
-          <button
-            onClick={() => handleSave('draft')}
-            disabled={isSaving}
-            className="w-full min-touch flex items-center justify-center gap-2 md:gap-3 bg-primary text-on-primary py-4 sm:py-6 px-5 md:px-6 rounded-2xl font-black text-base sm:text-2xl shadow-spark-cta-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 btn-glow"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-7 h-7 animate-spin" />
-                Enregistrement...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-7 h-7" />
-                Générer mon document
-              </>
-            )}
-          </button>
+          <div className="space-y-3">
+            <div className="flex items-start gap-2 rounded-2xl bg-surface-container-low border border-outline-variant/10 p-3 text-xs text-on-surface-variant">
+              <Shield className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>Vous restez responsable de la validation des informations avant l'enregistrement.</span>
+            </div>
+            <button
+              onClick={() => handleSave('draft')}
+              disabled={isSaving}
+              className="w-full min-touch flex items-center justify-center gap-2 md:gap-3 bg-primary text-on-primary py-4 sm:py-6 px-5 md:px-6 rounded-2xl font-black text-base sm:text-2xl shadow-spark-cta-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 btn-glow"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-7 h-7 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-7 h-7" />
+                  Valider le brouillon
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
 

@@ -54,12 +54,12 @@ export default function LandingPage({ profession }: LandingPageProps) {
       plombier: {
         title: 'Photofacto — Logiciel de facturation pour plombiers | Facture en 10s',
         description:
-          "L'app de facturation n°1 pour plombiers. Dictez ou photographiez vos interventions, obtenez une facture conforme en 10 secondes. Essai gratuit 14 jours.",
+          "L'app de facturation pour plombiers. Ajoutez une photo, décrivez l'intervention, obtenez une proposition de facture à vérifier. Essai gratuit 14 jours.",
       },
       electricien: {
         title: 'Photofacto — Logiciel de facturation pour électriciens | Facture en 10s',
         description:
-          'Facturation simplifiée pour électriciens. Créez vos devis et factures par dictée vocale ou photo. Conforme réforme 2026. Essai gratuit.',
+          'Facturation simplifiée pour électriciens. Photo, dictée ou description rapide : préparez une proposition modifiable. Conforme réforme 2026.',
       },
       macon: {
         title: 'Photofacto — Logiciel de facturation pour maçons | Facture en 10s',
@@ -69,22 +69,22 @@ export default function LandingPage({ profession }: LandingPageProps) {
       peintre: {
         title: 'Photofacto — Logiciel de facturation pour peintres | Facture en 10s',
         description:
-          "Facturez vos chantiers de peinture en 10 secondes. Dictée vocale, extraction IA, PDF conforme. L'app préférée des peintres en bâtiment.",
+          "Facturez vos chantiers de peinture plus vite. Décrivez la prestation, ajoutez une photo si utile, vérifiez puis validez.",
       },
       carreleur: {
         title: 'Photofacto — Logiciel de facturation pour carreleurs | Facture en 10s',
         description:
-          "Créez vos factures et devis de carrelage en un clic. L'IA comprend vos prestations. Conforme à la réforme 2026. Essai 14 jours gratuit.",
+          "Créez vos factures et devis de carrelage avec photo + description rapide. L'IA prépare un brouillon modifiable. Essai 14 jours gratuit.",
       },
       couvreur: {
         title: 'Photofacto — Logiciel de facturation pour couvreurs | Facture en 10s',
         description:
-          "L'application de facturation numéro 1 pour les couvreurs et zingueurs. Convertissez vos notes de chantiers de toiture en factures parfaites en 10 secondes.",
+          "L'application de facturation pour couvreurs et zingueurs. Transformez vos notes de chantier en proposition de facture claire à vérifier.",
       },
       menuisier: {
         title: 'Photofacto — Logiciel de facturation pour menuisiers | Facture en 10s',
         description:
-          "Simplifiez la comptabilité de votre entreprise de menuiserie. Vos devis et factures créés automatiquement par l'IA. Essai gratuit.",
+          "Simplifiez la facturation de votre menuiserie. L'IA prépare des brouillons à partir de vos descriptions, vous gardez la validation.",
       },
       serrurier: {
         title: 'Photofacto — Logiciel de facturation pour serruriers | Facture en 10s',
@@ -104,7 +104,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
       paysagiste: {
         title: 'Photofacto — Logiciel de facturation pour paysagistes | Facture en 10s',
         description:
-          "Logiciel de devis et factures idéal pour l'entretien d'espaces verts. Prestations d'élagage, tonte, aménagement, créés par la voix ou photo en 10s.",
+          "Logiciel de devis et factures pour espaces verts. Décrivez tonte, élagage ou aménagement : l'IA prépare une proposition modifiable.",
       },
     };
 
@@ -123,8 +123,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       setMeta(seoData[profession].title, seoData[profession].description);
     } else {
       setMeta(
-        'Photofacto — De la photo à la facture en 10 secondes | Facturation IA pour artisans',
-        "Photofacto : l'application de facturation intelligente pour artisans. Dictez ou photographiez, l'IA génère votre facture conforme en 10 secondes. Essai gratuit 14 jours.",
+        'Photofacto — Photo + description = facture à valider | Facturation IA pour artisans',
+        "Photofacto : ajoutez une photo, décrivez le chantier en quelques mots, l'IA prépare une proposition de facture modifiable. Essai gratuit 14 jours.",
       );
     }
   }, [profession]);
@@ -166,11 +166,11 @@ export default function LandingPage({ profession }: LandingPageProps) {
     </>
   ) : (
     <>
-      De la photo
+      Photo + description
       <br />
-      à la facture
+      rapide
       <br />
-      <span className="text-primary">en 10 secondes.</span>
+      <span className="text-primary">facture à valider.</span>
     </>
   );
 
@@ -375,7 +375,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               La facturation sans effort
             </h2>
             <p className="text-[15px] text-on-surface-variant max-w-md mx-auto">
-              Oubliez la saisie manuelle. Notre IA s'occupe de tout en 3 étapes.
+              Photo + description rapide : l'IA prépare une proposition, vous vérifiez et validez.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
@@ -383,14 +383,14 @@ export default function LandingPage({ profession }: LandingPageProps) {
               {
                 n: '01',
                 icon: <Mic className="w-[22px] h-[22px] text-primary" />,
-                t: 'Dictez ou photographiez',
-                d: "Parlez à votre téléphone ou photographiez vos notes de chantier. C'est aussi simple que ça.",
+                t: 'Photo + description',
+                d: "Ajoutez une photo du chantier, puis décrivez ou dictez la prestation en quelques mots.",
               },
               {
                 n: '02',
                 icon: <Zap className="w-[22px] h-[22px] text-primary fill-primary" />,
-                t: "L'IA analyse en 10s",
-                d: 'Gemini extrait le client, les montants et les prestations automatiquement.',
+                t: "L'IA prépare un brouillon",
+                d: "Elle s'appuie d'abord sur votre description et vos tarifs catalogue quand ils existent.",
               },
               {
                 n: '03',
@@ -695,7 +695,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </span>
               </div>
               <p className="text-xs text-white/30 leading-relaxed">
-                De la photo à la facture en 10 secondes. L'IA au service des artisans.
+                Photo + description rapide = facture prête à valider. L'IA au service des artisans.
               </p>
             </div>
             {[

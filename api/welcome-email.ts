@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
               <tr>
                 <td style="background:linear-gradient(135deg,#0d9488,#0f766e);padding:40px 32px;text-align:center;">
                   <h1 style="color:#FFFFFF;font-size:32px;font-weight:800;margin:0 0 8px;">Photofacto</h1>
-                  <p style="color:#ccfbf1;font-size:16px;margin:0;">De la photo à la facture en 10 secondes</p>
+                  <p style="color:#ccfbf1;font-size:16px;margin:0;">Photo + description rapide = facture prête à valider</p>
                 </td>
               </tr>
               
@@ -56,8 +56,8 @@ export default async function handler(req: any, res: any) {
                     <tr>
                       <td style="padding:16px 0;border-bottom:1px solid #e7e5e4;">
                         <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;background-color:#0d9488;color:#FFFFFF;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px;">2</span>
-                        <strong style="color:#1c1917;">Prenez une photo de votre brouillon</strong>
-                        <p style="color:#44403c;font-size:14px;margin:4px 0 0 44px;">L'IA extrait automatiquement les informations.</p>
+                        <strong style="color:#1c1917;">Ajoutez une photo et une description</strong>
+                        <p style="color:#44403c;font-size:14px;margin:4px 0 0 44px;">L'IA prépare une proposition de facture à vérifier.</p>
                       </td>
                     </tr>
                     <tr>

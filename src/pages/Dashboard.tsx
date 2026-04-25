@@ -318,8 +318,8 @@ export default function Dashboard() {
                 },
                 {
                   step: '2',
-                  title: 'Prenez une photo ou dictez',
-                  desc: "L'IA extrait automatiquement les infos de votre brouillon.",
+                  title: 'Photo + description rapide',
+                  desc: "L'IA prépare une proposition de facture à vérifier.",
                   done: false,
                 },
                 {
