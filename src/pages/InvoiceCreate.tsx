@@ -288,6 +288,12 @@ export default function InvoiceCreate() {
   const [selectedPhoto, setSelectedPhoto] = useState<{ base64: string; mimeType: string } | null>(null);
   const [showRegenerateBox, setShowRegenerateBox] = useState(false);
   const [regenerateInstruction, setRegenerateInstruction] = useState('');
+  const [aiSuggestedLineCount, setAiSuggestedLineCount] = useState(0);
+  const [proposalRevealRun, setProposalRevealRun] = useState(0);
+  const [revealedItemCount, setRevealedItemCount] = useState(999);
+  const [generationStepIndex, setGenerationStepIndex] = useState(0);
+  const [animatedTotalTTC, setAnimatedTotalTTC] = useState(0);
+  const [isTotalAnimating, setIsTotalAnimating] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photosInputRef = useRef<HTMLInputElement>(null);
   const [isOffline, setIsOffline] = useState(!window.navigator.onLine);
@@ -560,11 +566,11 @@ export default function InvoiceCreate() {
 
   const photoQuickSuggestions = getProfessionSuggestions();
   const vagueClarifiers = [
-    { label: 'Quelle surface ?', text: 'Surface : ' },
-    { label: 'Fournitures incluses ?', text: 'Fournitures incluses' },
-    { label: 'Déplacement à facturer ?', text: 'Déplacement à facturer' },
-    { label: 'Main d’œuvre incluse ?', text: 'Main d’œuvre incluse' },
-    { label: 'Type exact de prestation ?', text: 'Type exact de prestation : ' },
+    { label: 'Surface', text: 'Surface : ' },
+    { label: 'Main d’œuvre', text: 'Main d’œuvre incluse' },
+    { label: 'Fournitures', text: 'Fournitures incluses' },
+    { label: 'Déplacement', text: 'Déplacement à facturer' },
+    { label: 'Type de travaux', text: 'Type exact de prestation : ' },
   ];
 
   const addPhotoSuggestion = (suggestion: string) => {
@@ -749,6 +755,9 @@ export default function InvoiceCreate() {
     setDictationText('');
     setShowRegenerateBox(false);
     setRegenerateInstruction('');
+    setAiSuggestedLineCount(0);
+    setRevealedItemCount(999);
+    setProposalRevealRun(0);
     setStep('upload');
   };
 
@@ -884,6 +893,10 @@ export default function InvoiceCreate() {
 
   const applyExtractedData = (extractedData: any) => {
     incrementAiUsage();
+    const extractedItemsCount = Array.isArray(extractedData.items) ? extractedData.items.length : 0;
+    setAiSuggestedLineCount(extractedItemsCount);
+    setProposalRevealRun(run => run + 1);
+    setRevealedItemCount(0);
     setFormData(prev => {
       const newData = { ...prev };
       if (extractedData.date && /^\d{4}-\d{2}-\d{2}$/.test(extractedData.date)) {
@@ -957,6 +970,7 @@ export default function InvoiceCreate() {
     const newItems = [...(formData.items || [])];
     newItems.splice(index, 1);
     setFormData({ ...formData, items: newItems });
+    setAiSuggestedLineCount(prev => index < prev ? Math.max(prev - 1, 0) : prev);
   };
 
   const calculateTotals = () => {
@@ -975,6 +989,70 @@ export default function InvoiceCreate() {
   };
 
   const { totalHT, totalVAT, totalTTC } = calculateTotals();
+
+  const generationMessages = [
+    'Analyse de votre description…',
+    'Croisement avec vos tarifs catalogue…',
+    'Création de la facture…',
+  ];
+
+  useEffect(() => {
+    if (step !== 'analyzing') return;
+    setGenerationStepIndex(0);
+    const timers = [
+      window.setTimeout(() => setGenerationStepIndex(1), 900),
+      window.setTimeout(() => setGenerationStepIndex(2), 1800),
+    ];
+    return () => timers.forEach(timer => window.clearTimeout(timer));
+  }, [step]);
+
+  useEffect(() => {
+    if (proposalRevealRun === 0) return;
+    const itemCount = formData.items?.length || 0;
+    setRevealedItemCount(0);
+    const timer = window.setInterval(() => {
+      setRevealedItemCount(prev => {
+        if (prev >= itemCount) {
+          window.clearInterval(timer);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 120);
+    return () => window.clearInterval(timer);
+  }, [proposalRevealRun, formData.items?.length]);
+
+  useEffect(() => {
+    if (!isTotalAnimating) {
+      setAnimatedTotalTTC(totalTTC);
+    }
+  }, [totalTTC, isTotalAnimating]);
+
+  useEffect(() => {
+    if (proposalRevealRun === 0) return;
+    setIsTotalAnimating(true);
+    const duration = 850;
+    const startedAt = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimatedTotalTTC(totalTTC * eased);
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(tick);
+      } else {
+        setAnimatedTotalTTC(totalTTC);
+        setIsTotalAnimating(false);
+      }
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      setIsTotalAnimating(false);
+    };
+  }, [proposalRevealRun]);
+
+  const visibleTotalTTC = proposalRevealRun > 0 ? animatedTotalTTC : totalTTC;
 
   const handleSave = async (status: Invoice['status'] = 'draft') => {
     // Check plan invoice limit for new invoices
@@ -1775,17 +1853,20 @@ export default function InvoiceCreate() {
                     <div className="flex-1">
                       <p className="text-xs font-semibold">{error}</p>
                       {isPhotoDescriptionTooVague(photoDescription) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {vagueClarifiers.map(question => (
-                            <button
-                              key={question.label}
-                              type="button"
-                              onClick={() => addPhotoSuggestion(question.text)}
-                              className="min-touch rounded-full bg-white/70 px-3 py-1.5 text-[11px] font-bold text-on-error-container border border-error/10 active:scale-95 transition-all"
-                            >
-                              {question.label}
-                            </button>
-                          ))}
+                        <div className="mt-3 rounded-xl bg-white/60 border border-error/10 p-3">
+                          <p className="text-[11px] font-black uppercase tracking-widest mb-2">Précisez votre prestation :</p>
+                          <div className="flex flex-wrap gap-2">
+                            {vagueClarifiers.map(question => (
+                              <button
+                                key={question.label}
+                                type="button"
+                                onClick={() => addPhotoSuggestion(question.text)}
+                                className="min-touch rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-bold text-on-error-container border border-error/10 active:scale-95 transition-all"
+                              >
+                                + {question.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1890,12 +1971,29 @@ export default function InvoiceCreate() {
         </div>
         <div className="animate-fade-in-up">
           <h2 className="text-3xl font-extrabold font-headline mb-3 text-on-surface">
-            {isPhoto ? "Préparation de la proposition..." : "L'IA retranscrit votre voix..."}
+            {isPhoto ? 'Préparation de la proposition...' : "L'IA retranscrit votre voix..."}
           </h2>
           <p className="text-lg text-on-surface-variant max-w-sm mx-auto flex items-center justify-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-secondary" />
-            {isPhoto ? "L'IA croise votre photo avec votre description." : "Restitution des lignes de la facture."}
+            {isPhoto ? generationMessages[generationStepIndex] : 'Création du brouillon de facture…'}
           </p>
+          {isPhoto && (
+            <div className="mt-6 grid gap-2 text-left max-w-sm mx-auto">
+              {generationMessages.map((message, index) => (
+                <div
+                  key={message}
+                  className={`flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold transition-all duration-300 ${
+                    index <= generationStepIndex
+                      ? 'bg-primary/10 text-primary translate-x-0 opacity-100'
+                      : 'bg-surface-container-high text-on-surface-variant opacity-55 translate-x-2'
+                  }`}
+                >
+                  {index < generationStepIndex ? <Check className="w-3.5 h-3.5" /> : <Loader2 className={`w-3.5 h-3.5 ${index === generationStepIndex ? 'animate-spin' : ''}`} />}
+                  {message}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1952,7 +2050,7 @@ export default function InvoiceCreate() {
                   className="min-touch shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-outline-variant/10 px-4 py-2.5 text-sm font-bold text-primary active:scale-95 transition-all"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Régénérer
+                  Améliorer avec plus de détails
                 </button>
               )}
             </div>
@@ -1963,7 +2061,7 @@ export default function InvoiceCreate() {
                   type="text"
                   value={regenerateInstruction}
                   onChange={e => setRegenerateInstruction(e.target.value)}
-                  placeholder="Ex : Ajoute aussi le déplacement et les fournitures"
+                  placeholder="Ex : ajoute le déplacement et les fournitures"
                   className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20"
                 />
                 <button
@@ -2274,13 +2372,19 @@ export default function InvoiceCreate() {
               {(formData.items || []).map((item, index) => {
                 const catalogMatch = getCatalogMatch(item);
                 const priceMissing = Number(item.unitPrice) <= 0;
+                const fromAi = index < aiSuggestedLineCount;
+                const isRevealPending = proposalRevealRun > 0 && index >= revealedItemCount;
 
                 return (
-                <div key={index} className={`grid grid-cols-12 gap-2.5 md:gap-3 items-center p-3.5 md:p-4 pt-5 rounded-2xl relative border ${
-                  priceMissing
-                    ? 'bg-amber-50/80 border-amber-200/70'
-                    : 'bg-surface-container-low/70 border-transparent'
-                }`}>
+                <div
+                  key={index}
+                  style={{ transitionDelay: `${Math.min(index * 80, 420)}ms` }}
+                  className={`grid grid-cols-12 gap-2.5 md:gap-3 items-center p-3.5 md:p-4 pt-5 rounded-2xl relative border transition-all duration-500 ${
+                    priceMissing
+                      ? 'bg-amber-50/90 border-amber-300/80 shadow-[0_12px_35px_rgba(245,158,11,0.12)]'
+                      : 'bg-surface-container-low/70 border-transparent'
+                  } ${isRevealPending ? 'opacity-0 translate-y-4 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}
+                >
                   {/* Delete Button on top right of the item card for mobile focus */}
                   <button onClick={() => removeItem(index)} className="absolute top-2 right-2 min-touch text-error/60 hover:text-error bg-surface-container-highest/70 hover:bg-error-container rounded-lg transition-colors flex items-center justify-center" aria-label="Supprimer cette ligne">
                     <Trash2 className="w-4 h-4" />
@@ -2289,6 +2393,12 @@ export default function InvoiceCreate() {
                   <div className="col-span-12 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 ml-2 pr-10">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase">Description</label>
+                      {fromAi && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-black">
+                          <Sparkles className="w-3 h-3" />
+                          Suggestion IA
+                        </span>
+                      )}
                       {catalogMatch && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-tertiary-container text-tertiary px-2 py-0.5 text-[10px] font-black">
                           <Check className="w-3 h-3" />
@@ -2302,6 +2412,9 @@ export default function InvoiceCreate() {
                         </span>
                       )}
                     </div>
+                    {priceMissing && (
+                      <p className="ml-2 text-[11px] font-bold text-amber-800">À compléter : ajoutez un prix fiable avant validation.</p>
+                    )}
                     <input 
                       type="text" 
                       placeholder="Désignation" 
@@ -2462,8 +2575,15 @@ export default function InvoiceCreate() {
               </div>
             )}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
-              <span className="text-base md:text-xl font-headline font-black text-on-surface">TOTAL {formData.type === 'quote' ? 'ESTIMÉ' : 'À PAYER'}</span>
-              <span className="text-[28px] md:text-3xl font-headline font-black text-primary drop-shadow-sm break-words">{formatCurrency(totalTTC)}</span>
+              <div>
+                <span className="text-base md:text-xl font-headline font-black text-on-surface">TOTAL {formData.type === 'quote' ? 'ESTIMÉ' : 'À PAYER'}</span>
+                {proposalRevealRun > 0 && (
+                  <p className="text-[11px] font-bold text-primary mt-0.5">Total calculé automatiquement à partir des lignes.</p>
+                )}
+              </div>
+              <span className={`text-[28px] md:text-3xl font-headline font-black text-primary drop-shadow-sm break-words transition-all duration-300 ${isTotalAnimating ? 'scale-105' : 'scale-100'}`}>
+                {formatCurrency(visibleTotalTTC)}
+              </span>
             </div>
           </div>
         </section>
@@ -2583,13 +2703,20 @@ export default function InvoiceCreate() {
                         </tr>
                      </thead>
                      <tbody className="divide-y divide-stone-100">
-                        {(formData.items || []).map((item, idx) => (
-                           <tr key={idx}>
+                        {(formData.items || []).map((item, idx) => {
+                          const isRevealPending = proposalRevealRun > 0 && idx >= revealedItemCount;
+                          return (
+                           <tr
+                             key={idx}
+                             style={{ transitionDelay: `${Math.min(idx * 70, 350)}ms` }}
+                             className={`transition-all duration-500 ${isRevealPending ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}
+                           >
                               <td className="py-4 font-medium text-stone-700">{item.description || '...'}</td>
                               <td className="py-4 text-right px-4 text-stone-500">{item.quantity}</td>
                               <td className="py-4 text-right font-bold text-stone-800">{formatCurrency(item.quantity * item.unitPrice)}</td>
                            </tr>
-                        ))}
+                          );
+                        })}
                      </tbody>
                   </table>
 
@@ -2607,7 +2734,7 @@ export default function InvoiceCreate() {
                         )}
                         <div className="flex justify-between text-lg font-black text-stone-800 border-t border-stone-200 pt-3">
                            <span>Total TTC</span>
-                           <span>{formatCurrency(totalTTC)}</span>
+                           <span>{formatCurrency(visibleTotalTTC)}</span>
                         </div>
                      </div>
                   </div>
