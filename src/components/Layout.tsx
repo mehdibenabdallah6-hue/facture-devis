@@ -207,7 +207,7 @@ export default function Layout() {
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="min-touch rounded-full bg-primary/10 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary/30 transition"
+                className="w-10 h-10 md:w-9 md:h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary/30 transition"
               >
                 {user?.photoURL ? (
                   <img
