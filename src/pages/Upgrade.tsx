@@ -258,52 +258,45 @@ export default function Upgrade() {
           </button>
         </div>
 
-        {/* Pro Plan — premium light card with gradient accent border */}
-        <div
-          className="relative rounded-2xl p-[2px] bg-gradient-to-br from-secondary via-primary to-secondary shadow-2xl"
-        >
-          <div className="bg-surface rounded-[14px] p-8 flex flex-col items-center relative overflow-hidden h-full">
-            <div className="absolute top-0 right-0 py-1 px-12 bg-gradient-to-r from-secondary to-primary text-white text-[10px] font-black uppercase tracking-widest rotate-45 translate-x-[30%] translate-y-[50%] shadow-md">
-              VIP
-            </div>
-            <div className="w-16 h-16 bg-gradient-to-br from-secondary to-primary rounded-full flex items-center justify-center mb-4 shadow-lg">
-              <Crown className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-headline font-bold mb-2 text-on-surface">Pro</h2>
-            <p className="text-sm text-on-surface-variant mb-6 text-center">Pour les entreprises établies.</p>
-
-            <PriceDisplay planId="pro" />
-
-            <div className="w-full text-left space-y-3 mb-8 flex-1">
-              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline-variant/20 pb-2 mb-4">
-                <span>Le pack complet</span>
-              </div>
-              <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Facturation illimitée</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>IA en illimité</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Photos de chantier (PDF)</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Export FEC & Chorus Pro <span className="text-[10px] text-on-surface-variant">(Bientôt)</span></span>
-              </li>
-            </div>
-            <button
-              onClick={() => openCheckout('pro')}
-              disabled={loadingCode !== null}
-              className="w-full bg-gradient-to-r from-secondary to-primary text-white py-4 px-6 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2 hover:opacity-90 shadow-spark-cta mt-auto"
-            >
-              {loadingCode === 'pro' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Passer en Pro'}
-              {!loadingCode && <ArrowRight className="w-4 h-4" />}
-            </button>
+        {/* Pro Plan — same light styling as Solo */}
+        <div className="bg-surface border border-outline-variant/30 shadow-xl rounded-2xl p-8 flex flex-col items-center relative">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            <Crown className="w-8 h-8 text-primary" />
           </div>
+          <h2 className="text-2xl font-headline font-bold mb-2 text-on-surface">Pro</h2>
+          <p className="text-sm text-on-surface-variant mb-6 text-center">Pour les entreprises établies.</p>
+
+          <PriceDisplay planId="pro" />
+
+          <div className="w-full text-left space-y-3 mb-8 flex-1">
+            <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline-variant/20 pb-2 mb-4">
+              <span>Le pack complet</span>
+            </div>
+            <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>Facturation illimitée</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>IA en illimité</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>Photos de chantier (PDF)</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>Export FEC & Chorus Pro <span className="text-[10px] text-on-surface-variant">(Bientôt)</span></span>
+            </li>
+          </div>
+          <button
+            onClick={() => openCheckout('pro')}
+            disabled={loadingCode !== null}
+            className="w-full btn-glow bg-primary text-on-primary py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-spark-cta mt-auto"
+          >
+            {loadingCode === 'pro' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Passer en Pro'}
+            {!loadingCode && <ArrowRight className="w-4 h-4" />}
+          </button>
         </div>
       </div>
     </div>
