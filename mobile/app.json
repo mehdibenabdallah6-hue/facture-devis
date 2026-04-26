@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Photofacto",
+    "slug": "photofacto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "photofacto",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#6750A4"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.photofacto.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6750A4"
+      },
+      "package": "com.photofacto.app"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
