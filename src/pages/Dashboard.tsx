@@ -18,6 +18,7 @@ import {
   Crown,
   AlertTriangle,
 } from 'lucide-react';
+import { InvoiceStatusBadge, getEffectiveInvoiceStatus } from '../components/InvoiceStatusBadge';
 
 type KpiProps = {
   label: string;
@@ -45,27 +46,6 @@ function KpiCard({ label, value, sub, icon, color }: KpiProps) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string; bg: string }> = {
-    paid: { label: 'Payée', color: '#15803d', bg: '#dcfce7' },
-    sent: { label: 'Envoyée', color: '#C04D0F', bg: 'rgba(232,98,26,0.09)' },
-    overdue: { label: 'En retard', color: '#b91c1c', bg: '#fee2e2' },
-    draft: { label: 'Brouillon', color: '#6B7280', bg: 'rgba(0,0,0,0.06)' },
-    quote: { label: 'Devis', color: '#2563eb', bg: 'rgba(37,99,235,0.09)' },
-    accepted: { label: 'Accepté', color: '#15803d', bg: '#dcfce7' },
-    cancelled: { label: 'Annulée', color: '#6B7280', bg: 'rgba(0,0,0,0.06)' },
-  };
-  const s = map[status] || map.draft;
-  return (
-    <span
-      className="px-2.5 py-[3px] rounded-full text-[10px] font-bold whitespace-nowrap"
-      style={{ background: s.bg, color: s.color }}
-    >
-      {s.label}
-    </span>
-  );
-}
-
 export default function Dashboard() {
   const { invoices, company, loading } = useData();
   const { user } = useAuth();
@@ -87,20 +67,24 @@ export default function Dashboard() {
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
+  const effectiveInvoices = invoices.map(inv => ({
+    ...inv,
+    status: getEffectiveInvoiceStatus(inv),
+  }));
 
-  const thisMonthInvoices = invoices.filter(inv => {
+  const thisMonthInvoices = effectiveInvoices.filter(inv => {
     const date = new Date(inv.date);
     return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
   });
 
   const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
   const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-  const prevMonthInvoices = invoices.filter(inv => {
+  const prevMonthInvoices = effectiveInvoices.filter(inv => {
     const date = new Date(inv.date);
     return date.getMonth() === prevMonth && date.getFullYear() === prevMonthYear;
   });
 
-  const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalTTC, 0);
+  const totalAmount = effectiveInvoices.reduce((sum, inv) => sum + inv.totalTTC, 0);
   const thisMonthRevenue = thisMonthInvoices
     .filter(inv => inv.status === 'paid' || inv.status === 'sent')
     .reduce((sum, inv) => sum + inv.totalTTC, 0);
@@ -111,17 +95,18 @@ export default function Dashboard() {
     prevMonthRevenue > 0
       ? Math.round(((thisMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100)
       : null;
-  const pendingAmount = invoices
+  const pendingAmount = effectiveInvoices
     .filter(inv => inv.status === 'sent')
     .reduce((sum, inv) => sum + inv.totalTTC, 0);
-  const paidAmount = invoices
+  const pendingCount = effectiveInvoices.filter(inv => inv.status === 'sent').length;
+  const paidAmount = effectiveInvoices
     .filter(inv => inv.status === 'paid')
     .reduce((sum, inv) => sum + inv.totalTTC, 0);
-  const overdueAmount = invoices
-    .filter(inv => inv.status === 'overdue')
-    .reduce((sum, inv) => sum + inv.totalTTC, 0);
+  const overdueInvoices = effectiveInvoices.filter(inv => inv.status === 'overdue');
+  const overdueCount = overdueInvoices.length;
+  const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + inv.totalTTC, 0);
 
-  const recentInvoices = [...invoices]
+  const recentInvoices = [...effectiveInvoices]
     .sort(
       (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
     )
@@ -132,6 +117,39 @@ export default function Dashboard() {
       style: 'currency',
       currency: company?.defaultCurrency || 'EUR',
     }).format(amount);
+
+  const getElapsedDays = (dateValue?: string) => {
+    if (!dateValue) return null;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((today.getTime() - date.getTime()) / 86400000));
+  };
+
+  const pluralDays = (days: number) => `${days} jour${days > 1 ? 's' : ''}`;
+
+  const getPaymentFollowUpLabel = (invoice: (typeof effectiveInvoices)[number]) => {
+    if (invoice.type !== 'invoice') return null;
+    if (invoice.status === 'paid') return 'Payée';
+    if (invoice.status === 'overdue') {
+      const days = getElapsedDays(invoice.dueDate);
+      return days == null ? 'En retard' : `En retard depuis ${pluralDays(days)}`;
+    }
+    if (invoice.status === 'sent') {
+      const days = getElapsedDays(invoice.updatedAt || invoice.date);
+      return days === 0 ? "Envoyée aujourd'hui" : days == null ? 'Envoyée' : `Envoyée il y a ${pluralDays(days)}`;
+    }
+    return null;
+  };
+
+  const getPaymentFollowUpClass = (invoice: (typeof effectiveInvoices)[number]) => {
+    if (invoice.status === 'paid') return 'text-emerald-700';
+    if (invoice.status === 'overdue') return 'text-red-700';
+    if (invoice.status === 'sent') return 'text-amber-700';
+    return 'text-on-surface-variant';
+  };
 
   let daysLeft = 0;
   let showTrialBanner = false;
@@ -221,6 +239,7 @@ export default function Dashboard() {
         <KpiCard
           label="En attente"
           value={formatCurrency(pendingAmount)}
+          sub={`${pendingCount} envoyée${pendingCount > 1 ? 's' : ''}`}
           color="#d97706"
           icon={<FileText className="w-[17px] h-[17px] text-amber-600" />}
         />
@@ -282,17 +301,19 @@ export default function Dashboard() {
         })()}
 
       {/* Overdue Alert (Spark style) */}
-      {overdueAmount > 0 && (
-        <div className="bg-red-50 border border-red-300/50 rounded-xl px-4 py-3 flex items-center gap-3">
+      {overdueCount > 0 && (
+        <div className="bg-red-50 border border-red-300/50 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="w-2 h-2 bg-red-600 rounded-full shrink-0" />
           <div className="flex-1 text-[13px] font-semibold text-red-900">
-            {invoices.filter(i => i.status === 'overdue').length} facture{invoices.filter(i => i.status === 'overdue').length > 1 ? 's' : ''} en retard — <strong>{formatCurrency(overdueAmount)}</strong> à relancer
+            <strong>{overdueCount} facture{overdueCount > 1 ? 's' : ''} en retard</strong>
+            <span className="mx-1">—</span>
+            Total à récupérer : <strong>{formatCurrency(overdueAmount)}</strong>
           </div>
           <button
             onClick={() => navigate('/app/invoices')}
-            className="bg-red-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-transform"
+            className="min-h-[44px] bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-transform"
           >
-            Relancer
+            Relancer les clients
           </button>
         </div>
       )}
@@ -413,8 +434,13 @@ export default function Dashboard() {
                   <div className="text-[11px] text-on-surface-variant">
                     {invoice.number} · {format(new Date(invoice.date), 'dd MMM', { locale: fr })}
                   </div>
+                  {getPaymentFollowUpLabel(invoice) && (
+                    <div className={`text-[11px] font-bold mt-0.5 ${getPaymentFollowUpClass(invoice)}`}>
+                      {getPaymentFollowUpLabel(invoice)}
+                    </div>
+                  )}
                 </div>
-                <StatusBadge status={invoice.status} />
+                <InvoiceStatusBadge invoice={invoice} compact />
                 <div className="font-headline font-bold text-xs md:text-sm text-secondary-dim ml-2 md:ml-4 shrink-0">
                   {formatCurrency(invoice.totalTTC)}
                 </div>

@@ -247,7 +247,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               <ArrowRight className="w-4 h-4" />
             </button>
             <div className="flex flex-wrap gap-3 sm:gap-5">
-              {['Sans carte bancaire', 'Annulation facile', '100% conforme 2026'].map(t => (
+              {['Sans carte bancaire', 'Annulation facile', 'Mentions FR & Factur-X'].map(t => (
                 <div
                   key={t}
                   className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant"
@@ -354,7 +354,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ['10s', 'par facture'],
             ['2h', 'gagnées / semaine'],
             ['4.9/5', 'note moyenne'],
-            ['100%', 'conforme 2026'],
+            ['Factur-X', 'PDF/A-3 + CII'],
           ].map(([v, l], i) => (
             <div key={v as string} className="flex items-center justify-center gap-5 rounded-xl md:rounded-2xl bg-background/70 px-2 py-2.5 sm:bg-transparent sm:px-0 sm:py-0">
               {i > 0 && <div className="hidden md:block w-px h-10 bg-outline-variant" />}

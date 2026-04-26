@@ -35,10 +35,10 @@ export default async function handler(req: any, res: any) {
     
     // In a real production scenario, you would query all 'sent' invoices and math out J+7, J+15, J+30.
     // Firebase limitations: you cannot query mathematical differences directly.
-    // So we query invoices that are:
+    // So we query root invoices that are:
     // status == 'sent' AND type == 'invoice' AND dueDate < now
     
-    const overdueInvoicesSnapshot = await db.collectionGroup('invoices')
+    const overdueInvoicesSnapshot = await db.collection('invoices')
       .where('type', '==', 'invoice')
       .where('status', '==', 'sent')
       .where('dueDate', '<', now.toISOString())
@@ -76,6 +76,12 @@ export default async function handler(req: any, res: any) {
         data.remindersSent = 3;
       }
 
+      updatePromises.push(doc.ref.update({
+        status: 'overdue',
+        updatedAt: now.toISOString(),
+        remindersSent: data.remindersSent || remindersSent,
+      }));
+
       if (shouldSend && data.clientEmail) {
         // Prepare email
         const emailBody = {
@@ -100,8 +106,10 @@ export default async function handler(req: any, res: any) {
           }).then(r => r.json())
         );
 
-        // Update document
-        updatePromises.push(doc.ref.update({ remindersSent: data.remindersSent }));
+        updatePromises.push(doc.ref.update({
+          remindersSent: data.remindersSent,
+          updatedAt: now.toISOString(),
+        }));
       }
     });
 

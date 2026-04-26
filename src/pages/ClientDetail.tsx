@@ -4,6 +4,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ArrowLeft, Plus, FileText, Euro, Clock, CheckCircle, AlertCircle, Mail, Phone, MapPin, Briefcase, User, ArrowRight } from 'lucide-react';
+import { InvoiceStatusBadge, getEffectiveInvoiceStatus } from '../components/InvoiceStatusBadge';
 
 export default function ClientDetail() {
   const { id } = useParams();
@@ -11,7 +12,11 @@ export default function ClientDetail() {
   const navigate = useNavigate();
 
   const client = clients.find(c => c.id === id);
-  const clientInvoices = id ? invoices.filter(inv => inv.clientId === id) : [];
+  const clientInvoices = id
+    ? invoices
+        .filter(inv => inv.clientId === id)
+        .map(inv => ({ ...inv, status: getEffectiveInvoiceStatus(inv) }))
+    : [];
 
   const totalInvoiced = clientInvoices.reduce((sum, inv) => sum + inv.totalTTC, 0);
   const totalPaid = clientInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.totalTTC, 0);
@@ -20,30 +25,6 @@ export default function ClientDetail() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: company?.defaultCurrency || 'EUR' }).format(amount);
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'paid': return 'Payée';
-      case 'accepted': return 'Accepté';
-      case 'sent': return 'Envoyée';
-      case 'overdue': return 'En retard';
-      case 'draft': return 'Brouillon';
-      case 'cancelled': return 'Annulée';
-      case 'converted': return 'Convertie';
-      default: return status;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'bg-tertiary-container text-on-tertiary-container';
-      case 'accepted': return 'bg-primary/20 text-primary border border-primary/20';
-      case 'sent': return 'bg-secondary-container text-on-secondary-container';
-      case 'overdue': return 'bg-error-container text-on-error-container';
-      case 'draft': return 'bg-surface-container-high text-on-surface-variant';
-      default: return 'bg-surface-container-high text-on-surface-variant';
-    }
   };
 
   if (!client) {
@@ -196,9 +177,7 @@ export default function ClientDetail() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="font-bold text-sm text-on-surface">{invoice.number}</span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide ${getStatusColor(invoice.status)}`}>
-                        {getStatusLabel(invoice.status)}
-                      </span>
+                      <InvoiceStatusBadge invoice={invoice} compact />
                     </div>
                     <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                       <span>{format(new Date(invoice.date), 'dd MMM yyyy', { locale: fr })}</span>

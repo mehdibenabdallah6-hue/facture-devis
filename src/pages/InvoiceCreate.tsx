@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData, Invoice, InvoiceItem } from '../contexts/DataContext';
+import { InvoiceStatusBadge } from '../components/InvoiceStatusBadge';
+import { InvoiceHistoryPanel } from '../components/InvoiceHistoryPanel';
+import { ValidateInvoiceButton } from '../components/ValidateInvoiceButton';
+import { CreditNoteButton } from '../components/CreditNoteButton';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -7,7 +11,7 @@ import PaddlePaywall from '../components/PaddlePaywall';
 import LegalInfoModal from '../components/LegalInfoModal';
 
 // Rest of imports...
-import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus } from 'lucide-react';
+import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus, Euro } from 'lucide-react';
 import { usePlan } from '../hooks/usePlan';
 import { compressImageToDataURL } from '../services/imageUtils';
 import jsPDF from 'jspdf';
@@ -268,7 +272,15 @@ function SignatureShareButton({ invoiceId, shareQuoteForSignature }: { invoiceId
 
 export default function InvoiceCreate() {
   const { id } = useParams();
-  const { company, clients, invoices, articles, addInvoice, updateInvoice, shareQuoteForSignature, addClient, incrementAiUsage } = useData();
+  const { company, clients, invoices, invoiceEvents, articles, addInvoice, updateInvoice, shareQuoteForSignature, addClient, incrementAiUsage, logInvoiceEvent } = useData();
+  // Source of truth pour l'invoice en cours d'édition. On la regarde
+  // depuis le store Firestore plutôt que depuis `formData` car le verrou
+  // (`isLocked`) n'apparaît dans formData qu'après refresh.
+  const currentInvoice = id ? invoices.find(inv => inv.id === id) : null;
+  const eventsForThis = id ? invoiceEvents.filter(e => e.invoiceId === id) : [];
+  const latestReminderEvent = eventsForThis
+    .filter(event => event.type === 'send' && event.metadata?.channel === 'email_reminder')
+    .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''))[0];
   const { success, error: showError, info, warning } = useToast();
   const navigate = useNavigate();
 
@@ -319,6 +331,7 @@ export default function InvoiceCreate() {
   const docInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
   const [isSubmittingChorus, setIsSubmittingChorus] = useState(false);
   const [chorusResult, setChorusResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
   const [isDictating, setIsDictating] = useState(false);
@@ -596,7 +609,7 @@ export default function InvoiceCreate() {
     if (!itemName || !articles?.length) return null;
     return articles.find(article => {
       const articleName = normalizeCatalogText(article.description);
-      const namesMatch = itemName.includes(articleName) || articleName.includes(itemName);
+      const namesMatch = itemName === articleName || itemName.includes(articleName) || (itemName.length >= 8 && articleName.includes(itemName));
       const priceMatches = Number(item.unitPrice) > 0 && Math.abs(Number(item.unitPrice) - Number(article.unitPrice)) < 0.01;
       const vatMatches = Number(item.vatRate ?? 0) === Number(article.vatRate ?? 0);
       return namesMatch && priceMatches && vatMatches;
@@ -922,6 +935,7 @@ export default function InvoiceCreate() {
       setStep('paywall');
     } else {
       setStep('edit');
+      success('Proposition prête', 'Vérifiez les lignes avant validation.');
     }
   };
 
@@ -991,8 +1005,8 @@ export default function InvoiceCreate() {
   const { totalHT, totalVAT, totalTTC } = calculateTotals();
 
   const generationMessages = [
-    'Analyse de votre description…',
-    'Croisement avec vos tarifs catalogue…',
+    'Analyse de la photo…',
+    'Compréhension de la prestation…',
     'Création de la facture…',
   ];
 
@@ -1000,8 +1014,8 @@ export default function InvoiceCreate() {
     if (step !== 'analyzing') return;
     setGenerationStepIndex(0);
     const timers = [
-      window.setTimeout(() => setGenerationStepIndex(1), 900),
-      window.setTimeout(() => setGenerationStepIndex(2), 1800),
+      window.setTimeout(() => setGenerationStepIndex(1), 450),
+      window.setTimeout(() => setGenerationStepIndex(2), 950),
     ];
     return () => timers.forEach(timer => window.clearTimeout(timer));
   }, [step]);
@@ -1018,7 +1032,7 @@ export default function InvoiceCreate() {
         }
         return prev + 1;
       });
-    }, 120);
+    }, 75);
     return () => window.clearInterval(timer);
   }, [proposalRevealRun, formData.items?.length]);
 
@@ -1031,7 +1045,7 @@ export default function InvoiceCreate() {
   useEffect(() => {
     if (proposalRevealRun === 0) return;
     setIsTotalAnimating(true);
-    const duration = 850;
+    const duration = 650;
     const startedAt = performance.now();
     let frame = 0;
     const tick = (now: number) => {
@@ -1053,11 +1067,22 @@ export default function InvoiceCreate() {
   }, [proposalRevealRun]);
 
   const visibleTotalTTC = proposalRevealRun > 0 ? animatedTotalTTC : totalTTC;
+  const generationProgress = ((generationStepIndex + 1) / generationMessages.length) * 100;
 
   const handleSave = async (status: Invoice['status'] = 'draft') => {
     // Check plan invoice limit for new invoices
     if (!id && !checkInvoiceLimit()) {
       setShowUpsellModal('Vous avez atteint la limite de ' + limits.monthlyInvoiceLimit + ' documents/mois du plan Gratuit.');
+      return;
+    }
+    // Verrou : on refuse la sauvegarde si la facture est validée. Un toast
+    // explicite vaut mieux qu'un échec silencieux de Firestore (les rules
+    // bloqueront aussi côté serveur, mais autant être clair côté UX).
+    if (currentInvoice?.isLocked) {
+      showError(
+        'Facture verrouillée',
+        'Cette facture est validée et ne peut plus être modifiée. Pour la corriger, créez un avoir.'
+      );
       return;
     }
     // Require legal info before saving
@@ -1167,6 +1192,14 @@ export default function InvoiceCreate() {
 
       if (!response.ok) throw new Error("Erreur lors de l'envoi");
 
+      // Audit trail: trace the actual email send (the API call succeeded).
+      // `handleSave('sent')` below will also flip status → 'sent', which
+      // triggers a `send` audit log via updateInvoice's auto-detection,
+      // but logging here gives us the channel metadata before status flip.
+      if (id) {
+        void logInvoiceEvent(id, 'send', { channel: 'email' });
+      }
+
       success('Email envoyé !', 'Le document a été envoyé avec succès au client.');
       await handleSave('sent');
     } catch (error) {
@@ -1179,6 +1212,21 @@ export default function InvoiceCreate() {
       window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
     } finally {
       setIsSendingEmail(false);
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    if (!id || !currentInvoice) return;
+    setIsMarkingPaid(true);
+    try {
+      // updateInvoice() now logs the `mark_paid` audit event automatically
+      // when it detects the status transition — no explicit log call here.
+      await updateInvoice(id, { status: 'paid' });
+      success('Facture marquée payée');
+    } catch (err: any) {
+      showError('Statut non modifié', err?.message || 'Impossible de marquer cette facture comme payée.');
+    } finally {
+      setIsMarkingPaid(false);
     }
   };
 
@@ -1268,6 +1316,12 @@ export default function InvoiceCreate() {
       link.download = `FacturX_${formData.number}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
+
+      // Audit trail: trace the Factur-X export. Fire-and-forget — a log
+      // failure must never disrupt the download UX.
+      if (id) {
+        void logInvoiceEvent(id, 'export_facturx', { profile: 'BASIC' });
+      }
     } catch (err) {
       console.error('Factur-X generation error:', err);
       showError('Erreur Factur-X', 'Le PDF standard a été téléchargé à la place.');
@@ -1549,6 +1603,15 @@ export default function InvoiceCreate() {
     if (shouldSave) {
       const typeLabel = formData.type === 'quote' ? 'Devis' : 'Facture';
       doc.save(`${typeLabel}_${formData.number || 'brouillon'}.pdf`);
+
+      // Audit trail: only log when the user actually downloaded the PDF.
+      // Calls with shouldSave=false (e.g. from handleSendEmail or
+      // handleFacturXDownload) are internal helpers and shouldn't pollute
+      // the history. Fire-and-forget so a log failure never breaks the
+      // download.
+      if (id) {
+        void logInvoiceEvent(id, 'export_pdf', { docType: formData.type });
+      }
     }
     return doc;
   };
@@ -1979,6 +2042,12 @@ export default function InvoiceCreate() {
           </p>
           {isPhoto && (
             <div className="mt-6 grid gap-2 text-left max-w-sm mx-auto">
+              <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden mb-2">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${generationProgress}%` }}
+                />
+              </div>
               {generationMessages.map((message, index) => (
                 <div
                   key={message}
@@ -1992,6 +2061,16 @@ export default function InvoiceCreate() {
                   {message}
                 </div>
               ))}
+              <div className="mt-4 space-y-2 rounded-2xl bg-surface-container-low/70 border border-outline-variant/10 p-3">
+                {[0, 1, 2].map(index => (
+                  <div key={index} className="h-3 rounded-full bg-surface-container-high overflow-hidden">
+                    <div
+                      className="h-full w-2/3 rounded-full bg-gradient-to-r from-transparent via-white/70 to-transparent animate-[shimmer_1.1s_ease-in-out_infinite]"
+                      style={{ animationDelay: `${index * 120}ms` }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -2034,20 +2113,24 @@ export default function InvoiceCreate() {
         </header>
 
         {previewUrl && (
-          <div className="animate-fade-in bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-3">
+          <div className="animate-fade-in bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-3 shadow-sm transition-all duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-sm text-on-surface">Vérifiez les lignes avant validation. L'IA peut se tromper.</p>
                   <p className="text-xs text-on-surface-variant mt-0.5">Vous restez responsable de la validation des informations.</p>
+                  <p className="text-xs text-on-surface-variant font-semibold mt-1 flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-tertiary" />
+                    Basé sur votre description et vos tarifs enregistrés.
+                  </p>
                 </div>
               </div>
               {selectedPhoto && (
                 <button
                   type="button"
                   onClick={() => setShowRegenerateBox(prev => !prev)}
-                  className="min-touch shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-outline-variant/10 px-4 py-2.5 text-sm font-bold text-primary active:scale-95 transition-all"
+                  className="min-touch shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-outline-variant/10 px-4 py-2.5 text-sm font-bold text-primary shadow-sm hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Améliorer avec plus de détails
@@ -2067,7 +2150,8 @@ export default function InvoiceCreate() {
                 <button
                   type="button"
                   onClick={handleRegenerateFromProposal}
-                  className="min-touch rounded-xl bg-primary text-on-primary px-5 py-3 text-sm font-black shadow-spark-cta active:scale-95 transition-all"
+                  disabled={!regenerateInstruction.trim()}
+                  className="min-touch rounded-xl bg-primary text-on-primary px-5 py-3 text-sm font-black shadow-spark-cta hover:-translate-y-0.5 hover:shadow-lg active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   Relancer l'IA
                 </button>
@@ -2373,17 +2457,18 @@ export default function InvoiceCreate() {
                 const catalogMatch = getCatalogMatch(item);
                 const priceMissing = Number(item.unitPrice) <= 0;
                 const fromAi = index < aiSuggestedLineCount;
+                const showSuggestionBadge = fromAi && !catalogMatch && !priceMissing;
                 const isRevealPending = proposalRevealRun > 0 && index >= revealedItemCount;
 
                 return (
                 <div
                   key={index}
-                  style={{ transitionDelay: `${Math.min(index * 80, 420)}ms` }}
-                  className={`grid grid-cols-12 gap-2.5 md:gap-3 items-center p-3.5 md:p-4 pt-5 rounded-2xl relative border transition-all duration-500 ${
+                  style={{ transitionDelay: `${Math.min(index * 75, 300)}ms` }}
+                  className={`grid grid-cols-12 gap-2.5 md:gap-3 items-center p-4 md:p-4 pt-5 rounded-2xl relative border transition-all duration-300 ${
                     priceMissing
-                      ? 'bg-amber-50/90 border-amber-300/80 shadow-[0_12px_35px_rgba(245,158,11,0.12)]'
-                      : 'bg-surface-container-low/70 border-transparent'
-                  } ${isRevealPending ? 'opacity-0 translate-y-4 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}
+                      ? 'bg-amber-50/90 border-amber-300/80 shadow-[0_10px_28px_rgba(245,158,11,0.12)]'
+                      : 'bg-surface-container-low/75 border-transparent shadow-sm'
+                  } ${isRevealPending ? 'opacity-0 translate-y-2 scale-[0.99]' : 'opacity-100 translate-y-0 scale-100'}`}
                 >
                   {/* Delete Button on top right of the item card for mobile focus */}
                   <button onClick={() => removeItem(index)} className="absolute top-2 right-2 min-touch text-error/60 hover:text-error bg-surface-container-highest/70 hover:bg-error-container rounded-lg transition-colors flex items-center justify-center" aria-label="Supprimer cette ligne">
@@ -2393,22 +2478,22 @@ export default function InvoiceCreate() {
                   <div className="col-span-12 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 ml-2 pr-10">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase">Description</label>
-                      {fromAi && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-black">
-                          <Sparkles className="w-3 h-3" />
-                          Suggestion IA
-                        </span>
-                      )}
                       {catalogMatch && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-tertiary-container text-tertiary px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
                           <Check className="w-3 h-3" />
                           Prix catalogue utilisé
                         </span>
                       )}
                       {priceMissing && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 text-[10px] font-black">
                           <AlertCircle className="w-3 h-3" />
                           Prix à compléter
+                        </span>
+                      )}
+                      {showSuggestionBadge && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 text-[10px] font-black">
+                          <Sparkles className="w-3 h-3" />
+                          Suggestion IA
                         </span>
                       )}
                     </div>
@@ -2588,6 +2673,93 @@ export default function InvoiceCreate() {
           </div>
         </section>
 
+        {/* Validation panel — disponible dès qu'une facture/devis a un id Firestore. */}
+        {id && currentInvoice && (
+          <section className="space-y-4 animate-fade-in-up">
+            <div className="rounded-2xl bg-surface-container-low border border-outline-variant/10 p-4 md:p-5 space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <InvoiceStatusBadge invoice={currentInvoice} />
+                  {currentInvoice.number && (
+                    <span className="font-headline font-extrabold text-on-surface text-sm md:text-base truncate">
+                      N° {currentInvoice.number}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+                  {!currentInvoice.isLocked ? (
+                    <ValidateInvoiceButton
+                      invoice={currentInvoice}
+                      onValidated={(num) => {
+                        // Le numéro est attribué par le serveur — on rafraîchit le formulaire
+                        // pour que l'aperçu colle. Un toast aurait été plus discret mais on
+                        // veut être limpide : la facture vient d'être scellée.
+                        success(`Facture validée — n° ${num}`);
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {currentInvoice.type === 'invoice' && currentInvoice.status !== 'paid' && currentInvoice.status !== 'cancelled' && (
+                        <button
+                          type="button"
+                          onClick={handleMarkPaid}
+                          disabled={isMarkingPaid}
+                          className="inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-3 rounded-xl bg-tertiary text-on-tertiary font-bold text-sm hover:opacity-90 transition disabled:opacity-50"
+                        >
+                          {isMarkingPaid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Euro className="w-4 h-4" />}
+                          Marquer comme payée
+                        </button>
+                      )}
+                      <CreditNoteButton
+                        invoice={currentInvoice}
+                        hideWhenIneligible
+                        onCreated={(creditId, num) => {
+                          success(`Avoir créé — n° ${num}`);
+                          navigate(`/app/invoices/${creditId}`);
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {currentInvoice.isLocked && (
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Cette facture a été scellée le{' '}
+                  {currentInvoice.validatedAt
+                    ? new Date(currentInvoice.validatedAt).toLocaleString('fr-FR')
+                    : '—'}{' '}
+                  et son numéro est définitif. Pour corriger une erreur,
+                  émettez un avoir : il référencera cette facture et formera
+                  ensemble la trace comptable.
+                </p>
+              )}
+
+              {latestReminderEvent && (
+                <div className="inline-flex w-fit items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-800">
+                  <Mail className="w-4 h-4" />
+                  Relancé le {format(new Date(latestReminderEvent.timestamp), 'dd/MM/yyyy')}
+                </div>
+              )}
+
+              {currentInvoice.linkedInvoiceNumber && currentInvoice.type === 'credit' && (
+                <p className="text-xs text-on-surface-variant">
+                  Avoir lié à la facture{' '}
+                  <strong className="text-on-surface">{currentInvoice.linkedInvoiceNumber}</strong>.
+                </p>
+              )}
+            </div>
+
+            {eventsForThis.length > 0 && (
+              <InvoiceHistoryPanel
+                events={eventsForThis}
+                subtitle="Toutes les actions sont enregistrées côté serveur — non modifiables."
+                maxEntries={8}
+              />
+            )}
+          </section>
+        )}
+
         {/* Action Buttons Footer — Only visible after saving the first time (when id exists) */}
         {id && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2620,7 +2792,7 @@ export default function InvoiceCreate() {
               ) : (
                 <>
                   <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  Envoyer au client
+                  {formData.type === 'quote' ? 'Envoyer le devis' : 'Envoyer la facture'}
                 </>
               )}
             </button>
@@ -2708,8 +2880,8 @@ export default function InvoiceCreate() {
                           return (
                            <tr
                              key={idx}
-                             style={{ transitionDelay: `${Math.min(idx * 70, 350)}ms` }}
-                             className={`transition-all duration-500 ${isRevealPending ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}
+                             style={{ transitionDelay: `${Math.min(idx * 75, 300)}ms` }}
+                             className={`transition-all duration-300 ${isRevealPending ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}
                            >
                               <td className="py-4 font-medium text-stone-700">{item.description || '...'}</td>
                               <td className="py-4 text-right px-4 text-stone-500">{item.quantity}</td>

@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { useData } from '../contexts/DataContext';
+import { useData, InvoiceLockedError } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Search, Plus, FileText, Edit, Trash2, Send, Euro, RefreshCw, Filter, Share2, Link, Check, CheckCircle2, FileSpreadsheet, MessageCircle, Archive } from 'lucide-react';
+import { Search, Plus, FileText, Edit, Trash2, Send, Euro, RefreshCw, Filter, Share2, Link, Check, CheckCircle2, FileSpreadsheet, MessageCircle, Archive, Lock, FilePlus2 } from 'lucide-react';
 import { Invoice } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
+import { useToast } from '../contexts/ToastContext';
 import { EmptySearchState } from '../components/EmptyStates';
+import { InvoiceStatusBadge, getEffectiveInvoiceStatus, getInvoiceStatusLabel } from '../components/InvoiceStatusBadge';
+import { CreditNoteButton } from '../components/CreditNoteButton';
 import JSZip from 'jszip';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function InvoicesList() {
-  const { invoices, clients, company, deleteInvoice, updateInvoice, shareQuoteForSignature } = useData();
+  const { invoices, clients, company, deleteInvoice, updateInvoice, shareQuoteForSignature, logInvoiceEvent } = useData();
   const navigate = useNavigate();
+  const { success, error: showError } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<'invoice' | 'quote'>('invoice');
@@ -21,6 +25,7 @@ export default function InvoicesList() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState<string | null>(null);
+  const [isSendingReminder, setIsSendingReminder] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const { isPro } = usePlan();
 
@@ -43,7 +48,7 @@ export default function InvoicesList() {
       return [
         inv.number,
         typeStr,
-        getStatusLabel(inv.status),
+        getInvoiceStatusLabel(inv),
         inv.clientName,
         inv.vatRegime || 'standard',
         inv.date,
@@ -197,6 +202,50 @@ export default function InvoicesList() {
     window.open(waUrl, '_blank');
   };
 
+  const handleEmailReminder = async (invoice: Invoice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const client = clients.find(c => c.id === invoice.clientId);
+    const email = client?.email || invoice.clientEmail;
+    if (!email) {
+      showError('Email manquant', "Ajoutez un email au client avant d'envoyer une relance.");
+      return;
+    }
+
+    setIsSendingReminder(invoice.id);
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: `Relance facture ${invoice.number} - ${company?.name || 'Photofacto'}`,
+          html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+              <p>Bonjour ${client?.name || invoice.clientName || ''},</p>
+              <p>Sauf erreur de notre part, la facture suivante reste en attente de règlement :</p>
+              <ul>
+                <li><strong>Facture :</strong> ${invoice.number}</li>
+                <li><strong>Montant :</strong> ${formatCurrency(invoice.totalTTC)}</li>
+                <li><strong>Date :</strong> ${format(new Date(invoice.date), 'dd/MM/yyyy')}</li>
+              </ul>
+              ${invoice.shareUrl ? `<p><a href="${invoice.shareUrl}" style="color:#E8621A;font-weight:700">Consulter la facture</a></p>` : ''}
+              <p>Merci de procéder au règlement ou de nous contacter si vous avez déjà effectué le paiement.</p>
+              <p>Cordialement,<br/><strong>${company?.name || 'Photofacto'}</strong></p>
+            </div>
+          `,
+        }),
+      });
+      if (!response.ok) throw new Error("Erreur lors de l'envoi de la relance");
+      await logInvoiceEvent(invoice.id, 'send', { channel: 'email_reminder', to: email });
+      success('Relance envoyée', `Email envoyé à ${email}.`);
+    } catch (err: any) {
+      console.error(err);
+      showError('Relance impossible', err?.message || "L'email de relance n'a pas pu être envoyé.");
+    } finally {
+      setIsSendingReminder(null);
+    }
+  };
+
   const handleShare = async (invoiceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setIsSharing(invoiceId);
@@ -220,7 +269,12 @@ export default function InvoicesList() {
     }
   };
 
-  const filteredInvoices = invoices.filter(inv => {
+  const invoicesWithEffectiveStatus = invoices.map(inv => ({
+    ...inv,
+    status: getEffectiveInvoiceStatus(inv),
+  }));
+
+  const filteredInvoices = invoicesWithEffectiveStatus.filter(inv => {
     const matchesSearch = inv.number.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           inv.clientName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
@@ -232,17 +286,41 @@ export default function InvoicesList() {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: company?.defaultCurrency || 'EUR' }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'bg-tertiary-container text-on-tertiary-container border border-tertiary/20';
-      case 'sent': return 'bg-secondary-container text-on-secondary-container border border-secondary/20';
-      case 'overdue': return 'bg-error-container text-on-error-container border border-error/20';
-      case 'draft': return 'bg-surface-container-high text-on-surface-variant border border-outline-variant/30';
-      case 'accepted': return 'bg-primary-container text-on-primary-container border border-primary/20';
-      case 'converted': return 'bg-tertiary-container text-tertiary border border-tertiary/20 opacity-70';
-      default: return 'bg-surface-container-high text-on-surface-variant';
-    }
+  const getElapsedDays = (dateValue?: string) => {
+    if (!dateValue) return null;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((today.getTime() - date.getTime()) / 86400000));
   };
+
+  const pluralDays = (days: number) => `${days} jour${days > 1 ? 's' : ''}`;
+
+  const getPaymentFollowUpLabel = (invoice: Invoice) => {
+    if (invoice.type !== 'invoice') return null;
+    if (invoice.status === 'paid') return 'Règlement reçu';
+    if (invoice.status === 'overdue') {
+      const days = getElapsedDays(invoice.dueDate);
+      return days == null ? 'En retard' : `En retard depuis ${pluralDays(days)}`;
+    }
+    if (invoice.status === 'sent') {
+      const days = getElapsedDays(invoice.updatedAt || invoice.date);
+      return days === 0 ? "Envoyée aujourd'hui" : days == null ? 'Envoyée' : `Envoyée il y a ${pluralDays(days)}`;
+    }
+    return null;
+  };
+
+  const getPaymentFollowUpClass = (invoice: Invoice) => {
+    if (invoice.status === 'paid') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (invoice.status === 'overdue') return 'bg-red-50 text-red-700 border-red-200';
+    if (invoice.status === 'sent') return 'bg-amber-50 text-amber-700 border-amber-200';
+    return 'bg-surface-container-high text-on-surface-variant border-outline-variant/30';
+  };
+
+  const canSendReminder = (invoice: Invoice) =>
+    invoice.type === 'invoice' && ['sent', 'overdue'].includes(invoice.status);
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -250,6 +328,7 @@ export default function InvoicesList() {
       case 'sent': return 'Envoyée';
       case 'overdue': return 'En retard';
       case 'draft': return 'Brouillon';
+      case 'validated': return 'Validée';
       case 'cancelled': return 'Annulée';
       case 'accepted': return 'Accepté';
       case 'converted': return 'Converti';
@@ -259,6 +338,13 @@ export default function InvoicesList() {
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const inv = invoices.find(i => i.id === id);
+    if (inv?.isLocked) {
+      // Pas de modal : la suppression d'une facture validée est interdite
+      // par la loi (numéros continus). On guide l'utilisateur vers l'avoir.
+      alert('Cette facture est validée et ne peut plus être supprimée. Pour l\'annuler, créez un avoir.');
+      return;
+    }
     setDeleteModalOpen(id);
   };
 
@@ -267,6 +353,12 @@ export default function InvoicesList() {
     setIsDeleting(deleteModalOpen);
     try {
       await deleteInvoice(deleteModalOpen);
+    } catch (err) {
+      if (err instanceof InvoiceLockedError) {
+        alert(err.message);
+      } else {
+        console.error(err);
+      }
     } finally {
       setIsDeleting(null);
       setDeleteModalOpen(null);
@@ -278,6 +370,16 @@ export default function InvoicesList() {
     setIsUpdating(id);
     try {
       await updateInvoice(id, { status: newStatus });
+      if (newStatus === 'paid') {
+        await logInvoiceEvent(id, 'mark_paid');
+        success('Facture marquée payée');
+      }
+    } catch (err) {
+      if (err instanceof InvoiceLockedError) {
+        alert(err.message);
+      } else {
+        console.error(err);
+      }
     } finally {
       setIsUpdating(null);
     }
@@ -378,7 +480,7 @@ export default function InvoicesList() {
         <div className="flex items-center text-on-surface-variant/50 pr-2">
           <Filter className="w-4 h-4" />
         </div>
-        {['all', 'paid', 'sent', 'overdue', 'draft', 'accepted'].map(filter => {
+        {['all', 'draft', 'validated', 'sent', 'paid', 'overdue', 'cancelled', 'accepted'].map(filter => {
           if (typeFilter === 'invoice' && filter === 'accepted') return null;
           if (typeFilter === 'quote' && (filter === 'paid' || filter === 'overdue')) return null;
           
@@ -426,7 +528,9 @@ export default function InvoicesList() {
               <article
                 key={invoice.id}
                 onClick={() => navigate(`/app/invoices/${invoice.id}`)}
-                className="bg-surface-container-lowest p-3.5 active:bg-surface-container-low/60 transition-colors"
+                className={`bg-surface-container-lowest p-3.5 active:bg-surface-container-low/60 transition-colors ${
+                  invoice.status === 'overdue' ? 'border-l-4 border-red-500' : ''
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -442,14 +546,17 @@ export default function InvoicesList() {
                         ? ` · Éch. ${format(new Date(invoice.dueDate), 'dd MMM', { locale: fr })}`
                         : ''}
                     </div>
+                    {getPaymentFollowUpLabel(invoice) && (
+                      <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-bold ${getPaymentFollowUpClass(invoice)}`}>
+                        <span>{getPaymentFollowUpLabel(invoice)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-headline font-extrabold text-primary text-base">
                       {formatCurrency(invoice.totalTTC)}
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${getStatusColor(invoice.status)}`}>
-                      {getStatusLabel(invoice.status)}
-                    </span>
+                    <InvoiceStatusBadge invoice={invoice} compact />
                   </div>
                 </div>
 
@@ -486,7 +593,7 @@ export default function InvoicesList() {
                       className="min-touch flex items-center justify-center gap-2 rounded-xl bg-secondary-container text-secondary px-3 py-2.5 text-xs font-bold disabled:opacity-50"
                     >
                       <Send className="w-4 h-4" />
-                      Envoyé
+                      Envoyer
                     </button>
                   )}
                   {invoice.type === 'quote' && (invoice.status === 'sent' || invoice.status === 'draft') && (
@@ -499,47 +606,70 @@ export default function InvoicesList() {
                       {copiedLink === invoice.id ? 'Copié' : 'Signer'}
                     </button>
                   )}
-                  {invoice.type === 'invoice' && invoice.status === 'sent' && (
+                  {invoice.type === 'invoice' && ['validated', 'sent', 'overdue'].includes(invoice.status) && (
                     <button
                       disabled={isUpdating === invoice.id}
                       onClick={(e) => handleStatusChange(invoice.id, 'paid', e)}
                       className="min-touch flex items-center justify-center gap-2 rounded-xl bg-tertiary-container text-tertiary px-3 py-2.5 text-xs font-bold disabled:opacity-50"
                     >
                       <Euro className="w-4 h-4" />
-                      Payée
+                      Marquer payée
                     </button>
                   )}
-                  {invoice.type === 'invoice' && invoice.status === 'overdue' && (
-                    <button
-                      onClick={(e) => handleWhatsAppReminder(invoice, e)}
-                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-green-500/10 text-green-700 px-3 py-2.5 text-xs font-bold"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      Relancer
-                    </button>
+                  {canSendReminder(invoice) && (
+                    <>
+                      <div className="col-span-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-800">
+                        Client non payé
+                      </div>
+                      <button
+                        disabled={isSendingReminder === invoice.id}
+                        onClick={(e) => handleEmailReminder(invoice, e)}
+                        className="min-touch flex items-center justify-center gap-2 rounded-xl bg-amber-500 text-white px-3 py-2.5 text-xs font-bold shadow-sm disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                        Relancer client
+                      </button>
+                      <button
+                        onClick={(e) => handleWhatsAppReminder(invoice, e)}
+                        className="min-touch flex items-center justify-center gap-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 px-3 py-2.5 text-xs font-bold"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${invoice.id}`); }}
                     className="min-touch flex items-center justify-center gap-2 rounded-xl bg-surface-container-high text-on-surface px-3 py-2.5 text-xs font-bold"
                   >
-                    <Edit className="w-4 h-4" />
-                    Ouvrir
+                    {invoice.isLocked ? <Lock className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                    {invoice.isLocked ? 'Voir' : 'Ouvrir'}
                   </button>
-                  <button
-                    disabled={isDeleting === invoice.id}
-                    onClick={(e) => handleDeleteClick(invoice.id, e)}
-                    className="min-touch flex items-center justify-center gap-2 rounded-xl bg-error-container text-error px-3 py-2.5 text-xs font-bold disabled:opacity-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Supprimer
-                  </button>
+                  {invoice.isLocked && invoice.type === 'invoice' && !invoice.creditedBy ? (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CreditNoteButton
+                        invoice={invoice}
+                        className="w-full justify-center"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      disabled={isDeleting === invoice.id || invoice.isLocked}
+                      onClick={(e) => handleDeleteClick(invoice.id, e)}
+                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-error-container text-error px-3 py-2.5 text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                      title={invoice.isLocked ? 'Facture verrouillée — créez un avoir pour corriger' : 'Supprimer'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Supprimer
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
           </div>
 
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            <table className="w-full text-left border-collapse min-w-[980px]">
               <thead>
                 <tr className="bg-surface-container-low/30 border-b border-outline-variant/10 text-on-surface-variant">
                   <th className="px-6 py-5 text-xs font-bold uppercase tracking-widest pl-8"># N°</th>
@@ -552,7 +682,15 @@ export default function InvoicesList() {
               </thead>
               <tbody className="divide-y divide-surface-container-low">
                 {filteredInvoices.map((invoice) => (
-                  <tr key={invoice.id} onClick={() => navigate(`/app/invoices/${invoice.id}`)} className="group hover:bg-surface-container-low/50 transition-colors cursor-pointer bg-surface-container-lowest">
+                  <tr
+                    key={invoice.id}
+                    onClick={() => navigate(`/app/invoices/${invoice.id}`)}
+                    className={`group hover:bg-surface-container-low/50 transition-colors cursor-pointer ${
+                      invoice.status === 'overdue'
+                        ? 'bg-red-50/45 border-l-4 border-red-500'
+                        : 'bg-surface-container-lowest'
+                    }`}
+                  >
                     <td className="px-6 py-5 pl-8">
                       <span className="font-headline font-extrabold text-on-surface tracking-wide">{invoice.number}</span>
                     </td>
@@ -571,6 +709,11 @@ export default function InvoicesList() {
                       <div className="text-xs font-medium text-on-surface-variant mt-0.5">
                         {typeFilter === 'invoice' ? `Éch. ${format(new Date(invoice.dueDate), 'dd MMM', { locale: fr })}` : ''}
                       </div>
+                      {getPaymentFollowUpLabel(invoice) && (
+                        <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-bold ${getPaymentFollowUpClass(invoice)}`}>
+                          {getPaymentFollowUpLabel(invoice)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-5">
                       <span className="font-headline font-extrabold text-on-surface text-lg">
@@ -579,9 +722,10 @@ export default function InvoicesList() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col gap-1.5">
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest ${getStatusColor(invoice.status)}`}>
-                          {getStatusLabel(invoice.status)}
-                        </span>
+                        <InvoiceStatusBadge invoice={invoice} />
+                        {canSendReminder(invoice) && (
+                          <span className="text-[11px] font-bold text-amber-700">Client non payé</span>
+                        )}
                         {invoice.type === 'invoice' && invoice.vatRegime !== 'franchise' && (
                           <span className={`inline-flex items-center px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
                             invoice.chorusStatus === 'submitted' 
@@ -598,26 +742,28 @@ export default function InvoicesList() {
                       </div>
                     </td>
                     <td className="px-6 py-5 pr-8 text-right">
-                      <div className="flex justify-end gap-2 transition-opacity">
+                      <div className="flex justify-end gap-2.5 transition-opacity flex-wrap min-w-[310px]">
                         {invoice.type === 'quote' && (invoice.status === 'accepted' || invoice.status === 'sent') && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/new?fromQuote=${invoice.id}`); }} 
-                            className="p-2.5 bg-primary-container text-primary hover:bg-primary hover:text-on-primary rounded-xl transition-colors" 
+                            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-primary-container text-primary hover:bg-primary hover:text-on-primary rounded-xl transition-colors text-xs font-bold min-h-[44px]"
                             title="Convertir en facture"
                           >
                             <RefreshCw className="w-4 h-4" />
+                            Convertir
                           </button>
                         )}
                         {invoice.status === 'draft' && (
-                          <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'sent', e)} className="p-2.5 bg-secondary-container text-secondary hover:bg-secondary hover:text-on-secondary rounded-xl transition-colors disabled:opacity-50" title="Marquer comme envoyé">
+                          <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'sent', e)} className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-secondary-container text-secondary hover:bg-secondary hover:text-on-secondary rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px]" title="Envoyer la facture">
                             <Send className="w-4 h-4 translate-y-px -translate-x-0.5" />
+                            Envoyer
                           </button>
                         )}
                         {invoice.type === 'quote' && (invoice.status === 'sent' || invoice.status === 'draft') && (
                           <button 
                             disabled={isSharing === invoice.id} 
                             onClick={(e) => handleShare(invoice.id, e)} 
-                            className={`p-2.5 rounded-xl transition-colors disabled:opacity-50 ${
+                            className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px] ${
                               copiedLink === invoice.id 
                                 ? 'bg-tertiary-container text-tertiary' 
                                 : 'bg-primary/10 text-primary hover:bg-primary hover:text-on-primary'
@@ -631,32 +777,67 @@ export default function InvoicesList() {
                             ) : (
                               <Share2 className="w-4 h-4" />
                             )}
+                            {copiedLink === invoice.id ? 'Copié' : 'Signer'}
                           </button>
                         )}
-                        {invoice.type === 'invoice' && invoice.status === 'sent' && (
-                          <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'paid', e)} className="p-2.5 bg-tertiary-container text-tertiary hover:bg-tertiary hover:text-on-tertiary rounded-xl transition-colors disabled:opacity-50" title="Marquer comme payée">
+                        {invoice.type === 'invoice' && ['validated', 'sent', 'overdue'].includes(invoice.status) && (
+                          <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'paid', e)} className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-tertiary text-on-tertiary hover:opacity-90 rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px]" title="Marquer comme payée">
                             <Euro className="w-4 h-4" />
+                            Marquer payée
                           </button>
                         )}
                         {invoice.type === 'quote' && invoice.status === 'sent' && (
-                          <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'accepted', e)} className="p-2.5 bg-primary-container text-primary hover:bg-primary hover:text-on-primary rounded-xl transition-colors disabled:opacity-50" title="Marquer comme accepté">
+                          <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'accepted', e)} className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-primary-container text-primary hover:bg-primary hover:text-on-primary rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px]" title="Marquer comme accepté">
                             <CheckCircle2 className="w-4 h-4" />
+                            Accepter
                           </button>
                         )}
-                        {invoice.type === 'invoice' && invoice.status === 'overdue' && (
+                        {canSendReminder(invoice) && (
+                          <button
+                            disabled={isSendingReminder === invoice.id}
+                            onClick={(e) => handleEmailReminder(invoice, e)}
+                            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-amber-500 text-white hover:bg-amber-600 rounded-xl transition-colors disabled:opacity-50 shadow-sm text-xs font-bold min-h-[44px]"
+                            title="Relancer par email — client non payé"
+                          >
+                            <Send className="w-4 h-4" />
+                            Relancer client
+                          </button>
+                        )}
+                        {canSendReminder(invoice) && (
                           <button 
                             onClick={(e) => handleWhatsAppReminder(invoice, e)} 
-                            className="p-2.5 bg-green-500/10 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-colors" 
-                            title="Relancer sur WhatsApp"
+                            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-xl transition-colors text-xs font-bold min-h-[44px]"
+                            title="Relancer sur WhatsApp — client non payé"
                           >
                             <MessageCircle className="w-4 h-4" />
+                            WhatsApp
                           </button>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${invoice.id}`); }} className="p-2.5 bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-xl transition-colors" title="Modifier">
-                          <Edit className="w-4 h-4" />
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${invoice.id}`); }} className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-xl transition-colors text-xs font-bold min-h-[44px]" title={invoice.isLocked ? 'Voir (verrouillée)' : 'Modifier'}>
+                          {invoice.isLocked ? <Lock className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                          {invoice.isLocked ? 'Voir' : 'Modifier'}
                         </button>
-                        <button disabled={isDeleting === invoice.id} onClick={(e) => handleDeleteClick(invoice.id, e)} className="p-2.5 bg-error-container text-error hover:bg-error hover:text-on-error rounded-xl transition-colors disabled:opacity-50" title="Supprimer">
-                          <Trash2 className="w-4 h-4" />
+                        {invoice.isLocked && invoice.type === 'invoice' && !invoice.creditedBy && (
+                          <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${invoice.id}?action=credit`); }}
+                              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-tertiary-container text-on-tertiary-container hover:opacity-90 rounded-xl transition-colors text-xs font-bold min-h-[44px]"
+                              title="Créer un avoir"
+                            >
+                              <FilePlus2 className="w-4 h-4" />
+                              Avoir
+                            </button>
+                          </span>
+                        )}
+                        <button
+                          disabled={isDeleting === invoice.id || invoice.isLocked}
+                          onClick={(e) => handleDeleteClick(invoice.id, e)}
+                          className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-error-container text-error hover:bg-error hover:text-on-error rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold min-h-[44px]"
+                          title={invoice.isLocked ? 'Facture verrouillée — créez un avoir' : 'Supprimer'}
+                        >
+                          {invoice.isLocked ? <Lock className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+                          Supprimer
                         </button>
                       </div>
                     </td>

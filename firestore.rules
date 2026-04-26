@@ -1,9 +1,31 @@
 rules_version = '2';
 
+// ===============================================================
+// Photofacto — Firestore security rules
+// ===============================================================
+//
+// Principes :
+//   - Aucun utilisateur ne peut lire ni écrire les données d'un autre.
+//   - Les écritures qui doivent être traçables (numéro légal de facture,
+//     verrouillage, événements d'audit) ne sont JAMAIS faites par le
+//     client. Elles passent par les routes serveur (api/invoice-validate,
+//     api/invoice-credit-note, api/invoice-event) qui authentifient via
+//     ID token Firebase et écrivent avec le SDK Admin (qui contourne ces
+//     règles — c'est le comportement voulu).
+//   - Les compteurs et le journal d'événements sont en LECTURE SEULE côté
+//     client. Toute tentative d'écriture est refusée.
+//   - Une facture validée (`isLocked === true`) ne peut plus être modifiée
+//     librement : seul un sous-ensemble whitelisté de champs peut être
+//     touché (statut downstream, métadonnées PDP, partage, etc.). Toute
+//     correction du contenu légal doit passer par un avoir.
+//
+// Voir docs/FIREBASE_RULES.md pour la traçabilité réglementaire.
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
     // ===============================================================
-    // Helper Functions
+    // Helpers
     // ===============================================================
     function isAuthenticated() {
       return request.auth != null;
@@ -17,12 +39,9 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == resource.data.ownerId;
     }
 
-    function uidUnchanged() {
-      return !('ownerId' in request.resource.data) || request.resource.data.ownerId == request.auth.uid;
-    }
-
     function uidNotModified() {
-      return !('ownerId' in request.resource.data) || request.resource.data.ownerId == resource.data.ownerId;
+      return !('ownerId' in request.resource.data) ||
+             request.resource.data.ownerId == resource.data.ownerId;
     }
 
     function hasRequiredFields(fields) {
@@ -42,8 +61,59 @@ service cloud.firestore {
               request.resource.data[field].size() <= maxLen);
     }
 
+    /**
+     * Whitelist of fields that may be touched by the CLIENT after an invoice
+     * is locked. Anything else (items, totals, dates, number, regime…) must
+     * stay frozen — only a credit note can correct the document.
+     *
+     * NOTE: the API uses the Admin SDK and bypasses rules entirely, so
+     * server-side validation/credit-note flows are not blocked by this list.
+     */
+    function postLockAllowedKeys() {
+      return [
+        'status',
+        'paymentMethod',
+        'signature',
+        'signedAt',
+        'signedByName',
+        'shareUrl',
+        'sharedQuoteId',
+        'eInvoiceStatus',
+        'eInvoiceProvider',
+        'eInvoiceExternalId',
+        'eInvoiceLastSyncAt',
+        'eInvoiceErrors',
+        'pdpTransmissionHistory',
+        'chorusStatus',
+        'chorusFluxId',
+        'chorusSubmittedAt',
+        'chorusError',
+        'pennylaneId',
+        'pennylaneStatus',
+        'creditedBy',
+        'creditedAt',
+        'chantierPhotos',
+        'updatedAt'
+      ];
+    }
+
+    function lockedFieldsUntouched() {
+      return resource.data.isLocked != true ||
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(postLockAllowedKeys());
+    }
+
+    /**
+     * Once an invoice has been locked, the client cannot flip `isLocked`
+     * back to false. Only a corrective avoir issued via the API can change
+     * the legal state of a document.
+     */
+    function lockNotRemoved() {
+      return resource.data.isLocked != true ||
+             request.resource.data.isLocked == true;
+    }
+
     // ===============================================================
-    // Domain Validators
+    // Domain validators
     // ===============================================================
     function isValidCompany() {
       return hasRequiredFields(['ownerId', 'name']) &&
@@ -51,7 +121,7 @@ service cloud.firestore {
              isValidString('name', 1, 100) &&
              isValidOptionalString('profession', 0, 100) &&
              isValidOptionalString('trialStartedAt', 0, 50) &&
-             (!( 'subscriptionStatus' in request.resource.data ) || request.resource.data.subscriptionStatus in ['trial', 'active', 'expired']) &&
+             (!( 'subscriptionStatus' in request.resource.data ) || request.resource.data.subscriptionStatus in ['trial', 'active', 'expired', 'pending_activation', 'cancelled']) &&
              (!( 'plan' in request.resource.data ) || request.resource.data.plan in ['free', 'starter', 'pro']) &&
              (!( 'monthlyInvoiceCount' in request.resource.data ) || request.resource.data.monthlyInvoiceCount is number) &&
              (!( 'monthlyAiUsageCount' in request.resource.data ) || request.resource.data.monthlyAiUsageCount is number) &&
@@ -82,35 +152,96 @@ service cloud.firestore {
              isValidOptionalString('notes', 0, 2000);
     }
 
+    /**
+     * Invoice / quote / credit / deposit document.
+     *
+     * Drafts may have an empty `number` (the legal number is assigned
+     * server-side at validation time). Status can include `validated`.
+     * `isLocked` is a boolean flag set by the API.
+     */
     function isValidInvoice() {
-      return hasRequiredFields(['ownerId', 'type', 'clientId', 'number', 'date', 'status', 'items', 'totalHT', 'totalVAT', 'totalTTC']) &&
+      return hasRequiredFields(['ownerId', 'type', 'clientId', 'date', 'status', 'items', 'totalHT', 'totalVAT', 'totalTTC']) &&
              request.resource.data.ownerId == request.auth.uid &&
              request.resource.data.type in ['invoice', 'quote', 'deposit', 'credit'] &&
              isValidString('clientId', 0, 100) &&
              isValidOptionalString('clientName', 0, 100) &&
-             isValidString('number', 1, 50) &&
+             isValidOptionalString('number', 0, 50) &&
              isValidString('date', 1, 50) &&
              isValidOptionalString('dueDate', 0, 50) &&
              isValidOptionalString('serviceDate', 0, 50) &&
-             request.resource.data.status in ['draft', 'sent', 'paid', 'overdue', 'cancelled', 'accepted', 'converted'] &&
+             request.resource.data.status in ['draft', 'validated', 'sent', 'paid', 'overdue', 'cancelled', 'accepted', 'converted'] &&
              (!( 'vatRegime' in request.resource.data ) || request.resource.data.vatRegime in ['standard', 'franchise', 'autoliquidation']) &&
              request.resource.data.items is list &&
              request.resource.data.items.size() <= 100 &&
              request.resource.data.totalHT is number &&
              request.resource.data.totalVAT is number &&
              request.resource.data.totalTTC is number &&
-             isValidOptionalString('notes', 0, 2000) &&
-             isValidOptionalString('paymentMethod', 0, 100);
+             isValidOptionalString('notes', 0, 4000) &&
+             isValidOptionalString('paymentMethod', 0, 100) &&
+             (!( 'isLocked' in request.resource.data ) || request.resource.data.isLocked is bool) &&
+             (!( 'eInvoiceStatus' in request.resource.data ) ||
+              request.resource.data.eInvoiceStatus in ['not_applicable', 'pending', 'submitted', 'accepted', 'rejected', 'error']);
+    }
+
+    /**
+     * Supplier invoice. The client may freely write only documents that
+     * were entered manually (providerId == 'manual' or absent). PDP-pushed
+     * docs are written by the API and are read-only for the client.
+     */
+    function isValidSupplierInvoice() {
+      return hasRequiredFields(['ownerId', 'supplierName', 'invoiceNumber', 'date', 'totalTTC', 'status']) &&
+             request.resource.data.ownerId == request.auth.uid &&
+             isValidString('supplierName', 1, 200) &&
+             isValidString('invoiceNumber', 1, 100) &&
+             isValidString('date', 1, 50) &&
+             request.resource.data.totalTTC is number &&
+             request.resource.data.status in ['received', 'reviewed', 'approved', 'paid', 'rejected', 'archived'] &&
+             isValidOptionalString('supplierSiret', 0, 50) &&
+             isValidOptionalString('dueDate', 0, 50) &&
+             (!( 'totalHT' in request.resource.data ) || request.resource.data.totalHT is number) &&
+             (!( 'totalVAT' in request.resource.data ) || request.resource.data.totalVAT is number) &&
+             isValidOptionalString('currency', 0, 10) &&
+             isValidOptionalString('providerId', 0, 50) &&
+             isValidOptionalString('providerExternalId', 0, 200) &&
+             isValidOptionalString('originalFileUrl', 0, 2000) &&
+             isValidOptionalString('notes', 0, 2000);
+    }
+
+    function isManualSupplierDoc() {
+      return !('providerId' in resource.data) ||
+             resource.data.providerId == 'manual' ||
+             resource.data.providerId == '';
+    }
+
+    function isManualSupplierWrite() {
+      return !('providerId' in request.resource.data) ||
+             request.resource.data.providerId == 'manual' ||
+             request.resource.data.providerId == '';
     }
 
     // ===============================================================
-    // Rules
+    // Collections
     // ===============================================================
+
     match /companies/{companyId} {
       allow read: if isOwner(companyId);
       allow create: if isOwner(companyId) && isValidCompany();
-      allow update: if isOwner(companyId) && isValidCompany() && uidNotModified();
+      allow update: if isOwner(companyId) && isValidCompany();
       allow delete: if isOwner(companyId);
+
+      // Counters legaux (par type / année). Lecture autorisée pour le
+      // propriétaire (debug / affichage du prochain numéro), écriture
+      // INTERDITE côté client — seules les routes serveur (Admin SDK)
+      // peuvent incrémenter ces compteurs. Cf. api/invoice-validate.ts.
+      match /counters/{counterId} {
+        allow read: if isOwner(companyId);
+        allow write: if false;
+      }
+
+      // Articles (catalogue produits) — accessible au propriétaire.
+      match /articles/{articleId} {
+        allow read, write: if isOwner(companyId);
+      }
     }
 
     match /clients/{clientId} {
@@ -122,9 +253,74 @@ service cloud.firestore {
 
     match /invoices/{invoiceId} {
       allow read: if isDocOwner();
-      allow create: if isAuthenticated() && isValidInvoice();
-      allow update: if isDocOwner() && isValidInvoice() && uidNotModified();
-      allow delete: if isDocOwner();
+
+      // À la création, le doc ne doit pas être déjà locked (sinon le client
+      // pourrait fabriquer une fausse facture validée).
+      allow create: if isAuthenticated() &&
+                       isValidInvoice() &&
+                       (!( 'isLocked' in request.resource.data ) || request.resource.data.isLocked == false);
+
+      // Update : seules les factures non-verrouillées peuvent être éditées
+      // intégralement. Pour une facture verrouillée, on ne tolère que les
+      // changements sur la whitelist (statut, métadonnées PDP, etc.) et
+      // le flag `isLocked` ne peut pas être désactivé.
+      allow update: if isDocOwner() &&
+                       isValidInvoice() &&
+                       uidNotModified() &&
+                       lockedFieldsUntouched() &&
+                       lockNotRemoved();
+
+      // Suppression : interdite si la facture est verrouillée.
+      allow delete: if isDocOwner() && resource.data.isLocked != true;
+    }
+
+    /**
+     * Audit trail. Lecture pour le propriétaire, écriture INTERDITE côté
+     * client. Toutes les entrées sont écrites par les routes serveur via
+     * l'Admin SDK (api/invoice-event, api/invoice-validate, etc.).
+     */
+    match /invoiceEvents/{eventId} {
+      allow read: if isDocOwner();
+      allow write: if false;
+    }
+
+    /**
+     * Supplier invoices. Le client peut lire toutes ses factures
+     * fournisseurs, mais ne peut écrire que celles saisies manuellement
+     * (providerId vide ou 'manual'). Les factures poussées par une PDP
+     * sont écrites par le serveur (Admin SDK) et restent intouchables
+     * côté client — seule la PDP est source de vérité.
+     */
+    match /supplierInvoices/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() &&
+                       isValidSupplierInvoice() &&
+                       isManualSupplierWrite();
+      allow update: if isDocOwner() &&
+                       isValidSupplierInvoice() &&
+                       uidNotModified() &&
+                       isManualSupplierDoc();
+      allow delete: if isDocOwner() && isManualSupplierDoc();
+    }
+
+    /**
+     * Sharable quote signature link. Le destinataire (client) n'est pas
+     * authentifié, donc lecture publique sur l'ID exact, mais aucune
+     * écriture publique. Création réservée au propriétaire de l'invoice
+     * source (champ ownerId), update du statut autorisée pour permettre
+     * la signature côté client (sans authentification — vérifié par le
+     * lien partagé qui agit comme bearer token).
+     */
+    match /sharedQuotes/{shareId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.ownerId == request.auth.uid;
+      // Update: autorisé si on touche uniquement aux champs de signature
+      // (le client signataire n'est pas authentifié, mais ne peut pas
+      // toucher au montant ou au contenu).
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['signature', 'signedAt', 'signedByName', 'status', 'updatedAt']);
+      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
     }
   }
 }
