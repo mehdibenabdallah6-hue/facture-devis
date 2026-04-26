@@ -80,6 +80,28 @@ export function usePlan() {
     return (company?.monthlyAiUsageCount || 0) < limits.monthlyAiUsageLimit;
   };
 
+  // ---- AI usage info (for in-UI feedback + post-use paywall gating) ----
+  // We surface the raw counter so screens can show "3 / 5 utilisations IA
+  // ce mois-ci" before/after the AI runs, and `willExceedAiLimitAfterUse`
+  // so callers can decide whether to push the user to the paywall after
+  // an AI feature consumed quota. This replaces the previous (buggy)
+  // pattern of paywalling free users after every AI use, regardless of
+  // remaining quota.
+  const aiUsedRaw = company?.monthlyAiUsageCount || 0;
+  // If the month rolled over since the last persisted reset, the counter
+  // is logically 0 even though the doc still has the old value — the next
+  // increment will reset it server-side.
+  const aiUsed = needsMonthlyReset ? 0 : aiUsedRaw;
+  const aiLimit = limits.monthlyAiUsageLimit;
+  const aiUnlimited = aiLimit === -1;
+  const aiRemaining = aiUnlimited ? Infinity : Math.max(0, aiLimit - aiUsed);
+  // After the upcoming use, will we be at or over the limit? Used by the
+  // creation flow to show the paywall once the user has consumed their
+  // final free use — never before.
+  const willExceedAiLimitAfterUse = aiUnlimited
+    ? false
+    : (aiUsed + 1) >= aiLimit;
+
   const isPro = currentPlan === 'pro';
   const isStarter = currentPlan === 'starter' || currentPlan === 'pro';
   const isFree = currentPlan === 'free';
@@ -94,6 +116,11 @@ export function usePlan() {
     isPendingActivation,
     checkInvoiceLimit,
     checkAiLimit,
+    aiUsed,
+    aiLimit,
+    aiUnlimited,
+    aiRemaining,
+    willExceedAiLimitAfterUse,
     activeDiscount,
     hasReferralDiscount,
     hasWelcomeDiscount,

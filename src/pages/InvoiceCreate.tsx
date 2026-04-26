@@ -293,7 +293,7 @@ export default function InvoiceCreate() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isPro, isFree, plan, checkInvoiceLimit, checkAiLimit, limits, hasPaidAccess, isPendingActivation } = usePlan();
+  const { isPro, isFree, plan, checkInvoiceLimit, checkAiLimit, limits, hasPaidAccess, isPendingActivation, aiUsed, aiLimit, aiUnlimited, willExceedAiLimitAfterUse } = usePlan();
   const [showUpsellModal, setShowUpsellModal] = useState<string | null>(null);
   const [showPhotoSourcePicker, setShowPhotoSourcePicker] = useState(false);
   const [photoDescription, setPhotoDescription] = useState('');
@@ -629,7 +629,11 @@ export default function InvoiceCreate() {
           notes: data.notes || prev.notes,
         }));
         incrementAiUsage();
-        if (!hasPaidAccess) {
+        // Paywall ONLY when the free user has just consumed their final
+        // free AI use (post-increment count >= monthly limit). Free users
+        // with remaining quota go straight to editing — they paid for
+        // those uses with their plan, even if it's the free plan.
+        if (!hasPaidAccess && willExceedAiLimitAfterUse) {
           setStep('paywall');
         } else {
           setStep('edit');
@@ -638,9 +642,9 @@ export default function InvoiceCreate() {
     } catch (err: any) {
       console.error(err);
       const msg = err?.message || String(err);
-      const errorMsg = msg.includes('API key') 
+      const errorMsg = msg.includes('API key')
         ? "Erreur de configuration serveur. Contactez le support."
-        : msg.includes('network') 
+        : msg.includes('network')
           ? "Erreur réseau. Vérifiez votre connexion."
           : "L'IA n'a pas pu traiter votre dictée. Veuillez formuler plus clairement ou saisir manuellement.";
       setError(errorMsg);
@@ -931,7 +935,10 @@ export default function InvoiceCreate() {
       if (extractedData.notes) newData.notes = extractedData.notes;
       return newData;
     });
-    if (!hasPaidAccess) {
+    // Same gating as processDictation: free users keep their flow until
+    // they've consumed the final monthly AI use. The upsell modal still
+    // fires automatically on the *next* attempt via tryUseAi().
+    if (!hasPaidAccess && willExceedAiLimitAfterUse) {
       setStep('paywall');
     } else {
       setStep('edit');
@@ -1703,6 +1710,23 @@ export default function InvoiceCreate() {
           <p className="text-sm md:text-xl text-on-surface-variant max-w-2xl mx-auto font-medium leading-relaxed">
             Photo + description rapide = facture prête à valider.
           </p>
+          {/*
+            AI usage meter — surfaces remaining quota to free/starter users
+            so the paywall (when it eventually appears) doesn't feel like a
+            surprise. Hidden for plans with unlimited usage (Pro).
+          */}
+          {!aiUnlimited && (
+            <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-xs md:text-sm font-medium">
+              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />
+              <span>
+                <span className="font-bold text-on-surface">{aiUsed}</span>
+                <span> / {aiLimit} utilisations IA ce mois-ci</span>
+              </span>
+              {aiUsed >= aiLimit && (
+                <span className="ml-1 text-error font-semibold">— limite atteinte</span>
+              )}
+            </div>
+          )}
         </div>
 
         {error && (
