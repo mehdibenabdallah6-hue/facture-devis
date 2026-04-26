@@ -616,6 +616,33 @@ export default function InvoiceCreate() {
     }) || null;
   };
 
+  // Suggest up to 3 catalog articles whose description shares meaningful
+  // tokens with the typed text. Used as chip suggestions when the user
+  // writes something vague that doesn't yet match a catalog price.
+  const getCatalogSuggestions = (query: string, limit = 3) => {
+    const q = normalizeCatalogText(query);
+    if (!q || !articles?.length) return [];
+    const queryTokens = q.split(' ').filter(t => t.length >= 3);
+    if (queryTokens.length === 0) return [];
+
+    const scored = articles.map(article => {
+      const name = normalizeCatalogText(article.description);
+      // Strong signal: full-text substring contains.
+      if (name.includes(q) || q.includes(name)) {
+        return { article, score: 100 + Math.min(name.length, q.length) };
+      }
+      // Token overlap: count how many query tokens appear in the article name.
+      const overlap = queryTokens.reduce((acc, tok) => acc + (name.includes(tok) ? 1 : 0), 0);
+      return { article, score: overlap };
+    });
+
+    return scored
+      .filter(s => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(s => s.article);
+  };
+
   const processDictation = async (text: string) => {
     try {
       setStep('analyzing');
@@ -2566,6 +2593,43 @@ export default function InvoiceCreate() {
                         Astuce : pas de phrase complète. "Remplacement chauffe-eau 200 L" suffit.
                       </p>
                     )}
+                    {(() => {
+                      // Only suggest when: user typed at least 3 chars, no exact
+                      // catalog match yet, and we have articles to suggest from.
+                      const desc = (item.description || '').trim();
+                      if (desc.length < 3 || catalogMatch || !articles?.length) return null;
+                      const suggestions = getCatalogSuggestions(desc);
+                      if (suggestions.length === 0) return null;
+                      return (
+                        <div className="ml-2 mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-bold text-on-surface-variant inline-flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3 text-primary shrink-0" />
+                            Tu veux peut-être :
+                          </span>
+                          {suggestions.map(article => (
+                            <button
+                              key={article.id}
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...(formData.items || [])];
+                                newItems[index] = {
+                                  ...newItems[index],
+                                  description: article.description,
+                                  unitPrice: article.unitPrice,
+                                  vatRate: article.vatRate,
+                                };
+                                setFormData({ ...formData, items: newItems });
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-[11px] font-bold transition-colors"
+                              title={`${article.description} — ${Number(article.unitPrice).toFixed(2)} €`}
+                            >
+                              {article.description.length > 38 ? `${article.description.slice(0, 38)}…` : article.description}
+                              <span className="text-on-surface-variant font-medium">· {Number(article.unitPrice).toFixed(2)} €</span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2 flex items-center justify-between">

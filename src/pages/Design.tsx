@@ -90,6 +90,15 @@ const TEMPLATES: {
 
 const PRESET_COLORS = ['#E8621A', '#6750A4', '#1d4ed8', '#0d9488', '#dc2626', '#0f172a'];
 
+// Each template has a signature accent color. Picking a template shifts the
+// accent to its default so the choice is immediately reflected in the PDF;
+// users can still override afterwards via the color picker.
+const TEMPLATE_DEFAULT_COLORS: Record<TemplateId, string> = {
+  moderne: '#E8621A',
+  classique: '#1F2937',
+  chantier: '#F59E0B',
+};
+
 /**
  * Design page — top-level (was previously a section inside Settings).
  *
@@ -192,6 +201,11 @@ export default function Design() {
           </p>
         </div>
 
+        <p className="text-[11px] text-on-surface-variant mb-3">
+          Choisir un modèle ajuste aussi la couleur d'accent — vous pouvez la personnaliser
+          ensuite.
+        </p>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           {TEMPLATES.map(t => {
             const isSelected = formData.pdfTemplate === t.id;
@@ -199,7 +213,16 @@ export default function Design() {
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setFormData(prev => ({ ...prev, pdfTemplate: t.id }))}
+                onClick={() =>
+                  setFormData(prev => ({
+                    ...prev,
+                    pdfTemplate: t.id,
+                    // Sync accent to the template's signature color so the
+                    // choice is visible in PDF output. User can still tweak
+                    // the color afterwards.
+                    pdfAccentColor: TEMPLATE_DEFAULT_COLORS[t.id],
+                  }))
+                }
                 className={`text-left rounded-2xl p-3 md:p-4 transition-all border-2 ${
                   isSelected
                     ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
