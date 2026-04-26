@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -14,60 +14,63 @@ interface PaddlePaywallProps {
 export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation = false }: PaddlePaywallProps) {
   const { user } = useAuth();
   const { activateSubscription } = useData();
-  const [paddle, setPaddle] = useState<Paddle | null>(null);
+  // Lazy: Paddle SDK is initialised only when the user clicks "Débloquer".
+  // Initialising on mount could let Paddle's URL-recovery / transaction
+  // resume features re-open a checkout overlay without explicit consent.
+  const paddleRef = useRef<Paddle | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const initPaddle = async () => {
-      try {
-        const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'test_4afb9ebb2e1e0d37e2182061266';
-        const paddleInstance = await initializePaddle({
-          environment: import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
-          token: clientToken,
-          eventCallback: async (event) => {
-            if (event.name === 'checkout.completed') {
-              console.log('Payment successful!', event.data);
-              setLoading(true);
-              await activateSubscription('starter', 'annual');
-              onSuccess();
-            }
+  const ensurePaddle = async (): Promise<Paddle | null> => {
+    if (paddleRef.current) return paddleRef.current;
+    try {
+      const clientToken =
+        import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'test_4afb9ebb2e1e0d37e2182061266';
+      const instance = await initializePaddle({
+        environment:
+          import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
+        token: clientToken,
+        eventCallback: async (event) => {
+          if (event.name === 'checkout.completed') {
+            setLoading(true);
+            await activateSubscription('starter', 'annual');
+            onSuccess();
           }
-        });
-        if (paddleInstance) {
-          setPaddle(paddleInstance);
-        }
-      } catch (err) {
-        console.error('Failed to load Paddle', err);
-      }
-    };
-    initPaddle();
-  }, [activateSubscription, onSuccess]);
+        },
+      });
+      if (instance) paddleRef.current = instance;
+      return instance ?? null;
+    } catch (err) {
+      console.error('Failed to load Paddle', err);
+      return null;
+    }
+  };
 
-  const openCheckout = () => {
+  const openCheckout = async () => {
+    setLoading(true);
+    const paddle = await ensurePaddle();
     if (!paddle) {
+      setLoading(false);
       alert("Erreur de chargement de la plateforme de paiement. Veuillez réessayer.");
       return;
     }
-    
+
     // Default to Solo Annual (129€/year) as it's the best value
-    const priceId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID || 'pri_01starter_annual';
+    const priceId =
+      import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID || 'pri_01starter_annual';
 
     paddle.Checkout.open({
-      items: [
-        {
-          priceId: priceId,
-          quantity: 1
-        }
-      ],
-      customer: {
-        email: user?.email || '',
-      },
+      items: [{ priceId, quantity: 1 }],
+      customer: { email: user?.email || '' },
       customData: {
         userId: user?.uid || '',
         planId: 'starter',
-        billingCycle: 'annual'
-      }
+        billingCycle: 'annual',
+      },
     });
+
+    // Loading state is reset by the checkout UI taking over (or the user
+    // cancelling). We reset it here defensively so a second click works.
+    setLoading(false);
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Crown, Zap, Check, Sparkles, ArrowRight, X, Tag, Gift, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
@@ -12,7 +12,11 @@ export default function Upgrade() {
   const { user } = useAuth();
   const { activateSubscription, company } = useData();
   const { activeDiscount, isPendingActivation } = usePlan();
-  const [paddle, setPaddle] = useState<Paddle | null>(null);
+  // Lazy: Paddle SDK is initialized only when the user clicks an Upgrade
+  // button — never on mount. This prevents Paddle's transaction-recovery
+  // / URL-fragment behaviours from ever auto-opening a checkout window
+  // when the page loads.
+  const paddleRef = useRef<Paddle | null>(null);
   const [loadingCode, setLoadingCode] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const pendingCheckoutRef = useRef<{ planId: 'starter' | 'pro'; billingCycle: BillingCycle } | null>(null);
@@ -29,50 +33,53 @@ export default function Upgrade() {
     return basePrice;
   };
 
-  useEffect(() => {
-    const initPaddle = async () => {
-      try {
-        const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'test_4afb9ebb2e1e0d37e2182061266'; 
-        const paddleInstance = await initializePaddle({
-          environment: import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
-          token: clientToken,
-          eventCallback: async (event) => {
-            if (event.name === 'checkout.completed') {
-              console.log('Payment successful!', event.data);
-              if (pendingCheckoutRef.current) {
-                setLoadingCode(pendingCheckoutRef.current.planId);
-                await activateSubscription(
-                  pendingCheckoutRef.current.planId,
-                  pendingCheckoutRef.current.billingCycle,
-                );
-                navigate('/app/abonnement');
-              }
+  // Initialise Paddle on demand (first click). Cached in paddleRef so a
+  // second click within the same session reuses the existing instance.
+  const ensurePaddle = async (): Promise<Paddle | null> => {
+    if (paddleRef.current) return paddleRef.current;
+    try {
+      const clientToken =
+        import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'test_4afb9ebb2e1e0d37e2182061266';
+      const instance = await initializePaddle({
+        environment:
+          import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
+        token: clientToken,
+        eventCallback: async (event) => {
+          if (event.name === 'checkout.completed') {
+            if (pendingCheckoutRef.current) {
+              setLoadingCode(pendingCheckoutRef.current.planId);
+              await activateSubscription(
+                pendingCheckoutRef.current.planId,
+                pendingCheckoutRef.current.billingCycle,
+              );
+              navigate('/app/abonnement');
             }
           }
-        });
-        if (paddleInstance) {
-          setPaddle(paddleInstance);
-        }
-      } catch (err) {
-        console.error('Failed to load Paddle', err);
-      }
-    };
-    initPaddle();
-  }, [activateSubscription, navigate]);
+        },
+      });
+      if (instance) paddleRef.current = instance;
+      return instance ?? null;
+    } catch (err) {
+      console.error('Failed to load Paddle', err);
+      return null;
+    }
+  };
 
-  const openCheckout = (planId: 'starter' | 'pro') => {
+  const openCheckout = async (planId: 'starter' | 'pro') => {
+    setLoadingCode(planId);
+    const paddle = await ensurePaddle();
     if (!paddle) {
+      setLoadingCode(null);
       alert("Erreur de chargement de la plateforme de paiement. Veuillez réessayer.");
       return;
     }
-    
-    setLoadingCode(planId);
+
     pendingCheckoutRef.current = { planId, billingCycle };
 
-    const starterMonthlyId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ID || 'pri_01starter'; 
-    const proMonthlyId = import.meta.env.VITE_PADDLE_PRICE_PRO_ID || 'pri_01pro'; 
-    const starterAnnualId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID || 'pri_01starter_annual'; 
-    const proAnnualId = import.meta.env.VITE_PADDLE_PRICE_PRO_ANNUAL_ID || 'pri_01pro_annual'; 
+    const starterMonthlyId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ID || 'pri_01starter';
+    const proMonthlyId = import.meta.env.VITE_PADDLE_PRICE_PRO_ID || 'pri_01pro';
+    const starterAnnualId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID || 'pri_01starter_annual';
+    const proAnnualId = import.meta.env.VITE_PADDLE_PRICE_PRO_ANNUAL_ID || 'pri_01pro_annual';
 
     let priceId = '';
     if (planId === 'starter') priceId = billingCycle === 'monthly' ? starterMonthlyId : starterAnnualId;
@@ -84,8 +91,8 @@ export default function Upgrade() {
       customData: {
         userId: user?.uid || '',
         planId: planId,
-        billingCycle: billingCycle
-      }
+        billingCycle: billingCycle,
+      },
     });
 
     setLoadingCode(null);

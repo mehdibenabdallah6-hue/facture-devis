@@ -249,6 +249,20 @@ export default function Layout() {
                       <Settings className="w-4 h-4 text-on-surface-variant" />
                       Paramètres
                     </button>
+                    {/* Design — exposed in the profile menu so mobile users
+                        (who don't have it in the bottom nav) can still reach
+                        it without going through Paramètres. */}
+                    <button
+                      id="tour-design-mobile"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        navigate('/app/design');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 transition-colors md:hidden"
+                    >
+                      <Palette className="w-4 h-4 text-on-surface-variant" />
+                      Design
+                    </button>
                     <button
                       onClick={() => {
                         setShowProfileMenu(false);

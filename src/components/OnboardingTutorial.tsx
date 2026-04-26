@@ -12,34 +12,61 @@ type Step = {
 const steps: Step[] = [
   {
     id: '#tour-welcome',
-    title: 'Bienvenue sur Photofacto ! 👋',
-    description: "Cet assistant interactif va vous montrer l'essentiel en 5 étapes. Vous pouvez ignorer ce tutoriel à tout moment.",
-    placement: 'center'
+    title: 'Bienvenue sur Photofacto 👋',
+    description:
+      "Un tour rapide pour comprendre l'app en 1 minute. Direct, sans bla-bla. Vous pouvez sortir à tout moment.",
+    placement: 'center',
   },
   {
     id: '#tour-new-doc',
-    title: 'Créer votre premier document',
-    description: "C'est ici que la magie opère ! Cliquez ici pour tester notre IA en scannant un brouillon ou en dictant votre facture.",
-    placement: 'right'
+    title: 'Créez une facture en 1 minute',
+    description:
+      "Le bouton à utiliser quand vous rentrez du chantier. Photo d'un brouillon, dictée vocale, ou tape libre — l'IA remplit la facture pour vous. Ex : « Pose chauffe-eau 200 L, M. Martin, 850 € » → facture prête.",
+    placement: 'right',
   },
   {
     id: '#tour-documents',
-    title: 'Vos Factures et Devis',
-    description: "Retrouvez ici tout votre historique. Vous pouvez transformer un devis en facture en un seul clic.",
-    placement: 'right'
+    title: 'Vos factures et devis',
+    description:
+      "Tout votre historique au même endroit. Devis accepté ? 1 clic pour le transformer en facture. Vous voyez d'un coup d'œil ce qui est payé et ce qui ne l'est pas.",
+    placement: 'right',
   },
   {
     id: '#tour-clients',
-    title: 'Vos Clients',
-    description: "Votre répertoire. Entrez vos contacts réguliers ici pour gagner encore plus de temps.",
-    placement: 'right'
+    title: 'Vos clients',
+    description:
+      "Votre carnet d'adresses. Pour vos clients réguliers, l'IA reconnaît le nom et pré-remplit l'adresse — plus besoin de retaper à chaque facture.",
+    placement: 'right',
   },
   {
     id: '#tour-settings',
-    title: 'Vos Paramètres Pro',
-    description: "Dernière étape indispensable : remplissez vos informations légales (SIRET, Adresse) pour que vos exports PDF soient conformes à la loi !",
-    placement: 'right'
-  }
+    title: 'Vos infos légales',
+    description:
+      "À remplir une fois pour toutes : SIRET, adresse, RIB. Vos PDF seront conformes à la loi (mentions obligatoires) sans que vous y pensiez.",
+    placement: 'right',
+  },
+  // ── Nouvelles étapes ajoutées à la fin du guide ──────────────────
+  {
+    id: '#tour-catalog',
+    title: 'Ajoutez vos prix au catalogue',
+    description:
+      "Photofacto utilise vos tarifs pour remplir automatiquement vos factures. Ajoutez quelques prestations pour commencer — ex : Pose carrelage, Main d'œuvre, Déplacement.",
+    placement: 'right',
+  },
+  {
+    id: '#tour-design',
+    title: 'Personnalisez votre design',
+    description:
+      "Choisissez un modèle, ajoutez votre logo et vos couleurs. Votre design sera automatiquement appliqué à toutes vos factures et devis.",
+    placement: 'right',
+  },
+  {
+    id: '#tour-documents',
+    title: 'Suivez et relancez vos paiements',
+    description:
+      "Vous voyez facilement les factures en retard, et vous pouvez relancer vos clients en 1 clic. C'est là que vous récupérez votre argent.",
+    placement: 'right',
+  },
 ];
 
 export function OnboardingTutorial() {
@@ -76,7 +103,15 @@ export function OnboardingTutorial() {
       }
       const el = document.querySelector(targetId);
       if (el) {
-        setTargetRect(el.getBoundingClientRect());
+        const rect = el.getBoundingClientRect();
+        // Element is in DOM but not rendered (e.g. tour-design lives in
+        // the desktop sidebar and is `display:none` on mobile). A 0×0
+        // rect would push the popup off-screen — fall back to centered.
+        if (rect.width === 0 && rect.height === 0) {
+          setTargetRect(null);
+        } else {
+          setTargetRect(rect);
+        }
       } else {
         setTargetRect(null);
       }
