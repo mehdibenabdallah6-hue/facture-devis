@@ -1729,6 +1729,35 @@ export default function InvoiceCreate() {
           )}
         </div>
 
+        {/*
+          Empty-catalogue nudge — without prices, the AI fills "0,00 €" on
+          every line. Surface this BEFORE they try, so they don't blame the
+          AI for missing prices.
+        */}
+        {(!articles || articles.length === 0) && (
+          <button
+            type="button"
+            onClick={() => navigate('/app/catalog')}
+            className="block w-full text-left bg-amber-50 hover:bg-amber-100 border-2 border-amber-200 rounded-2xl p-3 md:p-4 mb-4 md:mb-6 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-amber-900 text-sm md:text-base leading-tight">
+                  Ajoute tes prix pour que l'IA fonctionne.
+                </p>
+                <p className="text-xs md:text-sm text-amber-800 leading-snug mt-0.5">
+                  Catalogue vide → l'IA ne peut pas retrouver tes tarifs. 2 minutes pour
+                  ajouter 5 prix.
+                </p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-amber-700 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </div>
+          </button>
+        )}
+
         {error && (
           <div className="animate-fade-in bg-error-container text-on-error-container p-3 md:p-4 rounded-xl flex items-start gap-3 mb-5 md:mb-8 shadow-sm">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -2524,13 +2553,19 @@ export default function InvoiceCreate() {
                     {priceMissing && (
                       <p className="ml-2 text-[11px] font-bold text-amber-800">À compléter : ajoutez un prix fiable avant validation.</p>
                     )}
-                    <input 
-                      type="text" 
-                      placeholder="Désignation" 
+                    <input
+                      type="text"
+                      placeholder={index === 0 ? 'Ex : "Pose chauffe-eau 200 L" — écrivez comme un SMS' : 'Désignation'}
                       value={item.description}
                       onChange={e => handleItemChange(index, 'description', e.target.value)}
                       className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3.5 md:px-4 py-3 text-sm focus:ring-2 focus:border-transparent focus:ring-primary/20 font-bold"
                     />
+                    {index === 0 && !item.description && (
+                      <p className="ml-2 text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-primary shrink-0" />
+                        Astuce : pas de phrase complète. "Remplacement chauffe-eau 200 L" suffit.
+                      </p>
+                    )}
                   </div>
                   <div className="col-span-6 sm:col-span-4 lg:col-span-3 space-y-1">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-2 flex items-center justify-between">

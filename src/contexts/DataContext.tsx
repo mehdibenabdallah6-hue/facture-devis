@@ -83,6 +83,7 @@ export interface CompanySettings {
   referralDiscountType?: string; // '50_monthly_or_15_annual'
   welcomeDiscountExpiry?: string; // welcome discount valid for 48h after signup
   // PDF customization
+  pdfTemplate?: 'moderne' | 'classique' | 'chantier'; // visual template for PDF exports
   pdfAccentColor?: string; // hex color for PDF accent bar
   pdfFooterText?: string; // custom footer text on PDF
   pdfShowPaymentTerms?: boolean; // show payment terms on PDF

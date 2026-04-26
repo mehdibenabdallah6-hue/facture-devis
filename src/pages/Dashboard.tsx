@@ -47,7 +47,7 @@ function KpiCard({ label, value, sub, icon, color }: KpiProps) {
 }
 
 export default function Dashboard() {
-  const { invoices, company, loading } = useData();
+  const { invoices, company, loading, articles } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isFree, limits } = usePlan();
@@ -160,6 +160,19 @@ export default function Dashboard() {
     if (daysLeft <= 5 && daysLeft > 0) showTrialBanner = true;
   }
 
+  // ---- Quick-start checklist (3 steps, hides itself when all done) ----
+  // Lives above KPIs so artisans always see the next concrete action.
+  // Step ordering follows the natural funnel: catalog → create → send.
+  const hasPrice = (articles?.length || 0) > 0;
+  const hasInvoice = invoices.length > 0;
+  const hasSent = invoices.some(inv => inv.status === 'sent' || inv.status === 'paid');
+  const onboardingDone = hasPrice && hasInvoice && hasSent;
+  const onboardingSteps: { key: string; label: string; done: boolean; to: string }[] = [
+    { key: 'catalog', label: 'Ajouter un prix', done: hasPrice, to: '/app/catalog' },
+    { key: 'create', label: 'Créer une facture', done: hasInvoice, to: '/app/invoices/new' },
+    { key: 'send', label: 'Envoyer', done: hasSent, to: '/app/invoices' },
+  ];
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Trial Banner */}
@@ -185,6 +198,57 @@ export default function Dashboard() {
             Passer au Pro
           </button>
         </div>
+      )}
+
+      {/* Quick-start checklist — only while at least one step is pending */}
+      {!onboardingDone && (
+        <section
+          aria-label="Premiers pas"
+          className="bg-surface-container-lowest border border-outline-variant/15 rounded-2xl p-3.5 md:p-4 shadow-spark-sm"
+        >
+          <div className="flex items-center justify-between gap-3 mb-2.5">
+            <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-primary">
+              Premiers pas
+            </h2>
+            <span className="text-[11px] font-bold text-on-surface-variant">
+              {onboardingSteps.filter(s => s.done).length} / {onboardingSteps.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {onboardingSteps.map((s, idx) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => navigate(s.to)}
+                className={`group flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all text-left ${
+                  s.done
+                    ? 'bg-tertiary/10 border border-tertiary/20'
+                    : 'bg-surface-container-low hover:bg-primary/5 border border-outline-variant/15 hover:border-primary/30'
+                }`}
+              >
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                    s.done
+                      ? 'bg-tertiary text-on-tertiary'
+                      : 'bg-white border border-outline-variant/40 text-on-surface-variant'
+                  }`}
+                >
+                  {s.done ? <CheckCircle className="w-4 h-4" strokeWidth={2.5} /> : idx + 1}
+                </div>
+                <span
+                  className={`text-sm font-bold flex-1 leading-tight ${
+                    s.done ? 'text-tertiary line-through decoration-tertiary/40' : 'text-on-surface'
+                  }`}
+                >
+                  {s.label}
+                </span>
+                {!s.done && (
+                  <ArrowRight className="w-4 h-4 text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Header */}

@@ -1,26 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { ShieldCheck, CreditCard, CheckCircle2, AlertCircle, ArrowUpRight, Upload, X, FileSpreadsheet, Package, Edit2, Trash2, Plus, Save } from 'lucide-react';
+import { ShieldCheck, CreditCard, CheckCircle2, AlertCircle, ArrowUpRight, Package, Palette, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlan } from '../hooks/usePlan';
-import { compressImageToDataURL } from '../services/imageUtils';
-import * as XLSX from 'xlsx';
 import ReferralCard from '../components/ReferralCard';
 import { PLAN_DISPLAY_NAMES } from '../lib/billing';
 
 export default function Settings() {
-  const { company, saveCompany, importCatalog, articles, addArticle, updateArticle, deleteArticle } = useData();
+  const { company, saveCompany } = useData();
   const { user } = useAuth();
   const { plan, hasPaidAccess, isPendingActivation } = usePlan();
-  const letterheadRef = useRef<HTMLInputElement>(null);
-  const catalogRef = useRef<HTMLInputElement>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{success?: string, error?: string} | null>(null);
-  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
-  const [editArticleData, setEditArticleData] = useState<Partial<any>>({});
-  const [isAddingArticle, setIsAddingArticle] = useState(false);
-  const [newArticleData, setNewArticleData] = useState({ description: '', unitPrice: 0, vatRate: 20 });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -37,8 +27,6 @@ export default function Settings() {
     defaultPaymentTerms: 30,
     defaultCurrency: 'EUR',
     defaultVat: 20,
-    letterheadUrl: '',
-    hideCompanyInfo: false
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -60,70 +48,9 @@ export default function Settings() {
         defaultPaymentTerms: company.defaultPaymentTerms || 30,
         defaultCurrency: company.defaultCurrency || 'EUR',
         defaultVat: company.defaultVat || 20,
-        letterheadUrl: company.letterheadUrl || '',
-        hideCompanyInfo: company.hideCompanyInfo || false
       });
     }
   }, [company]);
-
-  const handleLetterheadUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const dataUrl = await compressImageToDataURL(file, 2000, 0.75); // high res for A4
-      setFormData(prev => ({ ...prev, letterheadUrl: dataUrl }));
-    } catch (err) {
-      console.error("Erreur logo:", err);
-    }
-  };
-
-  const handleCatalogImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsImporting(true);
-    setImportResult(null);
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const json = XLSX.utils.sheet_to_json<any>(worksheet);
-        
-        let validItems = [];
-        for (const row of json) {
-          // Attempt to find description and price columns generically
-          const keys = Object.keys(row);
-          const descKey = keys.find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('nom') || k.toLowerCase().includes('art') || k.toLowerCase().includes('prod'));
-          const priceKey = keys.find(k => k.toLowerCase().includes('prix') || k.toLowerCase().includes('tarif') || k.toLowerCase().includes('ht') || k.toLowerCase().includes('amount'));
-          const vatKey = keys.find(k => k.toLowerCase().includes('tva') || k.toLowerCase().includes('tax'));
-          
-          if (descKey && row[descKey]) {
-            validItems.push({
-              description: String(row[descKey]),
-              unitPrice: priceKey ? parseFloat(String(row[priceKey]).replace(',','.')) || 0 : 0,
-              vatRate: vatKey ? parseFloat(String(row[vatKey]).replace(',','.')) || 20 : 20
-            });
-          }
-        }
-
-        if (validItems.length > 0) {
-          await importCatalog(validItems);
-          setImportResult({ success: `${validItems.length} articles importés avec succès !` });
-        } else {
-          setImportResult({ error: "Aucun article trouvé. Vérifiez les colonnes (Description, Prix)." });
-        }
-      } catch (err) {
-         setImportResult({ error: "Erreur lors de la lecture du fichier." });
-      } finally {
-         setIsImporting(false);
-         if (catalogRef.current) catalogRef.current.value = '';
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,53 +61,6 @@ export default function Settings() {
     const timer = setTimeout(() => setSaved(false), 3000);
     return () => clearTimeout(timer);
   };
-
-  const handleAddArticle = async () => {
-    if (!newArticleData.description.trim()) return;
-    try {
-      await addArticle(newArticleData as any);
-      setNewArticleData({ description: '', unitPrice: 0, vatRate: 20 });
-      setIsAddingArticle(false);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleUpdateArticle = async (id: string) => {
-    try {
-      await updateArticle(id, editArticleData);
-      setEditingArticleId(null);
-      setEditArticleData({});
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleStartEditArticle = (article: any) => {
-    setEditingArticleId(article.id);
-    setEditArticleData({
-      description: article.description,
-      unitPrice: article.unitPrice,
-      vatRate: article.vatRate
-    });
-  };
-
-  const handleDeleteArticle = async (id: string) => {
-    if (confirm("Voulez-vous vraiment supprimer cet article de votre catalogue ?")) {
-      await deleteArticle(id);
-    }
-  };
-
-  const calculateTrialDaysLeft = () => {
-    if (!company?.trialStartedAt) return 0;
-    const start = new Date(company.trialStartedAt);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, 14 - diffDays);
-  };
-
-  const trialDaysLeft = calculateTrialDaysLeft();
 
   return (
     <div className="space-y-5 md:space-y-8 max-w-4xl mx-auto min-w-0 w-full">
@@ -360,222 +240,47 @@ export default function Settings() {
           </div>
         </section>
 
-        <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl md:text-2xl font-extrabold font-headline text-on-surface mb-1">Design & Personnalisation</h2>
-              <p className="text-sm text-on-surface-variant font-medium">Ajoutez un papier d'en-tête (logo, bordures) pour vos exports PDF.</p>
+        {/*
+          Catalogue & Design used to live as in-page sections here. They now
+          have dedicated top-level pages — this is just a launcher row so
+          users who land in old bookmarks still find their way.
+        */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <Link
+            to="/app/catalog"
+            className="group bg-surface-container-lowest border border-outline-variant/10 hover:border-primary/30 rounded-2xl p-5 md:p-6 shadow-sm hover:shadow-md transition-all flex items-center gap-4"
+          >
+            <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Package className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-            {formData.letterheadUrl && (
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, letterheadUrl: '' }))}
-                className="text-error bg-error/10 hover:bg-error/20 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors self-start md:self-auto"
-              >
-                <X className="w-4 h-4" />
-                Supprimer le design
-              </button>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start">
-            <div className="space-y-4">
-              <input
-                type="file"
-                accept="image/jpeg, image/png, image/webp"
-                className="hidden"
-                ref={letterheadRef}
-                onChange={handleLetterheadUpload}
-              />
-              <button
-                type="button"
-                onClick={() => letterheadRef.current?.click()}
-                className="min-touch w-full border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 hover:bg-primary/10 rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center gap-3 transition-colors text-primary"
-              >
-                <Upload className="w-8 h-8" />
-                <div className="text-center">
-                  <p className="font-bold mb-1">Importer un papier d'en-tête</p>
-                  <p className="text-xs opacity-80 font-medium">Format image (JPG, PNG). Résolution A4 conseillée.</p>
-                </div>
-              </button>
-
-              {formData.letterheadUrl && (
-                <label className="flex items-center gap-3 p-4 bg-surface-container-high rounded-xl cursor-pointer hover:bg-surface-container-highest transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.hideCompanyInfo}
-                    onChange={(e) => setFormData(prev => ({ ...prev, hideCompanyInfo: e.target.checked }))}
-                    className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary/20"
-                  />
-                  <span className="text-sm font-medium text-on-surface">Masquer mes informations textuelles d'entreprise (mon papier à en-tête contient déjà mon nom, adresse et SIRET).</span>
-                </label>
-              )}
-            </div>
-
-            {formData.letterheadUrl && (
-              <div className="bg-surface-container-high rounded-2xl p-2 aspect-[1/1.414] shadow-inner relative overflow-hidden group max-w-[200px] mx-auto w-full border border-outline-variant/20">
-                <img 
-                  src={formData.letterheadUrl} 
-                  alt="Paper preview" 
-                  className="w-full h-full object-cover rounded-xl"
-                />
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl md:text-2xl font-extrabold font-headline text-on-surface mb-1 flex items-center gap-2">
-                <Package className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                Catalogue Produits & IA
-              </h2>
-              <p className="text-sm text-on-surface-variant font-medium">Importez votre catalogue Excel. L'IA reconnaîtra vos produits selon le nom et récupèrera vos tarifs quand vous dictez !</p>
-            </div>
-            <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 self-start md:self-auto shrink-0">
-              {articles.length} articles en base
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start">
-            <div className="space-y-4">
-              <input
-                type="file"
-                accept=".xlsx, .xls, .csv"
-                className="hidden"
-                ref={catalogRef}
-                onChange={handleCatalogImport}
-              />
-              <button
-                type="button"
-                disabled={isImporting}
-                onClick={() => catalogRef.current?.click()}
-                className="min-touch w-full border-2 border-dashed border-secondary/30 hover:border-secondary bg-secondary/5 hover:bg-secondary/10 rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center gap-3 transition-colors text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FileSpreadsheet className="w-8 h-8" />
-                <div className="text-center">
-                  <p className="font-bold mb-1">{isImporting ? 'Importation en cours...' : 'Importer un fichier Excel (.xlsx)'}</p>
-                  <p className="text-xs opacity-80 font-medium">Le fichier doit contenir au minimum une colonne "Description" et une colonne "Prix".</p>
-                </div>
-              </button>
-
-              {importResult?.success && (
-                <div className="p-4 bg-tertiary/10 text-tertiary rounded-xl text-sm font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 shrink-0" />
-                  {importResult.success}
-                </div>
-              )}
-              {importResult?.error && (
-                <div className="p-4 bg-error/10 text-error rounded-xl text-sm font-bold flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                  {importResult.error}
-                </div>
-              )}
-            </div>
-            
-            <div className="bg-surface-container-high rounded-2xl p-5 border border-outline-variant/10 text-sm h-full flex flex-col">
-              <h3 className="font-bold text-on-surface mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-secondary" /> Comment ça marche ?
+            <div className="min-w-0 flex-1">
+              <h3 className="font-extrabold font-headline text-on-surface text-base md:text-lg leading-tight">
+                Catalogue
               </h3>
-              <ul className="space-y-3 text-on-surface-variant flex-1 list-disc pl-4">
-                <li>Uploadez votre tarifaire Excel ou CSV.</li>
-                <li>Créez une facture avec la <strong>dictée vocale</strong> ou <strong>par photo</strong>.</li>
-                <li>Si vous dites <span className="italic text-on-surface bg-surface-container-highest px-1 py-0.5 rounded">"Ajoute la Peinture Tollens"</span>, l'IA va instantanément chercher dans votre catalogue le prix unitaire et la TVA exacte correspondants !</li>
-              </ul>
+              <p className="text-xs md:text-sm text-on-surface-variant font-medium leading-snug">
+                Vos prix pour que l'IA remplisse les factures.
+              </p>
             </div>
-          </div>
+            <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+          </Link>
 
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-on-surface">Vos articles enregistrés</h3>
-              <button 
-                type="button"
-                onClick={() => setIsAddingArticle(true)}
-                className="btn-glow flex items-center gap-2 bg-primary text-on-primary font-bold px-4 py-2 rounded-xl text-sm shadow-sm shadow-primary/20 hover:shadow-md transition-all active:scale-95"
-              >
-                <Plus className="w-4 h-4" /> Ajouter
-              </button>
+          <Link
+            to="/app/design"
+            className="group bg-surface-container-lowest border border-outline-variant/10 hover:border-primary/30 rounded-2xl p-5 md:p-6 shadow-sm hover:shadow-md transition-all flex items-center gap-4"
+          >
+            <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Palette className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-
-            <div className="bg-surface-container-low rounded-2xl border border-outline-variant/10 overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-sm">
-                <thead className="bg-surface-container border-b border-outline-variant/10 text-on-surface-variant font-medium text-xs uppercase tracking-wider">
-                  <tr>
-                    <th className="p-4">Description</th>
-                    <th className="p-4 w-24">Prix (HT)</th>
-                    <th className="p-4 w-20">TVA (%)</th>
-                    <th className="p-4 w-24 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/5">
-                  {isAddingArticle && (
-                    <tr className="bg-primary/5">
-                      <td className="p-3">
-                        <input type="text" placeholder="Ex: Peinture..." value={newArticleData.description} onChange={e => setNewArticleData({...newArticleData, description: e.target.value})} className="w-full bg-surface-container-high rounded-lg px-3 py-2 text-sm border-none focus:ring-1 focus:ring-primary/50" />
-                      </td>
-                      <td className="p-3">
-                        <input type="number" value={newArticleData.unitPrice} onChange={e => setNewArticleData({...newArticleData, unitPrice: parseFloat(e.target.value) || 0})} className="w-full bg-surface-container-high rounded-lg px-2 py-2 text-sm border-none focus:ring-1 focus:ring-primary/50 text-right" />
-                      </td>
-                      <td className="p-3">
-                        <input type="number" value={newArticleData.vatRate} onChange={e => setNewArticleData({...newArticleData, vatRate: parseFloat(e.target.value) || 0})} className="w-full bg-surface-container-high rounded-lg px-2 py-2 text-sm border-none focus:ring-1 focus:ring-primary/50 text-right" />
-                      </td>
-                      <td className="p-3 text-right flex justify-end gap-2">
-                        <button type="button" onClick={handleAddArticle} className="min-touch bg-tertiary/10 text-tertiary hover:bg-tertiary/20 rounded-lg transition-colors flex items-center justify-center"><Save className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setIsAddingArticle(false)} className="min-touch bg-error/10 text-error hover:bg-error/20 rounded-lg transition-colors flex items-center justify-center"><X className="w-4 h-4" /></button>
-                      </td>
-                    </tr>
-                  )}
-                  {articles.length === 0 && !isAddingArticle ? (
-                    <tr>
-                      <td colSpan={4} className="p-5 md:p-8 text-center text-on-surface-variant text-sm">
-                        Aucun article dans votre catalogue pour le moment.
-                      </td>
-                    </tr>
-                  ) : (
-                    articles.map(article => (
-                      <tr key={article.id} className="hover:bg-surface-container/50 transition-colors">
-                        <td className="p-3">
-                          {editingArticleId === article.id ? (
-                            <input type="text" value={editArticleData.description} onChange={e => setEditArticleData({...editArticleData, description: e.target.value})} className="w-full bg-surface-container-highlight rounded-lg px-3 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary" />
-                          ) : (
-                            <span className="font-medium text-on-surface">{article.description}</span>
-                          )}
-                        </td>
-                        <td className="p-3 text-right">
-                          {editingArticleId === article.id ? (
-                            <input type="number" value={editArticleData.unitPrice} onChange={e => setEditArticleData({...editArticleData, unitPrice: parseFloat(e.target.value) || 0})} className="w-full bg-surface-container-highlight rounded-lg px-2 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary text-right" />
-                          ) : (
-                            <span className="text-on-surface-variant font-mono">{article.unitPrice}€</span>
-                          )}
-                        </td>
-                        <td className="p-3 text-right">
-                          {editingArticleId === article.id ? (
-                            <input type="number" value={editArticleData.vatRate} onChange={e => setEditArticleData({...editArticleData, vatRate: parseFloat(e.target.value) || 0})} className="w-full bg-surface-container-highlight rounded-lg px-2 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary text-right" />
-                          ) : (
-                            <span className="text-on-surface-variant">{(article.vatRate || 0)}%</span>
-                          )}
-                        </td>
-                        <td className="p-3 flex justify-end gap-2">
-                          {editingArticleId === article.id ? (
-                            <>
-                              <button type="button" onClick={() => handleUpdateArticle(article.id)} className="min-touch bg-tertiary/10 text-tertiary hover:bg-tertiary/20 rounded-lg transition-colors flex items-center justify-center"><Save className="w-4 h-4" /></button>
-                              <button type="button" onClick={() => setEditingArticleId(null)} className="min-touch bg-surface-container-high text-on-surface hover:bg-surface-container-highest rounded-lg transition-colors flex items-center justify-center"><X className="w-4 h-4" /></button>
-                            </>
-                          ) : (
-                            <>
-                              <button type="button" onClick={() => handleStartEditArticle(article)} className="min-touch bg-surface-container text-on-surface-variant hover:text-on-surface rounded-lg transition-colors flex items-center justify-center"><Edit2 className="w-4 h-4" /></button>
-                              <button type="button" onClick={() => handleDeleteArticle(article.id)} className="min-touch bg-error/5 text-error/70 hover:text-error hover:bg-error/10 rounded-lg transition-colors flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-extrabold font-headline text-on-surface text-base md:text-lg leading-tight">
+                Design
+              </h3>
+              <p className="text-xs md:text-sm text-on-surface-variant font-medium leading-snug">
+                Modèle, logo, couleur appliqués à toutes vos factures.
+              </p>
             </div>
-          </div>
+            <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+          </Link>
         </section>
 
         <section className="bg-surface-container-lowest rounded-2xl p-4 md:p-10 shadow-sm border border-outline-variant/10 space-y-5 md:space-y-6">

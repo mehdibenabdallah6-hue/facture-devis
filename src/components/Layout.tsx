@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
-import { LogOut, LayoutDashboard, FileText, Users, Settings, Plus, Crown, WifiOff, CreditCard, Gift } from 'lucide-react';
+import { LogOut, LayoutDashboard, FileText, Users, Settings, Plus, Crown, WifiOff, CreditCard, Gift, Package, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { OnboardingTutorial } from './OnboardingTutorial';
@@ -54,12 +54,21 @@ export default function Layout() {
     navigate('/');
   };
 
+  // Single source of truth for both desktop sidebar and mobile bottom nav.
+  // `mobileHidden` keeps the mobile bar minimal (≤ 5 items) without losing
+  // top-level visibility on desktop. Design is desktop-only — artisans rarely
+  // pick a template on a phone — but Catalogue stays visible everywhere
+  // because it's the path to AI quality.
   const navItems = [
-    { to: '/app', icon: LayoutDashboard, label: 'Accueil', end: true, tourId: 'tour-welcome' },
-    { to: '/app/invoices', icon: FileText, label: 'Documents', tourId: 'tour-documents' },
-    { to: '/app/clients', icon: Users, label: 'Clients', tourId: 'tour-clients' },
-    { to: '/app/settings', icon: Settings, label: 'Paramètres', tourId: 'tour-settings' },
+    { to: '/app', icon: LayoutDashboard, label: 'Accueil', end: true, tourId: 'tour-welcome', mobileHidden: false },
+    { to: '/app/invoices', icon: FileText, label: 'Documents', tourId: 'tour-documents', mobileHidden: false },
+    { to: '/app/clients', icon: Users, label: 'Clients', tourId: 'tour-clients', mobileHidden: false },
+    { to: '/app/catalog', icon: Package, label: 'Catalogue', tourId: 'tour-catalog', mobileHidden: false },
+    { to: '/app/design', icon: Palette, label: 'Design', tourId: 'tour-design', mobileHidden: true },
+    { to: '/app/settings', icon: Settings, label: 'Paramètres', tourId: 'tour-settings', mobileHidden: false },
   ];
+
+  const mobileNavItems = navItems.filter(item => !item.mobileHidden);
 
   const { isFree } = usePlan();
 
@@ -295,8 +304,8 @@ export default function Layout() {
       </main>
 
       {/* Bottom Nav Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 grid grid-cols-4 items-center gap-0.5 px-1.5 pb-safe pt-1.5 bg-white/95 backdrop-blur-xl border-t-spark shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
-        {navItems.map(item => (
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 grid grid-cols-5 items-center gap-0.5 px-1.5 pb-safe pt-1.5 bg-white/95 backdrop-blur-xl border-t-spark shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+        {mobileNavItems.map(item => (
           <NavLink
             key={item.to}
             to={item.to}

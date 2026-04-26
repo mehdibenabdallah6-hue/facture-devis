@@ -36,6 +36,8 @@ const InvoiceCreate = lazyWithRetry(() => import('./pages/InvoiceCreate'));
 const ClientsList = lazyWithRetry(() => import('./pages/ClientsList'));
 const ClientDetail = lazyWithRetry(() => import('./pages/ClientDetail'));
 const Settings = lazyWithRetry(() => import('./pages/Settings'));
+const Catalog = lazyWithRetry(() => import('./pages/Catalog'));
+const Design = lazyWithRetry(() => import('./pages/Design'));
 const Subscription = lazyWithRetry(() => import('./pages/Subscription'));
 const Upgrade = lazyWithRetry(() => import('./pages/Upgrade'));
 const Contact = lazyWithRetry(() => import('./pages/Contact'));
@@ -124,6 +126,8 @@ export default function App() {
                 <Route path="invoices/:id" element={<Suspense fallback={<PageLoader />}><InvoiceCreate /></Suspense>} />
                 <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsList /></Suspense>} />
                 <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientDetail /></Suspense>} />
+                <Route path="catalog" element={<Suspense fallback={<PageLoader />}><Catalog /></Suspense>} />
+                <Route path="design" element={<Suspense fallback={<PageLoader />}><Design /></Suspense>} />
                 <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
                 <Route path="abonnement" element={<Suspense fallback={<PageLoader />}><Subscription /></Suspense>} />
                 <Route path="parrainage" element={<Suspense fallback={<PageLoader />}><ReferralPage /></Suspense>} />
