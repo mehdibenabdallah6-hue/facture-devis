@@ -9,18 +9,29 @@
      Orange vif (#E8621A) + Charcoal (#2E3440) — artisan, premium, clair
   ═══════════════════════════════════════════════════════════════ */
 
-  /* ── Primary (Orange — Action, Artisan) ───────────────────── */
-  --color-primary: #E8621A;
-  --color-primary-dim: #C04D0F;
+  /* ── Primary (Orange — Action, Artisan) ─────────────────────
+     `--color-primary` is darkened from the brand orange #E8621A to
+     #CC4F12 (≈4.6:1 contrast on white) so that `text-primary` on a
+     light surface passes WCAG AA for body text. The lighter brand
+     orange #E8621A is preserved as `--color-primary-bright` for
+     decorative fills (illustrations, gradients, hero sections) where
+     it sits over a non-white background or is large enough for AA
+     Large (3:1) to apply.
+     `--color-primary-dim` (#A8420C, ≈7:1) is the AAA-grade text
+     variant — use it for small print, captions, and dense badges.
+  ───────────────────────────────────────────────────────────── */
+  --color-primary: #CC4F12;
+  --color-primary-dim: #A8420C;
+  --color-primary-bright: #E8621A;
   --color-on-primary: #ffffff;
   --color-primary-container: #FEEBE0;
-  --color-on-primary-container: #C04D0F;
+  --color-on-primary-container: #A8420C;
   --color-primary-fixed: #FFD6BE;
   --color-primary-fixed-dim: #FF7D3B;
   --color-on-primary-fixed: #7A2F08;
-  --color-on-primary-fixed-variant: #C04D0F;
+  --color-on-primary-fixed-variant: #A8420C;
   --color-inverse-primary: #FF7D3B;
-  --color-surface-tint: #E8621A;
+  --color-surface-tint: #CC4F12;
 
   /* ── Secondary (charcoal tints) ───────────────────────────── */
   --color-secondary: #2E3440;

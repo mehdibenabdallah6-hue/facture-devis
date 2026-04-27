@@ -22,9 +22,12 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
 
   const ensurePaddle = async (): Promise<Paddle | null> => {
     if (paddleRef.current) return paddleRef.current;
+    const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN;
+    if (!clientToken) {
+      console.error('VITE_PADDLE_CLIENT_TOKEN missing — set it in your .env / Vercel env vars.');
+      return null;
+    }
     try {
-      const clientToken =
-        import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'test_4afb9ebb2e1e0d37e2182061266';
       const instance = await initializePaddle({
         environment:
           import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
@@ -55,8 +58,13 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
     }
 
     // Default to Solo Annual (129€/year) as it's the best value
-    const priceId =
-      import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID || 'pri_01starter_annual';
+    const priceId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID;
+    if (!priceId) {
+      console.error('VITE_PADDLE_PRICE_STARTER_ANNUAL_ID missing — set it in your .env / Vercel env vars.');
+      setLoading(false);
+      alert("Configuration de paiement incomplète. Contactez le support.");
+      return;
+    }
 
     paddle.Checkout.open({
       items: [{ priceId, quantity: 1 }],

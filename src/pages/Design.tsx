@@ -11,8 +11,84 @@ import {
   FileText,
   Briefcase,
   HardHat,
+  Loader2,
 } from 'lucide-react';
 import { compressImageToDataURL } from '../services/imageUtils';
+
+/**
+ * Sample the dominant non-neutral colour of an image (returned as #RRGGBB).
+ * We bucket pixels in a coarse 3-bit-per-channel grid (8×8×8 = 512 buckets)
+ * after filtering out near-white / near-black / near-grey pixels — that
+ * leaves the saturated brand-coloured pixels (logo header, accent stripes)
+ * which are exactly what we want to lift off an existing invoice.
+ */
+async function extractAccentColor(dataUrl: string): Promise<string | null> {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const maxDim = 240;
+        const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
+
+        type Bucket = { count: number; r: number; g: number; b: number };
+        const buckets = new Map<string, Bucket>();
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a < 128) continue;
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const lum = (r + g + b) / 3;
+          // Skip background paper (≈white) and ink/text (≈black) and greys.
+          if (lum > 235 || lum < 25) continue;
+          const sat = max === 0 ? 0 : (max - min) / max;
+          if (sat < 0.28) continue;
+          const key = `${r >> 5}|${g >> 5}|${b >> 5}`;
+          const bucket = buckets.get(key);
+          if (bucket) {
+            bucket.count++;
+            bucket.r += r;
+            bucket.g += g;
+            bucket.b += b;
+          } else {
+            buckets.set(key, { count: 1, r, g, b });
+          }
+        }
+
+        if (buckets.size === 0) return resolve(null);
+        let best: Bucket | null = null;
+        buckets.forEach(v => {
+          if (!best || v.count > best.count) best = v;
+        });
+        if (!best) return resolve(null);
+        const finalBucket: Bucket = best;
+        const r = Math.round(finalBucket.r / finalBucket.count);
+        const g = Math.round(finalBucket.g / finalBucket.count);
+        const b = Math.round(finalBucket.b / finalBucket.count);
+        const hex =
+          '#' +
+          [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('').toUpperCase();
+        resolve(hex);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
 
 type TemplateId = 'moderne' | 'classique' | 'chantier';
 
@@ -115,6 +191,7 @@ export default function Design() {
   const { company, saveCompany } = useData();
   const letterheadRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     pdfTemplate: 'moderne' as TemplateId,
@@ -127,6 +204,17 @@ export default function Design() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // "Import an old invoice for design" — preview state shown after the user
+  // picks a file but before they confirm "Apply". Lets them see the detected
+  // colour and the page that will become their letterhead before overwriting
+  // their current customisation.
+  const [isImporting, setIsImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<{
+    imageUrl: string;
+    accentColor: string | null;
+  } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (company) {
@@ -161,6 +249,50 @@ export default function Design() {
     } catch (err) {
       console.error('Erreur logo:', err);
     }
+  };
+
+  const handleImportInvoice = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so picking the same file twice still triggers onChange.
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    setImportError(null);
+    setIsImporting(true);
+    try {
+      // PDFs aren't decoded client-side without pdfjs-dist. Friendly message
+      // tells the user how to get an image instead.
+      if (file.type === 'application/pdf') {
+        throw new Error(
+          "Les PDF ne sont pas encore supportés. Faites une capture d'écran de la première page (PNG ou JPG) et réessayez.",
+        );
+      }
+      const dataUrl = await compressImageToDataURL(file, 2000, 0.78);
+      const accentColor = await extractAccentColor(dataUrl);
+      setImportPreview({ imageUrl: dataUrl, accentColor });
+    } catch (err) {
+      console.error('Erreur import facture:', err);
+      setImportError(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'analyser cette facture. Essayez avec une image PNG ou JPG.",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const applyImportedDesign = () => {
+    if (!importPreview) return;
+    setFormData(prev => ({
+      ...prev,
+      letterheadUrl: importPreview.imageUrl,
+      pdfAccentColor: importPreview.accentColor || prev.pdfAccentColor,
+      // Letterhead presumably already has the company's name/address/SIRET
+      // printed on it — hide the auto block to avoid duplication.
+      hideCompanyInfo: true,
+    }));
+    setImportPreview(null);
+    setImportError(null);
   };
 
   const handleSave = async () => {
@@ -437,28 +569,131 @@ export default function Design() {
         </div>
       </section>
 
-      {/* Import design (deferred) */}
-      <section className="animate-fade-in-up animation-delay-300 bg-tertiary/5 border-2 border-dashed border-tertiary/30 rounded-2xl p-5 md:p-7">
-        <div className="flex items-start gap-3">
+      {/* Import design from an existing invoice */}
+      <section className="animate-fade-in-up animation-delay-300 bg-tertiary/5 border-2 border-tertiary/30 rounded-2xl p-5 md:p-7">
+        <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-tertiary/15 text-tertiary flex items-center justify-center shrink-0">
             <Wand2 className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h2 className="text-base md:text-lg font-extrabold font-headline text-on-surface">
-                Importer une ancienne facture pour reproduire votre design
-              </h2>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-tertiary bg-tertiary/15 px-2 py-0.5 rounded-full">
-                Bientôt
-              </span>
-            </div>
+            <h2 className="text-base md:text-lg font-extrabold font-headline text-on-surface mb-1">
+              Importer une ancienne facture pour reproduire votre design
+            </h2>
             <p className="text-sm text-on-surface-variant">
-              Photofacto analysera votre facture (PDF ou photo), récupérera votre logo, votre
-              couleur et la mise en page, puis appliquera ce style à toutes vos prochaines
-              factures.
+              Photofacto détecte votre couleur d'accent et utilise l'image comme papier
+              à en-tête. Vos prochaines factures reprennent le même style.
             </p>
           </div>
         </div>
+
+        <input
+          type="file"
+          accept="image/jpeg, image/png, image/webp"
+          className="hidden"
+          ref={importRef}
+          onChange={handleImportInvoice}
+        />
+
+        {!importPreview ? (
+          <>
+            <button
+              type="button"
+              onClick={() => importRef.current?.click()}
+              disabled={isImporting}
+              className="min-touch w-full border-2 border-dashed border-tertiary/40 hover:border-tertiary bg-surface-container hover:bg-tertiary/5 rounded-xl px-4 py-4 flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-5 h-5 text-tertiary animate-spin" />
+                  <span className="text-sm font-bold text-on-surface">
+                    Analyse de votre facture...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5 text-tertiary" />
+                  <span className="text-sm font-bold text-on-surface">
+                    Importer une ancienne facture (PNG ou JPG)
+                  </span>
+                </>
+              )}
+            </button>
+            {importError && (
+              <p className="text-xs text-error font-medium mt-2">{importError}</p>
+            )}
+            <p className="text-[11px] text-on-surface-variant mt-2">
+              Astuce : pour un PDF, faites une capture d'écran de la première page.
+            </p>
+          </>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 items-start bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-4">
+              <div className="bg-white border border-outline-variant/20 rounded-lg p-1 aspect-[1/1.414] w-32 mx-auto sm:mx-0 overflow-hidden shadow-inner">
+                <img
+                  src={importPreview.imageUrl}
+                  alt="Aperçu de la facture importée"
+                  className="w-full h-full object-cover rounded"
+                />
+              </div>
+              <div className="space-y-3 min-w-0">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">
+                    Couleur détectée
+                  </span>
+                  {importPreview.accentColor ? (
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-7 h-7 rounded-full border-2 border-outline-variant/30 shadow-inner"
+                        style={{ background: importPreview.accentColor }}
+                        aria-hidden
+                      />
+                      <span className="text-sm font-mono text-on-surface">
+                        {importPreview.accentColor}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-on-surface-variant">
+                      Aucune couleur dominante claire — votre couleur actuelle sera conservée.
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-1.5">
+                    Papier à en-tête
+                  </span>
+                  <span className="text-xs text-on-surface-variant">
+                    L'image servira de fond à vos PDF. Le bloc texte automatique
+                    (nom, adresse, SIRET) sera masqué pour éviter les doublons.
+                  </span>
+                </div>
+              </div>
+            </div>
+            {formData.letterheadUrl && (
+              <p className="text-xs text-on-surface bg-amber-100 border border-amber-300 rounded-lg px-3 py-2">
+                Vous avez déjà un papier à en-tête — appliquer remplacera l'actuel.
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={applyImportedDesign}
+                className="btn-glow flex-1 bg-tertiary text-on-tertiary px-5 py-3 rounded-xl font-bold text-sm shadow-spark-cta active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Appliquer ce design
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setImportPreview(null);
+                  setImportError(null);
+                }}
+                className="min-touch px-4 py-3 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Key reassurance pill */}

@@ -11,8 +11,10 @@ import { EmptySearchState } from '../components/EmptyStates';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus, getInvoiceStatusLabel } from '../components/InvoiceStatusBadge';
 import { CreditNoteButton } from '../components/CreditNoteButton';
 import JSZip from 'jszip';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// jsPDF + jspdf-autotable are heavy (~960KB combined) and only needed when
+// the user clicks "Export ZIP". We import them on demand inside the
+// handler so they're code-split out of the initial bundle.
+import type { default as JsPDFType } from 'jspdf';
 
 export default function InvoicesList() {
   const { invoices, clients, company, deleteInvoice, updateInvoice, shareQuoteForSignature, logInvoiceEvent } = useData();
@@ -151,9 +153,15 @@ export default function InvoicesList() {
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
+    // Lazy-load the PDF stack only when the export is actually run.
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+
     for (const inv of monthInvoices) {
       try {
-        const doc = new jsPDF();
+        const doc: JsPDFType = new jsPDF();
         autoTable(doc, {
           head: [[inv.number, inv.clientName, format(new Date(inv.date), 'dd/MM/yyyy'), `${inv.totalTTC.toFixed(2)} EUR`]],
           theme: 'grid',

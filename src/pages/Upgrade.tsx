@@ -37,9 +37,12 @@ export default function Upgrade() {
   // second click within the same session reuses the existing instance.
   const ensurePaddle = async (): Promise<Paddle | null> => {
     if (paddleRef.current) return paddleRef.current;
+    const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN;
+    if (!clientToken) {
+      console.error('VITE_PADDLE_CLIENT_TOKEN missing — set it in your .env / Vercel env vars.');
+      return null;
+    }
     try {
-      const clientToken =
-        import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'test_4afb9ebb2e1e0d37e2182061266';
       const instance = await initializePaddle({
         environment:
           import.meta.env.VITE_PADDLE_ENV === 'production' ? 'production' : 'sandbox',
@@ -76,14 +79,21 @@ export default function Upgrade() {
 
     pendingCheckoutRef.current = { planId, billingCycle };
 
-    const starterMonthlyId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ID || 'pri_01starter';
-    const proMonthlyId = import.meta.env.VITE_PADDLE_PRICE_PRO_ID || 'pri_01pro';
-    const starterAnnualId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID || 'pri_01starter_annual';
-    const proAnnualId = import.meta.env.VITE_PADDLE_PRICE_PRO_ANNUAL_ID || 'pri_01pro_annual';
+    const starterMonthlyId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ID;
+    const proMonthlyId = import.meta.env.VITE_PADDLE_PRICE_PRO_ID;
+    const starterAnnualId = import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL_ID;
+    const proAnnualId = import.meta.env.VITE_PADDLE_PRICE_PRO_ANNUAL_ID;
 
     let priceId = '';
-    if (planId === 'starter') priceId = billingCycle === 'monthly' ? starterMonthlyId : starterAnnualId;
-    if (planId === 'pro') priceId = billingCycle === 'monthly' ? proMonthlyId : proAnnualId;
+    if (planId === 'starter') priceId = (billingCycle === 'monthly' ? starterMonthlyId : starterAnnualId) || '';
+    if (planId === 'pro') priceId = (billingCycle === 'monthly' ? proMonthlyId : proAnnualId) || '';
+
+    if (!priceId) {
+      console.error(`Paddle price ID missing for plan=${planId} cycle=${billingCycle}. Set VITE_PADDLE_PRICE_* env vars.`);
+      setLoadingCode(null);
+      alert("Configuration de paiement incomplète. Contactez le support.");
+      return;
+    }
 
     paddle.Checkout.open({
       items: [{ priceId, quantity: 1 }],

@@ -1,3 +1,43 @@
+// Client-side wrapper around the /api/gemini serverless endpoint.
+//
+// Why an Authorization header? The server enforces the AI quota
+// (monthlyAiUsageCount) atomically — every call must be tied to a Firebase
+// uid. Without a valid Bearer token the endpoint replies 401 by design.
+// We re-fetch the ID token on every call so it cannot go stale (Firebase
+// rotates them roughly every hour).
+import { auth } from '../firebase';
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const current = auth.currentUser;
+  if (!current) {
+    throw new Error('Session expirée. Veuillez vous reconnecter.');
+  }
+  const token = await current.getIdToken();
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+async function postGemini(body: any, signal?: AbortSignal) {
+  const headers = await getAuthHeaders();
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const error: any = new Error(err.error || `Erreur HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return await response.json();
+}
+
 export async function extractInvoiceData(
   base64Image: string,
   mimeType: string,
@@ -5,26 +45,13 @@ export async function extractInvoiceData(
   promptText?: string
 ) {
   try {
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        mode: 'image',
-        base64Image,
-        mimeType,
-        catalogContext,
-        promptText
-      })
+    return await postGemini({
+      mode: 'image',
+      base64Image,
+      mimeType,
+      catalogContext,
+      promptText,
     });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Erreur HTTP: ${response.status}`);
-    }
-
-    return await response.json();
   } catch (error) {
     console.error("Erreur lors de l'extraction IA via API:", error);
     throw error;
@@ -33,24 +60,11 @@ export async function extractInvoiceData(
 
 export async function extractDataFromText(promptText: string, catalogContext?: string) {
   try {
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        mode: 'text',
-        promptText,
-        catalogContext
-      })
+    return await postGemini({
+      mode: 'text',
+      promptText,
+      catalogContext,
     });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Erreur HTTP: ${response.status}`);
-    }
-
-    return await response.json();
   } catch (error) {
     console.error("Erreur lors de l'extraction IA via API (texte):", error);
     throw error;
@@ -65,7 +79,7 @@ export async function extractFromDocument(
 ) {
   try {
     const body: any = { mode: 'document', catalogContext };
-    
+
     if (mimeType === 'application/pdf' && base64Data) {
       // PDF: send as binary inline data
       body.base64Image = base64Data;
@@ -74,27 +88,17 @@ export async function extractFromDocument(
       // Excel: send pre-extracted text
       body.promptText = textContent;
     } else {
-      throw new Error("Format de document non supporté");
+      throw new Error('Format de document non supporté');
     }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Erreur HTTP: ${response.status}`);
+    try {
+      return await postGemini(body, controller.signal);
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    return await response.json();
   } catch (error) {
     console.error("Erreur lors de l'extraction IA du document:", error);
     throw error;

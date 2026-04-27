@@ -92,17 +92,46 @@ export function OnboardingTutorial() {
       setTargetRect(null);
       return;
     }
-    
+
     window.setTimeout(() => {
       let targetId = currentStep.id;
-      if (window.innerWidth < 768) {
+      const onMobile = window.innerWidth < 768;
+      if (onMobile) {
         const mobileFallback = document.querySelector(`${currentStep.id}-mobile`);
         if (mobileFallback) {
           targetId = `${currentStep.id}-mobile`;
         }
       }
-      const el = document.querySelector(targetId);
+      // Some IDs (e.g. tour-design-mobile) are duplicated across surfaces —
+      // a hidden profile-menu link plus a dashboard checklist button. Pick
+      // the first match that's actually rendered (non-zero size) so we
+      // highlight the visible one rather than falling back to centered.
+      const candidates = document.querySelectorAll(targetId);
+      let el: Element | null = null;
+      for (const candidate of Array.from(candidates)) {
+        const r = candidate.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          el = candidate;
+          break;
+        }
+      }
+      if (!el && candidates.length > 0) el = candidates[0];
       if (el) {
+        // On mobile, scroll non-fixed targets into view so the highlight is
+        // actually visible. Fixed elements (bottom nav, header) ignore this.
+        if (onMobile) {
+          try {
+            const r = el.getBoundingClientRect();
+            const inView =
+              r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0;
+            if (!inView) {
+              el.scrollIntoView({ block: 'center', inline: 'center' });
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
         const rect = el.getBoundingClientRect();
         // Element is in DOM but not rendered (e.g. tour-design lives in
         // the desktop sidebar and is `display:none` on mobile). A 0×0
@@ -178,41 +207,63 @@ export function OnboardingTutorial() {
     }
   }
 
-  // On mobile, force center or bottom to avoid overflow
+  // On mobile, smartly anchor the popup to the opposite side of the target
+  // so it never sits on top of the element being highlighted. Falls back to
+  // centered when there's no target (e.g. welcome step).
   if (isMobile) {
-    popupStyle = {
-      bottom: 'calc(env(safe-area-inset-bottom) + 66px)',
+    const baseMobileStyle: React.CSSProperties = {
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'calc(100vw - 20px)',
       maxWidth: 360,
-      maxHeight: 'calc(100dvh - 92px)',
+      maxHeight: 'calc(100dvh - 32px)',
       overflowY: 'auto',
     };
+    if (targetRect) {
+      const targetCenter = targetRect.top + targetRect.height / 2;
+      // Target in upper half → popup at bottom, otherwise popup at top.
+      const placeAtBottom = targetCenter < window.innerHeight / 2;
+      popupStyle = placeAtBottom
+        ? {
+            ...baseMobileStyle,
+            bottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+          }
+        : {
+            ...baseMobileStyle,
+            top: 'calc(env(safe-area-inset-top) + 12px)',
+          };
+    } else {
+      popupStyle = {
+        ...baseMobileStyle,
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+      };
+    }
   }
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none">
       {/* Dark Backdrop with 'hole' for target */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 md:bg-black/60 backdrop-blur-[2px] transition-all duration-500 pointer-events-auto"
-        style={targetRect && !isMobile ? {
+        style={targetRect ? {
           clipPath: `polygon(
-            0% 0%, 0% 100%, 
-            ${targetRect.left - 10}px 100%, 
-            ${targetRect.left - 10}px ${targetRect.top - 10}px, 
-            ${targetRect.right + 10}px ${targetRect.top - 10}px, 
-            ${targetRect.right + 10}px ${targetRect.bottom + 10}px, 
-            ${targetRect.left - 10}px ${targetRect.bottom + 10}px, 
-            ${targetRect.left - 10}px 100%, 
+            0% 0%, 0% 100%,
+            ${targetRect.left - 10}px 100%,
+            ${targetRect.left - 10}px ${targetRect.top - 10}px,
+            ${targetRect.right + 10}px ${targetRect.top - 10}px,
+            ${targetRect.right + 10}px ${targetRect.bottom + 10}px,
+            ${targetRect.left - 10}px ${targetRect.bottom + 10}px,
+            ${targetRect.left - 10}px 100%,
             100% 100%, 100% 0%
           )`
         } : undefined}
       />
-      
-      {/* Target Highlight Outline (optional, nice visual effect) */}
-      {targetRect && !isMobile && (
-        <div 
+
+      {/* Target Highlight Outline (also visible on mobile so the user
+          can actually see what's being pointed at) */}
+      {targetRect && (
+        <div
           className="absolute border-2 border-primary rounded-xl animate-pulse pointer-events-none"
           style={{
             top: targetRect.top - 8,

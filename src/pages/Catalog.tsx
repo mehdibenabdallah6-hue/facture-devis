@@ -15,7 +15,14 @@ import {
   Search,
   Lightbulb,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// xlsx is heavy (~330KB) and only needed when the user imports a .xlsx
+// catalog. Loaded on-demand to keep it out of the initial bundle.
+type XLSXModule = typeof import('xlsx');
+let xlsxPromise: Promise<XLSXModule> | null = null;
+const loadXlsx = async (): Promise<XLSXModule> => {
+  if (!xlsxPromise) xlsxPromise = import('xlsx');
+  return xlsxPromise;
+};
 
 /**
  * Catalogue page — top-level (was previously a section inside Settings).
@@ -55,6 +62,7 @@ export default function Catalog() {
     reader.onload = async (event) => {
       try {
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const XLSX = await loadXlsx();
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];

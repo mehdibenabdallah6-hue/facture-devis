@@ -312,7 +312,6 @@ interface DataContextType {
   articles: Article[];
   loading: boolean;
   saveCompany: (data: Partial<CompanySettings>) => Promise<void>;
-  incrementAiUsage: () => Promise<void>;
   addClient: (data: Omit<Client, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateClient: (id: string, data: Partial<Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
@@ -505,27 +504,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const incrementAiUsage = async () => {
-    if (!user) return;
-    const companyRef = doc(db, 'companies', user.uid);
-    const companySnap = await getDoc(companyRef);
-    const companyData = companySnap.exists() ? companySnap.data() : {};
-    const currentMonthStart = startOfMonth(new Date()).toISOString();
-    const lastReset = companyData.monthlyResetAt;
-    const needsReset = !lastReset || new Date(lastReset).getMonth() !== new Date().getMonth();
-
-    if (needsReset) {
-      await setDoc(companyRef, {
-        monthlyInvoiceCount: companyData.monthlyInvoiceCount || 0,
-        monthlyAiUsageCount: 1,
-        monthlyResetAt: currentMonthStart,
-      }, { merge: true });
-    } else {
-      await setDoc(companyRef, {
-        monthlyAiUsageCount: increment(1),
-      }, { merge: true });
-    }
-  };
+  // NOTE: AI quota increments now happen atomically server-side inside
+  // /api/gemini.ts (see reserveAiQuota / refundAiQuota). The previous
+  // client-side increment was bypassable by simply not calling it.
 
   const activateSubscription = async (pendingPlan?: AppPlan, billingCycle?: BillingCycle) => {
     if (!user) return;
@@ -983,7 +964,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   return (
     <DataContext.Provider value={{
       company, clients, invoices, invoiceEvents, supplierInvoices, articles, loading,
-      saveCompany, incrementAiUsage, addClient, updateClient, deleteClient,
+      saveCompany, addClient, updateClient, deleteClient,
       addInvoice, updateInvoice, deleteInvoice,
       validateInvoice, createCreditNote, logInvoiceEvent,
       shareQuoteForSignature,

@@ -14,11 +14,31 @@ import LegalInfoModal from '../components/LegalInfoModal';
 import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus, Euro } from 'lucide-react';
 import { usePlan } from '../hooks/usePlan';
 import { compressImageToDataURL } from '../services/imageUtils';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// jsPDF + jspdf-autotable + xlsx are heavy (~1.3MB combined). They are only
+// needed when the user generates a PDF or imports an Excel file, so we load
+// them on-demand and code-split them out of the initial bundle.
+import type { default as JsPDFType } from 'jspdf';
+type AutoTableFn = (typeof import('jspdf-autotable'))['default'];
+type XLSXModule = typeof import('xlsx');
+
+let jsPDFCtorPromise: Promise<typeof JsPDFType> | null = null;
+let autoTablePromise: Promise<AutoTableFn> | null = null;
+let xlsxPromise: Promise<XLSXModule> | null = null;
+
+const loadPdfStack = async (): Promise<{ jsPDF: typeof JsPDFType; autoTable: AutoTableFn }> => {
+  if (!jsPDFCtorPromise) jsPDFCtorPromise = import('jspdf').then(m => m.default);
+  if (!autoTablePromise) autoTablePromise = import('jspdf-autotable').then(m => m.default);
+  const [jsPDF, autoTable] = await Promise.all([jsPDFCtorPromise, autoTablePromise]);
+  return { jsPDF, autoTable };
+};
+
+const loadXlsx = async (): Promise<XLSXModule> => {
+  if (!xlsxPromise) xlsxPromise = import('xlsx');
+  return xlsxPromise;
+};
+
 import { extractInvoiceData, extractDataFromText, extractFromDocument } from '../services/ai';
 import { generateFacturXPDF, generateFacturXXML } from '../services/facturx';
-import * as XLSX from 'xlsx';
 import PDFPreview from '../components/PDFPreview';
 
 /**
@@ -272,7 +292,7 @@ function SignatureShareButton({ invoiceId, shareQuoteForSignature }: { invoiceId
 
 export default function InvoiceCreate() {
   const { id } = useParams();
-  const { company, clients, invoices, invoiceEvents, articles, addInvoice, updateInvoice, shareQuoteForSignature, addClient, incrementAiUsage, logInvoiceEvent } = useData();
+  const { company, clients, invoices, invoiceEvents, articles, addInvoice, updateInvoice, shareQuoteForSignature, addClient, logInvoiceEvent } = useData();
   // Source of truth pour l'invoice en cours d'édition. On la regarde
   // depuis le store Firestore plutôt que depuis `formData` car le verrou
   // (`isLocked`) n'apparaît dans formData qu'après refresh.
@@ -655,7 +675,9 @@ export default function InvoiceCreate() {
           items: data.items && data.items.length > 0 ? data.items : prev.items,
           notes: data.notes || prev.notes,
         }));
-        incrementAiUsage();
+        // AI quota is incremented server-side inside /api/gemini.ts.
+        // The Firestore realtime listener on the company doc will refresh
+        // `aiUsed` automatically; no client-side increment needed.
         // Paywall ONLY when the free user has just consumed their final
         // free AI use (post-increment count >= monthly limit). Free users
         // with remaining quota go straight to editing — they paid for
@@ -894,8 +916,9 @@ export default function InvoiceCreate() {
         reader.onloadend = async () => {
           try {
             const data = new Uint8Array(reader.result as ArrayBuffer);
+            const XLSX = await loadXlsx();
             const workbook = XLSX.read(data, { type: 'array' });
-            
+
             // Convert all sheets to text
             let textContent = '';
             workbook.SheetNames.forEach(sheetName => {
@@ -936,7 +959,7 @@ export default function InvoiceCreate() {
   };
 
   const applyExtractedData = (extractedData: any) => {
-    incrementAiUsage();
+    // Quota incremented server-side; Firestore listener will refresh aiUsed.
     const extractedItemsCount = Array.isArray(extractedData.items) ? extractedData.items.length : 0;
     setAiSuggestedLineCount(extractedItemsCount);
     setProposalRevealRun(run => run + 1);
@@ -1191,7 +1214,7 @@ export default function InvoiceCreate() {
       // 1. Generate PDF in memory
       let doc;
       try {
-        doc = generatePDF(false);
+        doc = await generatePDF(false);
       } catch (pdfErr: any) {
         console.error('PDF generation error:', pdfErr);
         showError('Erreur PDF', 'Impossible de générer le PDF. Vérifiez vos images/papier en-tête.');
@@ -1333,7 +1356,7 @@ export default function InvoiceCreate() {
   // ---------- Factur-X Download ----------
   const handleFacturXDownload = async () => {
     try {
-      const doc = generatePDF(false);
+      const doc = await generatePDF(false);
       const client = clients.find(c => c.id === formData.clientId);
       const facturxPdf = await generateFacturXPDF(doc, {
         invoice: formData as Invoice,
@@ -1359,12 +1382,13 @@ export default function InvoiceCreate() {
     } catch (err) {
       console.error('Factur-X generation error:', err);
       showError('Erreur Factur-X', 'Le PDF standard a été téléchargé à la place.');
-      generatePDF(true);
+      await generatePDF(true);
     }
   };
 
-  const generatePDF = (shouldSave = true) => {
-    const doc = new jsPDF();
+  const generatePDF = async (shouldSave = true) => {
+    const { jsPDF, autoTable } = await loadPdfStack();
+    const doc: JsPDFType = new jsPDF();
     const client = clients.find(c => c.id === formData.clientId);
     
     // Insert Letterhead background if present
@@ -2895,7 +2919,7 @@ export default function InvoiceCreate() {
             </button>
 
             <button
-              onClick={() => generatePDF(true)}
+              onClick={() => { void generatePDF(true); }}
               className="min-touch flex items-center justify-center gap-2 md:gap-3 bg-surface-container-highest text-on-surface py-3.5 md:py-5 px-4 md:px-6 rounded-2xl font-black text-base md:text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
             >
               <Printer className="w-6 h-6 text-secondary group-hover:scale-110 transition-transform" />
