@@ -160,16 +160,22 @@ export default function Dashboard() {
     if (daysLeft <= 5 && daysLeft > 0) showTrialBanner = true;
   }
 
-  // ---- Quick-start checklist (3 steps, hides itself when all done) ----
+  // ---- Quick-start checklist (4 steps, hides itself when all done) ----
   // Lives above KPIs so artisans always see the next concrete action.
-  // Step ordering follows the natural funnel: catalog → create → send.
+  // Step ordering follows the natural funnel: catalog → create → send,
+  // with "design" tucked between create and send (logo upload is the most
+  // concrete signal that the design has been touched). The Design entry
+  // also serves as the mobile target for the "tour-design" tutorial step
+  // since the desktop sidebar entry is display:none on phones.
   const hasPrice = (articles?.length || 0) > 0;
   const hasInvoice = invoices.length > 0;
   const hasSent = invoices.some(inv => inv.status === 'sent' || inv.status === 'paid');
-  const onboardingDone = hasPrice && hasInvoice && hasSent;
-  const onboardingSteps: { key: string; label: string; done: boolean; to: string }[] = [
+  const hasDesign = !!company?.logoUrl;
+  const onboardingDone = hasPrice && hasInvoice && hasDesign && hasSent;
+  const onboardingSteps: { key: string; label: string; done: boolean; to: string; tourId?: string }[] = [
     { key: 'catalog', label: 'Ajouter un prix', done: hasPrice, to: '/app/catalog' },
     { key: 'create', label: 'Créer une facture', done: hasInvoice, to: '/app/invoices/new' },
+    { key: 'design', label: 'Personnaliser le design', done: hasDesign, to: '/app/design', tourId: 'tour-design-mobile' },
     { key: 'send', label: 'Envoyer', done: hasSent, to: '/app/invoices' },
   ];
 
@@ -214,10 +220,11 @@ export default function Dashboard() {
               {onboardingSteps.filter(s => s.done).length} / {onboardingSteps.length}
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {onboardingSteps.map((s, idx) => (
               <button
                 key={s.key}
+                id={s.tourId}
                 type="button"
                 onClick={() => navigate(s.to)}
                 className={`group flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all text-left ${
