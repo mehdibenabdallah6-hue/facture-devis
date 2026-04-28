@@ -1118,6 +1118,29 @@ export default function InvoiceCreate() {
   const visibleTotalTTC = proposalRevealRun > 0 ? animatedTotalTTC : totalTTC;
   const generationProgress = ((generationStepIndex + 1) / generationMessages.length) * 100;
 
+  const buildCurrentInvoicePayload = (status: Invoice['status']) => {
+    const client = clients.find(c => c.id === formData.clientId);
+    const cleanFormData = { ...formData } as any;
+    delete cleanFormData.id;
+    delete cleanFormData.ownerId;
+    delete cleanFormData.createdAt;
+    delete cleanFormData.updatedAt;
+
+    return {
+      ...cleanFormData,
+      clientName: client?.name || cleanFormData.clientName || '',
+      totalHT,
+      totalVAT,
+      totalTTC,
+      status,
+    } as Omit<Invoice, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+  };
+
+  const saveCurrentDraftForValidation = async () => {
+    if (!id || currentInvoice?.isLocked) return;
+    await updateInvoice(id, buildCurrentInvoicePayload(formData.status || 'draft'));
+  };
+
   const handleSave = async (status: Invoice['status'] = 'draft') => {
     // Check plan invoice limit for new invoices
     if (!id && !checkInvoiceLimit()) {
@@ -1150,22 +1173,7 @@ export default function InvoiceCreate() {
 
     setIsSaving(true);
     try {
-      const client = clients.find(c => c.id === formData.clientId);
-      
-      const cleanFormData = { ...formData } as any;
-      delete cleanFormData.id;
-      delete cleanFormData.ownerId;
-      delete cleanFormData.createdAt;
-      delete cleanFormData.updatedAt;
-
-      const invoiceData = {
-        ...cleanFormData,
-        clientName: client?.name || cleanFormData.clientName || '',
-        totalHT,
-        totalVAT,
-        totalTTC,
-        status
-      } as Omit<Invoice, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+      const invoiceData = buildCurrentInvoicePayload(status);
 
       if (id) {
         await updateInvoice(id, invoiceData);
@@ -2833,7 +2841,18 @@ export default function InvoiceCreate() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
                   {!currentInvoice.isLocked ? (
                     <ValidateInvoiceButton
-                      invoice={currentInvoice}
+                      invoice={{
+                        ...currentInvoice,
+                        ...formData,
+                        clientName:
+                          clients.find(c => c.id === formData.clientId)?.name ||
+                          formData.clientName ||
+                          currentInvoice.clientName,
+                        totalHT,
+                        totalVAT,
+                        totalTTC,
+                      } as Invoice}
+                      beforeValidate={saveCurrentDraftForValidation}
                       onValidated={(num) => {
                         // Le numéro est attribué par le serveur — on rafraîchit le formulaire
                         // pour que l'aperçu colle. Un toast aurait été plus discret mais on

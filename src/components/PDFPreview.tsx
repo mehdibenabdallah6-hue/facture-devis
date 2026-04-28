@@ -1,5 +1,5 @@
 import React from 'react';
-import { Invoice, InvoiceItem, CompanySettings } from '../contexts/DataContext';
+import { Invoice, CompanySettings } from '../contexts/DataContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -23,31 +23,31 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
   const accentColor = company?.pdfAccentColor || '#6750A4';
 
   return (
-    <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
+    <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden w-full">
       {/* PDF Content */}
-      <div className="p-3 bg-white">
-        <div className="border border-gray-200 rounded-lg overflow-hidden mx-auto" style={{ maxWidth: '100%' }}>
+      <div className="p-2 sm:p-3 bg-white overflow-x-hidden">
+        <div className="border border-gray-200 rounded-lg overflow-hidden mx-auto w-full max-w-[520px]">
           {/* Header band */}
           <div className="h-3 relative" style={{ backgroundColor: accentColor }} />
 
           <div className="p-5">
             {/* Company header */}
-            <div className="flex justify-between items-start mb-5">
-              <div>
+            <div className="flex justify-between items-start gap-3 mb-5 min-w-0">
+              <div className="min-w-0">
                 {company?.logoUrl ? (
                   <img src={company.logoUrl} alt="Logo" className="h-10 mb-2 rounded" />
                 ) : (
                   <div className="font-bold text-gray-900 text-lg">{company?.name || 'Mon Entreprise'}</div>
                 )}
                 {!company?.hideCompanyInfo && (
-                  <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                  <div className="text-xs text-gray-500 mt-1 space-y-0.5 break-words">
                     {company?.address && <div>{company.address}</div>}
                     {company?.siret && <div>SIRET: {company.siret}</div>}
                   </div>
                 )}
               </div>
-              <div className="text-right shrink-0 ml-4">
-                <div className="text-xl font-bold" style={{ color: accentColor }}>
+              <div className="text-right shrink-0">
+                <div className="text-lg sm:text-xl font-bold leading-tight" style={{ color: accentColor }}>
                   {formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'FACTURE D\'ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE'}
                 </div>
                 <div className="text-sm text-gray-600 mt-1">{formData.number || 'N° en attente'}</div>
@@ -63,22 +63,22 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
 
             {/* Items table */}
             {items.length > 0 && items[0].description ? (
-              <table className="w-full mb-4 text-sm">
+              <table className="w-full table-fixed mb-4 text-sm">
                 <thead>
                   <tr className="text-left text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-200">
                     <th className="pb-2">Description</th>
-                    <th className="pb-2 text-center w-12">Qté</th>
-                    <th className="pb-2 text-right w-20">P.U. HT</th>
-                    <th className="pb-2 text-right w-20">Total HT</th>
+                    <th className="pb-2 text-center w-10">Qté</th>
+                    <th className="pb-2 text-right w-16">P.U.</th>
+                    <th className="pb-2 text-right w-16">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.filter(i => i.description).map((item, idx) => (
                     <tr key={idx} className="border-b border-gray-100">
-                      <td className="py-1.5 text-gray-900 text-xs">{item.description}</td>
+                      <td className="py-1.5 pr-2 text-gray-900 text-xs leading-snug break-words">{item.description}</td>
                       <td className="py-1.5 text-center text-gray-600 text-xs">{item.quantity}</td>
-                      <td className="py-1.5 text-right text-gray-600 text-xs">{formatCurrency(item.unitPrice)}</td>
-                      <td className="py-1.5 text-right font-medium text-gray-900 text-xs">{formatCurrency(item.quantity * item.unitPrice)}</td>
+                      <td className="py-1.5 text-right text-gray-600 text-[11px] tabular-nums">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-1.5 text-right font-medium text-gray-900 text-[11px] tabular-nums">{formatCurrency(item.quantity * item.unitPrice)}</td>
                     </tr>
                   ))}
                 </tbody>

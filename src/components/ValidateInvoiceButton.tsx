@@ -10,6 +10,7 @@
  * (page édition, liste, détail).
  */
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../contexts/DataContext';
 import type { Invoice } from '../contexts/DataContext';
 import { checkInvoiceCompliance } from '../lib/compliance';
@@ -52,6 +53,8 @@ export interface ValidateInvoiceButtonProps {
   invoice: Invoice;
   /** Appelé après succès, avec le numéro assigné. */
   onValidated?: (assignedNumber: string) => void;
+  /** Persiste les changements visibles avant l'appel serveur de validation. */
+  beforeValidate?: () => Promise<void>;
   /** Override du libellé du bouton. */
   label?: string;
   className?: string;
@@ -60,6 +63,7 @@ export interface ValidateInvoiceButtonProps {
 export function ValidateInvoiceButton({
   invoice,
   onValidated,
+  beforeValidate,
   label = 'Valider la facture',
   className = '',
 }: ValidateInvoiceButtonProps) {
@@ -68,6 +72,15 @@ export function ValidateInvoiceButton({
   const [submitting, setSubmitting] = useState(false);
   const [autoFixing, setAutoFixing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [patchedNotes, setPatchedNotes] = useState<string | null>(null);
+
+  const effectiveInvoice = useMemo(
+    () => ({
+      ...invoice,
+      notes: patchedNotes ?? invoice.notes,
+    }),
+    [invoice, patchedNotes]
+  );
 
   const client = useMemo(
     () => clients.find(c => c.id === invoice.clientId) || null,
@@ -75,8 +88,8 @@ export function ValidateInvoiceButton({
   );
 
   const report = useMemo(
-    () => checkInvoiceCompliance(invoice, company, client),
-    [invoice, company, client]
+    () => checkInvoiceCompliance(effectiveInvoice, company, client),
+    [effectiveInvoice, company, client]
   );
 
   // Issues whose code starts with `mention.` or `tva.*.mention` or `quote.*`
@@ -99,13 +112,14 @@ export function ValidateInvoiceButton({
     setAutoFixing(true);
     setError(null);
     try {
-      const regime = invoice.vatRegime || company?.vatRegime || 'standard';
+      const regime = effectiveInvoice.vatRegime || company?.vatRegime || 'standard';
       const isB2B = client?.type === 'B2B';
-      const isQuote = invoice.type === 'quote';
+      const isQuote = effectiveInvoice.type === 'quote';
       const block = buildLegalMentions(regime, isB2B, isQuote);
-      const existing = (invoice.notes || '').trim();
+      const existing = (effectiveInvoice.notes || '').trim();
       const merged = existing ? `${existing}\n\n${block}` : block;
       await updateInvoice(invoice.id, { notes: merged });
+      setPatchedNotes(merged);
     } catch (e: any) {
       setError(e?.message || "Impossible d'insérer les mentions automatiques.");
     } finally {
@@ -130,6 +144,7 @@ export function ValidateInvoiceButton({
     setError(null);
     setSubmitting(true);
     try {
+      await beforeValidate?.();
       const { number } = await validateInvoice(invoice.id);
       setIsOpen(false);
       onValidated?.(number);
@@ -153,12 +168,10 @@ export function ValidateInvoiceButton({
         {label}
       </button>
 
-      {isOpen && (
-        // z-[110] to clear the mobile bottom nav (z-50), the desktop sidebar
-        // (z-50) and the sticky page header (z-40). Toasts at z-[9999] still
-        // render above us — that's intentional so a "facture validée" toast
-        // is visible after we close.
-        <div className="fixed inset-0 z-[110] bg-on-surface/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
+      {isOpen && createPortal(
+        // Portal + z-[9998] guarantees the checklist stays above sticky action
+        // bars and page-level buttons. Toasts at z-[9999] still render above us.
+        <div className="fixed inset-0 z-[9998] bg-on-surface/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
           <div
             role="dialog"
             aria-modal="true"
@@ -232,7 +245,8 @@ export function ValidateInvoiceButton({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

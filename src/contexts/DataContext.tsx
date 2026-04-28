@@ -805,6 +805,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `invoices/${id}`);
+      throw error;
     }
   };
 

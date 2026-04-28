@@ -178,6 +178,9 @@ export default function Dashboard() {
   const DEFAULT_ACCENT = '#E8621A';
   const hasDesign = !!(
     company?.logoUrl ||
+    company?.letterheadUrl ||
+    company?.pdfFooterText ||
+    company?.hideCompanyInfo ||
     (company?.pdfAccentColor &&
       company.pdfAccentColor.toLowerCase() !== DEFAULT_ACCENT.toLowerCase()) ||
     (company?.pdfTemplate && company.pdfTemplate !== 'moderne')
