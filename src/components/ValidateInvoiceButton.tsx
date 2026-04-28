@@ -67,7 +67,7 @@ export function ValidateInvoiceButton({
   label = 'Valider la facture',
   className = '',
 }: ValidateInvoiceButtonProps) {
-  const { company, clients, validateInvoice, updateInvoice } = useData();
+  const { company, clients, validateInvoice, updateInvoiceLegalMentions } = useData();
   const [isOpen, setIsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [autoFixing, setAutoFixing] = useState(false);
@@ -118,7 +118,7 @@ export function ValidateInvoiceButton({
       const block = buildLegalMentions(regime, isB2B, isQuote);
       const existing = (effectiveInvoice.notes || '').trim();
       const merged = existing ? `${existing}\n\n${block}` : block;
-      await updateInvoice(invoice.id, { notes: merged });
+      await updateInvoiceLegalMentions(invoice.id, merged);
       setPatchedNotes(merged);
     } catch (e: any) {
       setError(e?.message || "Impossible d'insérer les mentions automatiques.");

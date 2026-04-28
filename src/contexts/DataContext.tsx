@@ -318,6 +318,7 @@ interface DataContextType {
   deleteClient: (id: string) => Promise<void>;
   addInvoice: (data: Omit<Invoice, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateInvoice: (id: string, data: Partial<Invoice>) => Promise<void>;
+  updateInvoiceLegalMentions: (id: string, notes: string) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;
   /**
    * Validate a draft invoice/quote/credit/deposit. Server-side only:
@@ -850,6 +851,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ).then(r => ({ number: r.number, alreadyValidated: r.alreadyValidated }));
   };
 
+  const updateInvoiceLegalMentions = async (id: string, notes: string): Promise<void> => {
+    await callApi<{ ok: true; notes: string }>(
+      '/api/invoice-legal-mentions',
+      { invoiceId: id, notes }
+    );
+  };
+
   // ---- Server-side credit-note creation. ----
   const createCreditNote = async (
     invoiceId: string,
@@ -983,7 +991,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider value={{
       company, clients, invoices, invoiceEvents, supplierInvoices, articles, loading,
       saveCompany, addClient, updateClient, deleteClient,
-      addInvoice, updateInvoice, deleteInvoice,
+      addInvoice, updateInvoice, updateInvoiceLegalMentions, deleteInvoice,
       validateInvoice, createCreditNote, logInvoiceEvent,
       shareQuoteForSignature,
       activateSubscription,
