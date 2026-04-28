@@ -244,7 +244,10 @@ export default function InvoicesList() {
           `,
         }),
       });
-      if (!response.ok) throw new Error("Erreur lors de l'envoi de la relance");
+      const sendResult = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(sendResult?.error || sendResult?.detail || "Erreur lors de l'envoi de la relance");
+      }
       await logInvoiceEvent(invoice.id, 'send', { channel: 'email_reminder', to: email });
       success('Relance envoyée', `Email envoyé à ${email}.`);
     } catch (err: any) {

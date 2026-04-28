@@ -1293,26 +1293,26 @@ export default function InvoiceCreate() {
         })
       });
 
-      if (!response.ok) throw new Error("Erreur lors de l'envoi");
+      const sendResult = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(sendResult?.error || sendResult?.detail || "Erreur lors de l'envoi");
+      }
 
       // Audit trail: trace the actual email send (the API call succeeded).
-      // `handleSave('sent')` below will also flip status → 'sent', which
-      // triggers a `send` audit log via updateInvoice's auto-detection,
-      // but logging here gives us the channel metadata before status flip.
       if (id) {
         void logInvoiceEvent(id, 'send', { channel: 'email' });
       }
 
       success('Email envoyé !', 'Le document a été envoyé avec succès au client.');
-      await handleSave('sent');
-    } catch (error) {
+      if (id && currentInvoice?.isLocked) {
+        await updateInvoice(id, { status: 'sent' });
+        setFormData(prev => ({ ...prev, status: 'sent' }));
+      } else {
+        await handleSave('sent');
+      }
+    } catch (error: any) {
       console.error(error);
-      warning('Envoi alternatif', "L'envoi automatique a échoué. Ouverture de votre logiciel de messagerie...");
-      
-      const docName = formData.type === 'quote' ? 'Devis' : 'Facture';
-      const subject = encodeURIComponent(`${docName} ${formData.number} de ${company?.name || 'Mon Entreprise'}`);
-      const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint ${formData.type === 'quote' ? 'le devis' : 'la facture'} ${formData.number}.\n\n⚠️ N'oubliez pas de joindre le PDF !\n\nCordialement,\n${company?.name || 'Mon Entreprise'}`);
-      window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+      showError('Envoi impossible', error?.message || "L'e-mail n'a pas pu être envoyé.");
     } finally {
       setIsSendingEmail(false);
     }
