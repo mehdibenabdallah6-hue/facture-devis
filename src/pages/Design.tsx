@@ -251,7 +251,8 @@ export default function Design() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await compressImageToDataURL(file, 600, 0.85);
+      // Keep logos small enough for Firestore while remaining sharp in PDFs.
+      const dataUrl = await compressImageToDataURL(file, 360, 0.76);
       setFormData(prev => ({ ...prev, logoUrl: dataUrl }));
     } catch (err) {
       console.error('Erreur logo:', err);

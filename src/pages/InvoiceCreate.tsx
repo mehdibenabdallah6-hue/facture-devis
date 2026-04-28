@@ -3063,7 +3063,7 @@ export default function InvoiceCreate() {
                </div>
             </div>
             
-            <div className="flex-1 overflow-auto p-4 lg:p-6 bg-surface-container-lowest/30 custom-scrollbar">
+            <div className="flex-1 overflow-hidden p-3 lg:p-4 bg-surface-container-lowest/30 min-h-0">
                {/*
                  The previous preview used a hand-rolled doc with text-3xl
                  headings + p-10 spacing inside a 5/12 column. On most laptop

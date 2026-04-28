@@ -135,7 +135,10 @@ service cloud.firestore {
              (!( 'vatRegime' in request.resource.data ) || request.resource.data.vatRegime in ['standard', 'franchise', 'autoliquidation']) &&
              isValidOptionalString('decennale', 0, 500) &&
              isValidOptionalString('rcPro', 0, 500) &&
-             isValidOptionalString('logoUrl', 0, 1000) &&
+             // Logo is stored as a compressed data URL for now. 1000 chars
+             // rejected almost every real logo upload; keep it bounded so the
+             // company doc stays under Firestore's 1 MiB document limit.
+             isValidOptionalString('logoUrl', 0, 250000) &&
              isValidOptionalString('invoicePrefix', 0, 20);
     }
 
