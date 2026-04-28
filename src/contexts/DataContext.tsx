@@ -646,10 +646,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const articleRef = doc(db, 'companies', user.uid, 'articles', articleId);
       
       try {
+        const vatRate = Number.parseFloat(String(item.vatRate));
         await setDoc(articleRef, {
           description: item.description.trim(),
           unitPrice: parseFloat(item.unitPrice) || 0,
-          vatRate: parseFloat(item.vatRate) || 20,
+          vatRate: Number.isFinite(vatRate) ? vatRate : 20,
           usageCount: increment(1),
           updatedAt: now
         }, { merge: true });

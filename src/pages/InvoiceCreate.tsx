@@ -372,6 +372,7 @@ export default function InvoiceCreate() {
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
   const [activeCalculatorIndex, setActiveCalculatorIndex] = useState<number | null>(null);
+  const hasSyncedCompanyVatRef = useRef(false);
 
   const [formData, setFormData] = useState<Partial<Invoice>>({
     type: typeParam || 'invoice',
@@ -383,10 +384,29 @@ export default function InvoiceCreate() {
     serviceDate: '',
     status: 'draft',
     vatRegime: company?.vatRegime || 'standard',
-    items: [{ description: '', quantity: 1, unitPrice: 0, vatRate: company?.defaultVat || 20 }],
+    items: [{
+      description: '',
+      quantity: 1,
+      unitPrice: 0,
+      vatRate: (company?.vatRegime || 'standard') === 'standard' ? (company?.defaultVat ?? 20) : 0
+    }],
     notes: '',
     paymentMethod: ''
   });
+
+  const defaultVatForRegime = (
+    regime: Invoice['vatRegime'] = formData.vatRegime
+  ) => (regime || 'standard') === 'standard' ? (company?.defaultVat ?? 20) : 0;
+
+  const normalizeItemsForVatRegime = (
+    items: InvoiceItem[] | undefined,
+    regime: Invoice['vatRegime'] = formData.vatRegime
+  ) => (items || []).map(item => ({
+    ...item,
+    vatRate: (regime || 'standard') === 'standard'
+      ? (Number.isFinite(Number(item.vatRate)) ? Number(item.vatRate) : defaultVatForRegime(regime))
+      : 0,
+  }));
 
   // Click outside to close client dropdown
   useEffect(() => {
@@ -419,6 +439,17 @@ export default function InvoiceCreate() {
   const filteredClients = clientSearch.trim()
     ? clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
     : clients.slice(0, 10);
+
+  useEffect(() => {
+    if (!company || id || fromQuoteId || hasSyncedCompanyVatRef.current) return;
+    hasSyncedCompanyVatRef.current = true;
+    const companyVatRegime = company.vatRegime || 'standard';
+    setFormData(prev => ({
+      ...prev,
+      vatRegime: companyVatRegime,
+      items: normalizeItemsForVatRegime(prev.items, companyVatRegime),
+    }));
+  }, [company, id, fromQuoteId]);
 
   // Sync clientSearch when formData.clientName changes from external sources (AI extraction)
   useEffect(() => {
@@ -674,7 +705,10 @@ export default function InvoiceCreate() {
           ...prev,
           clientName: data.clientName || prev.clientName,
           clientAddress: data.clientAddress || prev.clientAddress,
-          items: data.items && data.items.length > 0 ? data.items : prev.items,
+          items: normalizeItemsForVatRegime(
+            data.items && data.items.length > 0 ? data.items : prev.items,
+            prev.vatRegime
+          ),
           notes: data.notes || prev.notes,
         }));
         // AI quota is incremented server-side inside /api/gemini.ts.
@@ -725,7 +759,10 @@ export default function InvoiceCreate() {
     if (id) {
       const invoice = invoices.find(inv => inv.id === id);
       if (invoice) {
-        setFormData(invoice);
+        setFormData({
+          ...invoice,
+          items: normalizeItemsForVatRegime(invoice.items, invoice.vatRegime),
+        });
         setStep('edit');
       }
     } else if (fromQuoteId) {
@@ -739,6 +776,7 @@ export default function InvoiceCreate() {
           number: generateNumber('invoice'),
           date: format(new Date(), 'yyyy-MM-dd'),
           dueDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+          items: normalizeItemsForVatRegime(cleanQuote.items, cleanQuote.vatRegime),
         });
         setStep('edit');
       }
@@ -977,12 +1015,13 @@ export default function InvoiceCreate() {
         if (matchedClient) newData.clientId = matchedClient.id;
       }
       if (extractedData.items && extractedData.items.length > 0) {
-        newData.items = extractedData.items.map((item: any) => ({
+        const extractedItems = extractedData.items.map((item: any) => ({
           description: item.description || '',
           quantity: item.quantity || 1,
           unitPrice: item.unitPrice || 0,
-          vatRate: item.vatRate !== undefined ? item.vatRate : (company?.defaultVat || 20)
+          vatRate: item.vatRate !== undefined ? item.vatRate : defaultVatForRegime(prev.vatRegime)
         }));
+        newData.items = normalizeItemsForVatRegime(extractedItems, prev.vatRegime);
       }
       if (extractedData.notes) newData.notes = extractedData.notes;
       return newData;
@@ -1029,13 +1068,24 @@ export default function InvoiceCreate() {
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
     const newItems = [...(formData.items || [])];
     newItems[index] = { ...newItems[index], [field]: value };
-    setFormData({ ...formData, items: newItems });
+    setFormData({
+      ...formData,
+      items: field === 'vatRate' ? newItems : normalizeItemsForVatRegime(newItems, formData.vatRegime),
+    });
   };
 
   const addItem = (description = '', unitPrice = 0, vatRate?: number) => {
     setFormData({
       ...formData,
-      items: [...(formData.items || []), { description, quantity: 1, unitPrice, vatRate: vatRate ?? company?.defaultVat ?? 20 }]
+      items: [
+        ...(formData.items || []),
+        {
+          description,
+          quantity: 1,
+          unitPrice,
+          vatRate: formData.vatRegime === 'standard' ? (vatRate ?? defaultVatForRegime()) : 0,
+        }
+      ]
     });
   };
 
@@ -1049,7 +1099,7 @@ export default function InvoiceCreate() {
   // Centralised pure helper — keeps a single source of truth for HT / TVA /
   // TTC math and lets us unit-test the rounding rules. See src/lib/invoiceTotals.ts.
   const { totalHT, totalVAT, totalTTC } = calculateInvoiceTotals(
-    formData.items,
+    normalizeItemsForVatRegime(formData.items, formData.vatRegime),
     formData.vatRegime as 'standard' | 'franchise' | 'autoliquidation'
   );
 
@@ -1125,6 +1175,7 @@ export default function InvoiceCreate() {
     delete cleanFormData.ownerId;
     delete cleanFormData.createdAt;
     delete cleanFormData.updatedAt;
+    cleanFormData.items = normalizeItemsForVatRegime(cleanFormData.items, cleanFormData.vatRegime);
 
     return {
       ...cleanFormData,
@@ -2372,13 +2423,25 @@ export default function InvoiceCreate() {
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Régime de TVA</label>
               <select 
                 value={formData.vatRegime}
-                onChange={e => setFormData({...formData, vatRegime: e.target.value as any})}
+                onChange={e => {
+                  const vatRegime = e.target.value as Invoice['vatRegime'];
+                  setFormData(prev => ({
+                    ...prev,
+                    vatRegime,
+                    items: normalizeItemsForVatRegime(prev.items, vatRegime),
+                  }));
+                }}
                 className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-colors"
               >
                 <option value="standard">Standard</option>
                 <option value="franchise">Franchise en base</option>
                 <option value="autoliquidation">Autoliquidation (BTP)</option>
               </select>
+              {formData.vatRegime !== 'standard' && (
+                <p className="px-1 text-xs font-medium text-on-surface-variant">
+                  TVA automatiquement à 0%. La mention légale sera ajoutée sur le document.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2 col-span-full relative" ref={clientDropdownRef}>
@@ -2848,6 +2911,7 @@ export default function InvoiceCreate() {
                           clients.find(c => c.id === formData.clientId)?.name ||
                           formData.clientName ||
                           currentInvoice.clientName,
+                        items: normalizeItemsForVatRegime(formData.items, formData.vatRegime),
                         totalHT,
                         totalVAT,
                         totalTTC,

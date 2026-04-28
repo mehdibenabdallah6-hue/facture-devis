@@ -47,16 +47,27 @@ export default function Settings() {
         invoicePrefix: company.invoicePrefix || 'F-',
         defaultPaymentTerms: company.defaultPaymentTerms || 30,
         defaultCurrency: company.defaultCurrency || 'EUR',
-        defaultVat: company.defaultVat || 20,
+        defaultVat: company.vatRegime === 'standard' ? (company.defaultVat ?? 20) : 0,
       });
     }
   }, [company]);
+
+  const handleVatRegimeChange = (vatRegime: 'standard' | 'franchise' | 'autoliquidation') => {
+    setFormData(prev => ({
+      ...prev,
+      vatRegime,
+      defaultVat: vatRegime === 'standard' ? prev.defaultVat : 0,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await saveCompany(formData);
+      await saveCompany({
+        ...formData,
+        defaultVat: formData.vatRegime === 'standard' ? formData.defaultVat : 0,
+      });
       setSaved(true);
       const timer = setTimeout(() => setSaved(false), 3000);
       return () => clearTimeout(timer);
@@ -296,7 +307,7 @@ export default function Settings() {
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Régime de TVA</label>
               <select 
                 value={formData.vatRegime}
-                onChange={e => setFormData({...formData, vatRegime: e.target.value as any})}
+                onChange={e => handleVatRegimeChange(e.target.value as any)}
                 className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 text-sm font-medium"
               >
                 <option value="standard">Standard (assujetti à la TVA)</option>
@@ -337,15 +348,21 @@ export default function Settings() {
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">TVA par défaut (%)</label>
               <select 
-                value={formData.defaultVat}
+                value={formData.vatRegime === 'standard' ? formData.defaultVat : 0}
                 onChange={e => setFormData({...formData, defaultVat: parseFloat(e.target.value) || 0})}
-                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 text-sm font-medium"
+                disabled={formData.vatRegime !== 'standard'}
+                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <option value="20">20%</option>
                 <option value="10">10%</option>
                 <option value="5.5">5.5%</option>
                 <option value="0">0%</option>
               </select>
+              {formData.vatRegime !== 'standard' && (
+                <p className="mt-2 text-xs font-medium text-on-surface-variant">
+                  TVA forcée à 0% avec ce régime. Photofacto ajoute la mention légale sur la facture.
+                </p>
+              )}
             </div>
           </div>
         </section>
