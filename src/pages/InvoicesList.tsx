@@ -7,7 +7,8 @@ import { Search, Plus, FileText, Edit, Trash2, Send, Euro, RefreshCw, Filter, Sh
 import { Invoice } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
 import { useToast } from '../contexts/ToastContext';
-import { EmptySearchState } from '../components/EmptyStates';
+import { EmptyInvoicesState, EmptySearchState } from '../components/EmptyStates';
+import { UpsellBanner } from '../components/UpsellBanner';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus, getInvoiceStatusLabel } from '../components/InvoiceStatusBadge';
 import { CreditNoteButton } from '../components/CreditNoteButton';
 import JSZip from 'jszip';
@@ -402,6 +403,10 @@ export default function InvoicesList() {
         </div>
       </header>
 
+      {/* Soft-upsell — surfaces invoice quota progress for free users right
+          where they create new documents, before they hit the wall. */}
+      <UpsellBanner surface="invoices_list" resource="invoice" />
+
       {/* Toolbar */}
       <div className="animate-fade-in-up animation-delay-100 flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center justify-between min-w-0 w-full">
 
@@ -515,19 +520,10 @@ export default function InvoicesList() {
             <EmptySearchState message={`Aucun document ne correspond à "${searchTerm}"`} onClear={() => { setSearchTerm(''); setTypeFilter('invoice'); setStatusFilter('all'); }} />
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 md:py-24 px-5 md:px-6 text-center">
-            <div className="w-16 h-16 md:w-24 md:h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-4 md:mb-6">
-              <FileText className="w-8 h-8 md:w-10 md:h-10 text-outline" />
-            </div>
-            <h3 className="font-headline text-xl md:text-2xl font-bold text-on-surface mb-2 tracking-tight">Aucun document trouvé</h3>
-            <p className="text-on-surface-variant max-w-md mx-auto mb-6 md:mb-8 text-sm md:text-lg">Vos factures et devis apparaîtront ici. Créez-en un nouveau avec notre IA ou manuellement.</p>
-            <button 
-              onClick={() => navigate('/app/invoices/new')}
-              className="btn-glow min-touch flex items-center gap-2 px-5 md:px-8 py-3 md:py-4 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
-            >
-              <Plus className="w-5 h-5" />
-              Créer mon premier document
-            </button>
+          // Rich empty state with dual-CTA (dicter ou photographier · saisir
+          // manuellement) — much higher activation than a single button.
+          <div className="p-5 md:p-12">
+            <EmptyInvoicesState />
           </div>
         ) : (
           <>

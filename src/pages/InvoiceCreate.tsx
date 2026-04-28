@@ -9,6 +9,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import PaddlePaywall from '../components/PaddlePaywall';
 import LegalInfoModal from '../components/LegalInfoModal';
+import { UpsellBanner } from '../components/UpsellBanner';
+import { calculateInvoiceTotals } from '../lib/invoiceTotals';
 
 // Rest of imports...
 import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus, Euro } from 'lucide-react';
@@ -1044,22 +1046,12 @@ export default function InvoiceCreate() {
     setAiSuggestedLineCount(prev => index < prev ? Math.max(prev - 1, 0) : prev);
   };
 
-  const calculateTotals = () => {
-    let totalHT = 0;
-    let totalVAT = 0;
-    (formData.items || []).forEach(item => {
-      const lineHT = item.quantity * item.unitPrice;
-      let lineVAT = 0;
-      if (formData.vatRegime === 'standard') {
-        lineVAT = lineHT * (item.vatRate / 100);
-      }
-      totalHT += lineHT;
-      totalVAT += lineVAT;
-    });
-    return { totalHT, totalVAT, totalTTC: totalHT + totalVAT };
-  };
-
-  const { totalHT, totalVAT, totalTTC } = calculateTotals();
+  // Centralised pure helper — keeps a single source of truth for HT / TVA /
+  // TTC math and lets us unit-test the rounding rules. See src/lib/invoiceTotals.ts.
+  const { totalHT, totalVAT, totalTTC } = calculateInvoiceTotals(
+    formData.items,
+    formData.vatRegime as 'standard' | 'franchise' | 'autoliquidation'
+  );
 
   const generationMessages = [
     'Analyse de la photo…',
@@ -2215,6 +2207,11 @@ export default function InvoiceCreate() {
             </div>
           )}
         </header>
+
+        {/* Free-tier nudge — picks whichever of {invoice quota, AI quota} is
+            closer to the limit so the artisan sees the relevant signal at the
+            exact moment of creation. Hidden for paid plans. */}
+        <UpsellBanner surface="invoice_create" resource="auto" />
 
         {previewUrl && (
           <div className="animate-fade-in bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-3 shadow-sm transition-all duration-300">

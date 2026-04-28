@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { usePlan } from '../hooks/usePlan';
 import {
   Camera,
   FileText,
@@ -15,10 +14,10 @@ import {
   ArrowRight,
   Plus,
   Zap,
-  Crown,
   AlertTriangle,
 } from 'lucide-react';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus } from '../components/InvoiceStatusBadge';
+import { UpsellBanner } from '../components/UpsellBanner';
 
 type KpiProps = {
   label: string;
@@ -50,7 +49,8 @@ export default function Dashboard() {
   const { invoices, company, loading, articles } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isFree, limits } = usePlan();
+  // Plan-driven UI (free quotas, paywall) is now encapsulated inside
+  // <UpsellBanner /> — no need for a hook call here.
 
   if (loading) {
     return (
@@ -322,54 +322,11 @@ export default function Dashboard() {
         />
       </section>
 
-      {/* Usage warning */}
-      {isFree &&
-        limits.monthlyInvoiceLimit > 0 &&
-        (() => {
-          const used = company?.monthlyInvoiceCount || 0;
-          const limit = limits.monthlyInvoiceLimit;
-          const pct = Math.round((used / limit) * 100);
-          if (pct < 60) return null;
-          return (
-            <div
-              className={`p-4 rounded-2xl flex items-start sm:items-center gap-3 ${
-                pct >= 90
-                  ? 'bg-error-container/50 border border-error/20'
-                  : pct >= 80
-                    ? 'bg-amber-50 border border-amber-200'
-                    : 'bg-white border-spark'
-              }`}
-            >
-              <AlertTriangle
-                className={`w-5 h-5 shrink-0 ${
-                  pct >= 90 ? 'text-error' : pct >= 80 ? 'text-amber-600' : 'text-on-surface-variant'
-                }`}
-              />
-              <div className="flex-1">
-                <p className="font-bold text-sm">
-                  {pct >= 90
-                    ? 'Limite presque atteinte !'
-                    : pct >= 80
-                      ? 'Vous approchez de la limite'
-                      : 'Utilisation du plan gratuit'}
-                </p>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  {used}/{limit} factures ce mois ({pct}% utilisé)
-                  {pct >= 90 && ' — Passez au plan Solo pour continuer sans limite.'}
-                </p>
-              </div>
-              {pct >= 90 && (
-                <button
-                  onClick={() => navigate('/app/upgrade')}
-                  className="shrink-0 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold shadow-spark-cta active:scale-95 transition-transform flex items-center gap-1"
-                >
-                  <Crown className="w-3.5 h-3.5" />
-                  Passer Solo
-                </button>
-              )}
-            </div>
-          );
-        })()}
+      {/* Soft-upsell banner — picks the closest-to-limit quota (invoices or AI)
+          and renders a 60/80/100 % progressive nudge. Replaces the previous
+          ad-hoc invoice-only inline alert with a reusable, analytics-tracked
+          component so we get consistent funnel signal across pages. */}
+      <UpsellBanner surface="dashboard" resource="auto" />
 
       {/* Relances en attente — top 3 overdue invoices with quick actions.
           Reminders are sent automatically by the daily cron at /api/cron-reminders;

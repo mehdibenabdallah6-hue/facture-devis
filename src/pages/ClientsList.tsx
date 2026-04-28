@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData, Client } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Edit, Trash2, X, Users, Briefcase, User as UserIcon, ArrowRight } from 'lucide-react';
-import { EmptySearchState } from '../components/EmptyStates';
+import { EmptyClientsState, EmptySearchState } from '../components/EmptyStates';
 
 export default function ClientsList() {
   const { clients, addClient, updateClient, deleteClient } = useData();
@@ -121,18 +121,8 @@ export default function ClientsList() {
             <EmptySearchState message={`Aucun client ne correspond à "${searchTerm}"`} onClear={() => setSearchTerm('')} />
           </div>
         ) : filteredClients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 md:py-24 px-5 md:px-6 text-center">
-            <div className="w-16 h-16 md:w-24 md:h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-4 md:mb-6">
-              <Users className="w-8 h-8 md:w-10 md:h-10 text-outline" />
-            </div>
-            <h3 className="font-headline text-xl md:text-2xl font-bold text-on-surface mb-2 tracking-tight">Aucun client</h3>
-            <p className="text-on-surface-variant max-w-sm mb-6 md:mb-8 text-sm md:text-lg">Vous n'avez pas encore ajouté de client. Commencez dès maintenant pour fluidifier vos devis.</p>
-            <button 
-              onClick={() => handleOpenModal()}
-              className="btn-glow min-touch px-5 md:px-8 py-3 md:py-4 bg-primary text-on-primary rounded-xl font-bold shadow-spark-cta hover:scale-105 active:scale-95 transition-all text-sm md:text-base"
-            >
-              + Ajouter un client
-            </button>
+          <div className="p-5 md:p-12">
+            <EmptyClientsState onAddClient={() => handleOpenModal()} />
           </div>
         ) : (
           <>

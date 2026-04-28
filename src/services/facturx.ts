@@ -60,6 +60,60 @@ function getVatExemptionReason(vatRegime: string | undefined): string {
   return '';
 }
 
+/**
+ * Parse a free-form French address into {street, postcode, city}.
+ *
+ * French postcodes are strictly 5 digits (incl. overseas 97xxx / 98xxx),
+ * which lets us locate the postcode in any segment regardless of layout.
+ * Supported inputs (all real-world artisan entries):
+ *
+ *   "12 rue Lafayette, 75001 Paris"          → 12 rue Lafayette / 75001 / Paris
+ *   "12 rue Lafayette\n75001 Paris"          → 12 rue Lafayette / 75001 / Paris
+ *   "12 rue Lafayette, 75001, Paris"         → 12 rue Lafayette / 75001 / Paris
+ *   "75001 Paris"                            →                / 75001 / Paris
+ *   "12 rue Lafayette"                       → 12 rue Lafayette /       /
+ *
+ * If no postcode is detected, the whole input is returned as street.
+ */
+export function parseFrenchAddress(raw: string): { street: string; postcode: string; city: string } {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return { street: '', postcode: '', city: '' };
+
+  // Normalize separators (commas, line breaks) into a single split point.
+  const segments = trimmed
+    .split(/[,\n;]+/g)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // Find a segment containing a 5-digit chunk — that's our postcode line.
+  const postcodeRegex = /\b(\d{5})\b/;
+  const postcodeIndex = segments.findIndex(s => postcodeRegex.test(s));
+
+  if (postcodeIndex === -1) {
+    return { street: trimmed.replace(/\s*\n\s*/g, ' '), postcode: '', city: '' };
+  }
+
+  const postcodeSegment = segments[postcodeIndex];
+  const match = postcodeSegment.match(postcodeRegex);
+  const postcode = match ? match[1] : '';
+
+  // City = remainder of the postcode segment after stripping the postcode,
+  // optionally joined with whatever comes after on the next segment.
+  let city = postcodeSegment.replace(postcode, '').trim();
+  if (!city && segments[postcodeIndex + 1]) {
+    city = segments[postcodeIndex + 1];
+  } else if (segments[postcodeIndex + 1] && city) {
+    // "75001, Paris" came in as two segments — fall back to the next one
+    // only when the postcode segment was just digits.
+    if (/^\d{5}$/.test(postcodeSegment)) city = segments[postcodeIndex + 1];
+  }
+
+  // Street = everything before the postcode segment, joined.
+  const street = segments.slice(0, postcodeIndex).join(', ').trim();
+
+  return { street, postcode, city };
+}
+
 // ---------- XML Generator ----------
 
 export function generateFacturXXML(options: FacturXOptions): string {
@@ -136,19 +190,23 @@ export function generateFacturXXML(options: FacturXOptions): string {
           </ram:ApplicableTradeTax>`;
   });
 
-  // Parse company address into components
-  const companyAddress = company.address || '';
-  const addressParts = companyAddress.split(',').map(s => s.trim());
-  const companyStreet = addressParts[0] || '';
-  const companyCity = addressParts.length > 1 ? addressParts[addressParts.length - 1] : '';
-  const companyPostcode = addressParts.length > 2 ? addressParts[1] : '';
+  // Parse address into components.
+  // The previous implementation assumed a 3-part comma-separated layout
+  // ("rue, code postal, ville") which broke for the much more common French
+  // 2-part form "12 rue X, 75001 Paris" — postcode then ended up empty and
+  // the city captured the whole "75001 Paris" string. We now use a postcode
+  // detector that scans every segment for a 5-digit chunk (FR postcodes are
+  // strictly 5 digits, including overseas: 97xxx / 98xxx).
+  const company_ = parseFrenchAddress(company.address || '');
+  const companyStreet = company_.street;
+  const companyCity = company_.city;
+  const companyPostcode = company_.postcode;
 
   const clientName = client?.name || invoice.clientName || 'Client';
-  const clientAddress = client?.address || '';
-  const clientAddressParts = clientAddress.split(',').map(s => s.trim());
-  const clientStreet = clientAddressParts[0] || '';
-  const clientCity = clientAddressParts.length > 1 ? clientAddressParts[clientAddressParts.length - 1] : '';
-  const clientPostcode = clientAddressParts.length > 2 ? clientAddressParts[1] : '';
+  const client_ = parseFrenchAddress(client?.address || '');
+  const clientStreet = client_.street;
+  const clientCity = client_.city;
+  const clientPostcode = client_.postcode;
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
@@ -236,10 +294,11 @@ ${taxBreakdownXml}
  */
 export async function embedFacturXInPDF(
   pdfBytes: ArrayBuffer,
-  xmlString: string
+  xmlString: string,
+  profile: 'MINIMUM' | 'BASIC' = 'MINIMUM'
 ): Promise<Uint8Array> {
   // Dynamic import pdf-lib to keep bundle size reasonable
-  const { PDFDocument, PDFName, PDFString, PDFArray, PDFDict, PDFHexString, AFRelationship } = await import('pdf-lib');
+  const { PDFDocument, PDFName, PDFRawStream, decodePDFRawStream, AFRelationship } = await import('pdf-lib');
 
   const pdfDoc = await PDFDocument.load(pdfBytes);
 
@@ -258,19 +317,87 @@ export async function embedFacturXInPDF(
 
   // Set PDF metadata for Factur-X conformance
   pdfDoc.setTitle('Factur-X Invoice');
-  pdfDoc.setSubject('Factur-X MINIMUM profile');
+  pdfDoc.setSubject(`Factur-X ${profile} profile`);
   pdfDoc.setProducer('Photofacto - photofacto.fr');
   pdfDoc.setCreator('Photofacto');
 
-  // Add XMP metadata identifying Factur-X conformance level
-  // (Full XMP metadata with Factur-X namespace for complete conformance)
-  const catalog = pdfDoc.catalog;
-  
-  // Mark as PDF/A-3b compatible by adding the required OutputIntents
-  // This is a simplified version; full PDF/A-3 compliance requires ICC color profiles
-  
+  // ---- XMP metadata block ----
+  // Full PDF/A-3b conformance also requires an OutputIntents entry with an
+  // ICC colour profile, which we don't ship yet (would add ~500 KB). For
+  // 2026 e-reporting / Factur-X exchange, the *attached* XML is what gets
+  // ingested; conformant XMP gives readers the right namespace hints so
+  // they auto-detect the embedded invoice without parsing the PDF body.
+  // See https://fnfe-mpe.org/factur-x/ "PDF/A-3 et XMP".
+  const xmp = buildFacturXmp(profile);
+  const xmpBytes = encoder.encode(xmp);
+  const metadataStream = pdfDoc.context.stream(xmpBytes, {
+    Type: 'Metadata',
+    Subtype: 'XML',
+  });
+  const metadataRef = pdfDoc.context.register(metadataStream);
+  pdfDoc.catalog.set(PDFName.of('Metadata'), metadataRef);
+
+  // Suppress unused-import warning for symbols kept for future PDF/A-3b ICC work.
+  void PDFRawStream;
+  void decodePDFRawStream;
+
   const savedPdf = await pdfDoc.save();
   return savedPdf;
+}
+
+/**
+ * Build a minimal but conformant Factur-X XMP metadata packet.
+ * The Factur-X namespace `urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#`
+ * lets readers identify the profile/level without opening the attachment.
+ */
+function buildFacturXmp(profile: 'MINIMUM' | 'BASIC'): string {
+  const isoNow = new Date().toISOString();
+  return `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Photofacto Factur-X">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+      xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
+      xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"
+      xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/"
+      xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"
+      xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#">
+      <dc:format>application/pdf</dc:format>
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Factur-X Invoice</rdf:li></rdf:Alt></dc:title>
+      <dc:creator><rdf:Seq><rdf:li>Photofacto</rdf:li></rdf:Seq></dc:creator>
+      <pdf:Producer>Photofacto - photofacto.fr</pdf:Producer>
+      <xmp:CreatorTool>Photofacto</xmp:CreatorTool>
+      <xmp:CreateDate>${isoNow}</xmp:CreateDate>
+      <xmp:ModifyDate>${isoNow}</xmp:ModifyDate>
+      <pdfaid:part>3</pdfaid:part>
+      <pdfaid:conformance>B</pdfaid:conformance>
+      <fx:DocumentType>INVOICE</fx:DocumentType>
+      <fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>
+      <fx:Version>1.0</fx:Version>
+      <fx:ConformanceLevel>${profile}</fx:ConformanceLevel>
+      <pdfaExtension:schemas>
+        <rdf:Bag>
+          <rdf:li rdf:parseType="Resource">
+            <pdfaSchema:schema>Factur-X PDFA Extension Schema</pdfaSchema:schema>
+            <pdfaSchema:namespaceURI>urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#</pdfaSchema:namespaceURI>
+            <pdfaSchema:prefix>fx</pdfaSchema:prefix>
+            <pdfaSchema:property>
+              <rdf:Seq>
+                <rdf:li rdf:parseType="Resource"><pdfaProperty:name>DocumentFileName</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType><pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>Name of the embedded XML invoice file</pdfaProperty:description></rdf:li>
+                <rdf:li rdf:parseType="Resource"><pdfaProperty:name>DocumentType</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType><pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>INVOICE</pdfaProperty:description></rdf:li>
+                <rdf:li rdf:parseType="Resource"><pdfaProperty:name>Version</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType><pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>Factur-X version</pdfaProperty:description></rdf:li>
+                <rdf:li rdf:parseType="Resource"><pdfaProperty:name>ConformanceLevel</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType><pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>Factur-X conformance level</pdfaProperty:description></rdf:li>
+              </rdf:Seq>
+            </pdfaSchema:property>
+          </rdf:li>
+        </rdf:Bag>
+      </pdfaExtension:schemas>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
 }
 
 /**
@@ -281,14 +408,16 @@ export async function generateFacturXPDF(
   jsPdfDoc: any, // jsPDF instance
   options: FacturXOptions
 ): Promise<Uint8Array> {
+  const profile = options.profile ?? 'MINIMUM';
+
   // 1. Generate CII XML
   const xmlString = generateFacturXXML(options);
 
   // 2. Get PDF bytes from jsPDF
   const pdfArrayBuffer = jsPdfDoc.output('arraybuffer');
 
-  // 3. Embed XML into PDF
-  const facturxPdf = await embedFacturXInPDF(pdfArrayBuffer, xmlString);
+  // 3. Embed XML + write the matching XMP metadata block
+  const facturxPdf = await embedFacturXInPDF(pdfArrayBuffer, xmlString, profile);
 
   return facturxPdf;
 }

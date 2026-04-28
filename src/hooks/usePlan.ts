@@ -102,6 +102,19 @@ export function usePlan() {
     ? false
     : (aiUsed + 1) >= aiLimit;
 
+  // ---- Invoice usage info (mirrors AI helpers) ----
+  // Surfaces the same raw counter logic so the UI can render progressive
+  // upsell banners (60 / 80 / 90 % of monthly quota) instead of the
+  // previous "either silent or hard-blocked" UX.
+  const invoiceUsedRaw = company?.monthlyInvoiceCount || 0;
+  const invoiceUsed = needsMonthlyReset ? 0 : invoiceUsedRaw;
+  const invoiceLimit = limits.monthlyInvoiceLimit;
+  const invoiceUnlimited = invoiceLimit === -1;
+  const invoiceRemaining = invoiceUnlimited ? Infinity : Math.max(0, invoiceLimit - invoiceUsed);
+  const willExceedInvoiceLimitAfterUse = invoiceUnlimited
+    ? false
+    : (invoiceUsed + 1) >= invoiceLimit;
+
   const isPro = currentPlan === 'pro';
   const isStarter = currentPlan === 'starter' || currentPlan === 'pro';
   const isFree = currentPlan === 'free';
@@ -121,6 +134,11 @@ export function usePlan() {
     aiUnlimited,
     aiRemaining,
     willExceedAiLimitAfterUse,
+    invoiceUsed,
+    invoiceLimit,
+    invoiceUnlimited,
+    invoiceRemaining,
+    willExceedInvoiceLimitAfterUse,
     activeDiscount,
     hasReferralDiscount,
     hasWelcomeDiscount,

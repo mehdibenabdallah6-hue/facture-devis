@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
 import { BillingCycle, PLAN_PRICING, formatEuroPrice, getMonthlyEquivalent } from '../lib/billing';
+import { track } from '../services/analytics';
 
 export default function Upgrade() {
   const navigate = useNavigate();
@@ -94,6 +95,15 @@ export default function Upgrade() {
       alert("Configuration de paiement incomplète. Contactez le support.");
       return;
     }
+
+    // Funnel signal: free → checkout. Fired before opening so we capture it
+    // even if Paddle fails to render (network blocked, ad-blocker, etc.).
+    track('checkout_opened', {
+      plan: planId,
+      billing: billingCycle,
+      has_discount: !!activeDiscount,
+      discount_code: activeDiscount?.code,
+    });
 
     paddle.Checkout.open({
       items: [{ priceId, quantity: 1 }],

@@ -9,6 +9,7 @@ import {
   setPersistence
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { track, identifyUser } from '../services/analytics';
 
 interface AuthContextType {
   user: User | null;
@@ -31,16 +32,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+      // Identify the user in PostHog so all subsequent events join on uid.
+      // We call this on every auth-change tick; identifyUser is idempotent
+      // and lazy-loads PostHog so this is fire-and-forget.
+      if (firebaseUser?.uid) {
+        identifyUser(firebaseUser.uid, firebaseUser.email || undefined);
+      }
     });
 
     return unsubscribe;
   }, []);
 
   const login = async () => {
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    // Distinguish first-time signup vs returning login. Firebase exposes
+    // creationTime / lastSignInTime; if they're equal (within ~5 s) it's a
+    // brand new account, which is the funnel-defining moment.
+    const creation = result.user.metadata.creationTime
+      ? new Date(result.user.metadata.creationTime).getTime()
+      : 0;
+    const lastSignIn = result.user.metadata.lastSignInTime
+      ? new Date(result.user.metadata.lastSignInTime).getTime()
+      : 0;
+    const isNewUser = Math.abs(creation - lastSignIn) < 5000;
+    track(isNewUser ? 'signup_completed' : 'login_completed', {
+      provider: 'google',
+      uid: result.user.uid,
+    });
   };
 
   const logout = async () => {
+    track('logout');
     await signOut(auth);
   };
 

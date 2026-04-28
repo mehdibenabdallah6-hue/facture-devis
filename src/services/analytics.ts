@@ -32,6 +32,33 @@ export function identifyUser(userId: string, email?: string) {
   });
 }
 
+/**
+ * Funnel-event helper. Fire-and-forget — never throws, never blocks the UI.
+ * If PostHog is not configured, falls back to a debug log so we still get
+ * signal in dev consoles. Use snake_case event names for PostHog dashboards.
+ *
+ * Example:
+ *   track('invoice_created', { plan: 'free', total_ttc: 1200 });
+ *   track('upsell_banner_shown', { surface: 'dashboard', threshold: 80 });
+ *   track('checkout_opened', { plan: 'pro', billing: 'annual' });
+ */
+export function track(event: string, props: Record<string, unknown> = {}) {
+  try {
+    if (!POSTHOG_KEY) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug('[analytics:noop]', event, props);
+      }
+      return;
+    }
+    import('posthog-js').then(({ default: posthog }) => {
+      posthog.capture(event, props);
+    }).catch(() => { /* silent — analytics must never break the app */ });
+  } catch {
+    /* swallow */
+  }
+}
+
 // ─── Sentry ───────────────────────────────────────────────
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 

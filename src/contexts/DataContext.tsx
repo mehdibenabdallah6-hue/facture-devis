@@ -4,6 +4,7 @@ import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from './AuthContext';
 import { startOfMonth } from 'date-fns';
 import { AppPlan, AppSubscriptionStatus, BillingCycle } from '../lib/billing';
+import { track } from '../services/analytics';
 
 // Referral tracking + discount rewards — called after user completes onboarding
 // Rewards: both referrer & referred get -50% on monthly plan or -15% on annual plan
@@ -685,6 +686,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Auto-learn articles from this invoice
       syncArticlesFromItems(data.items);
+
+      // Funnel signal — fired client-side. We track creation count, type and
+      // total TTC bucket so PostHog can show conversion-from-first-doc rates.
+      track('invoice_created', {
+        type: data.type || 'invoice',
+        total_ttc: Math.round(data.totalTTC || 0),
+        item_count: Array.isArray(data.items) ? data.items.length : 0,
+        plan: companyData.plan || 'free',
+        is_first: (companyData.monthlyInvoiceCount || 0) === 0 && !companyData.lifetimeInvoiceCount,
+      });
 
       return docRef.id;
     } catch (error) {
