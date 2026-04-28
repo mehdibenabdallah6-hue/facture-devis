@@ -102,8 +102,8 @@ const TEMPLATES: {
 }[] = [
   {
     id: 'moderne',
-    label: 'Moderne',
-    desc: 'Épuré, beaucoup de blanc, accent coloré.',
+    label: 'Premium minimal',
+    desc: 'Sobre, clair, proche des SaaS modernes.',
     icon: Sparkles,
     preview: (
       <div className="w-full aspect-[1/1.2] bg-white rounded-lg shadow-inner overflow-hidden flex flex-col">
@@ -123,8 +123,8 @@ const TEMPLATES: {
   },
   {
     id: 'classique',
-    label: 'Classique',
-    desc: 'Cadre noir, mise en page traditionnelle.',
+    label: 'Classique entreprise',
+    desc: 'Format familier, sérieux, facile à lire.',
     icon: Briefcase,
     preview: (
       <div className="w-full aspect-[1/1.2] bg-white rounded-lg shadow-inner overflow-hidden flex flex-col border border-on-surface/30">
@@ -144,8 +144,8 @@ const TEMPLATES: {
   },
   {
     id: 'chantier',
-    label: 'Chantier',
-    desc: 'Accent jaune/orange, lisible sur photo.',
+    label: 'Artisan BTP',
+    desc: 'Robuste, visible, adapté aux devis terrain.',
     icon: HardHat,
     preview: (
       <div className="w-full aspect-[1/1.2] bg-white rounded-lg shadow-inner overflow-hidden flex flex-col">

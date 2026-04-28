@@ -1436,6 +1436,14 @@ export default function InvoiceCreate() {
     const { jsPDF, autoTable } = await loadPdfStack();
     const doc: JsPDFType = new jsPDF();
     const client = clients.find(c => c.id === formData.clientId);
+    const template = company?.pdfTemplate || 'moderne';
+    const accentHex = company?.pdfAccentColor || (template === 'chantier' ? '#F59E0B' : template === 'classique' ? '#1F2937' : '#E8621A');
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const clean = hex.replace('#', '');
+      const n = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
+      return [n >> 16 & 255, n >> 8 & 255, n & 255];
+    };
+    const accentRgb = hexToRgb(accentHex);
     
     // Insert Letterhead background if present
     if (company?.letterheadUrl) {
@@ -1448,11 +1456,23 @@ export default function InvoiceCreate() {
 
     let yPos = 30;
 
-    // Draw dark header background ONLY if there's no letterhead
+    // Draw template header background ONLY if there's no letterhead.
     if (!company?.letterheadUrl) {
       try {
-        doc.setFillColor(31, 41, 55); // Slate 800
-        doc.rect(0, 0, 210, 45, 'F');
+        if (template === 'classique') {
+          doc.setDrawColor(17, 24, 39);
+          doc.setLineWidth(0.4);
+          doc.rect(10, 10, 190, 277);
+          doc.line(14, 42, 196, 42);
+        } else if (template === 'chantier') {
+          doc.setFillColor(...accentRgb);
+          doc.rect(0, 0, 210, 28, 'F');
+          doc.setFillColor(255, 251, 235);
+          doc.rect(0, 28, 210, 14, 'F');
+        } else {
+          doc.setFillColor(...accentRgb);
+          doc.rect(0, 0, 210, 10, 'F');
+        }
       } catch (e) {
         console.error("Header rendering error:", e);
       }
@@ -1461,8 +1481,6 @@ export default function InvoiceCreate() {
     // Draw Company Info (Top Left)
     if (!company?.hideCompanyInfo) {
       if (!company?.letterheadUrl) {
-        // Light text if dark header
-        doc.setTextColor(255, 255, 255);
         if (company?.logoUrl) {
           try {
             doc.addImage(company.logoUrl, 'PNG', 14, 12, 20, 20); // Keep size reasonable
@@ -1475,6 +1493,7 @@ export default function InvoiceCreate() {
         } else {
           doc.setFontSize(24);
           doc.setFont('helvetica', 'bold');
+          doc.setTextColor(28, 25, 23);
           doc.text(company?.name || 'Mon Entreprise', 14, 25);
         }
       } else {
@@ -1486,7 +1505,7 @@ export default function InvoiceCreate() {
       }
 
       doc.setFontSize(10);
-      doc.setTextColor(company?.letterheadUrl ? 100 : 200); // Lighter text for dark bg
+      doc.setTextColor(100);
       
       if (company?.address) {
         const addressLines = doc.splitTextToSize(company.address, 80);
@@ -1505,8 +1524,7 @@ export default function InvoiceCreate() {
     // Draw Document Title & Number (Top Right)
     try {
       const title = formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE';
-      // Use dark text if letterhead, otherwise white text for dark header
-      doc.setTextColor(company?.letterheadUrl ? 28 : 255, company?.letterheadUrl ? 25 : 255, company?.letterheadUrl ? 23 : 255);
+      doc.setTextColor(...(template === 'classique' || company?.letterheadUrl ? [28, 25, 23] as [number, number, number] : accentRgb));
       doc.setFontSize(20);
       doc.text(title, 140, 22);
       doc.setFontSize(11);
@@ -1578,8 +1596,14 @@ export default function InvoiceCreate() {
       startY: nextDateYPos + 10,
       head: [tableColumn],
       body: tableRows,
-      theme: 'grid',
-      headStyles: { fillColor: [245, 245, 244], textColor: [28, 25, 23], fontStyle: 'bold', halign: 'center' },
+      theme: template === 'classique' ? 'grid' : 'striped',
+      headStyles: {
+        fillColor: template === 'classique' ? [255, 255, 255] : accentRgb,
+        textColor: template === 'classique' ? [28, 25, 23] : [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+        lineColor: template === 'classique' ? [28, 25, 23] : accentRgb,
+      },
       columnStyles: {
         0: { halign: 'left' },
         1: { halign: 'center' },
@@ -1587,7 +1611,8 @@ export default function InvoiceCreate() {
         3: { halign: 'right' },
         4: { halign: 'right' },
       },
-      styles: { fontSize: 9, cellPadding: 6, textColor: [60, 60, 60], lineColor: [231, 229, 228] },
+      alternateRowStyles: { fillColor: template === 'chantier' ? [255, 251, 235] : [248, 250, 252] },
+      styles: { fontSize: 9, cellPadding: 5, textColor: [60, 60, 60], lineColor: [231, 229, 228] },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 100;
@@ -1608,7 +1633,7 @@ export default function InvoiceCreate() {
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.text('NET À PAYER:', 140, finalY + 30);
-    doc.setTextColor(13, 148, 136); // Primary Teal
+    doc.setTextColor(...accentRgb);
     doc.text(`${totalTTC.toFixed(2)} €`, 196, finalY + 30, { align: 'right' });
 
     let signatureY = finalY + 45;
@@ -1651,6 +1676,10 @@ export default function InvoiceCreate() {
     }
     if (company?.rcPro) {
       doc.text(`Assurance RC Pro: ${company.rcPro}`, 105, footerY, { align: 'center' });
+      footerY += 5;
+    }
+    if (company?.pdfFooterText) {
+      doc.text(company.pdfFooterText, 105, footerY, { align: 'center' });
       footerY += 5;
     }
 

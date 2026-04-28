@@ -8,127 +8,122 @@ interface PDFPreviewProps {
   company: CompanySettings | null;
 }
 
-const formatCurrency = (amount: number, currency = 'EUR') => {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount);
-};
+const formatCurrency = (amount: number, currency = 'EUR') =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount || 0);
+
+function getTemplate(company: CompanySettings | null) {
+  return company?.pdfTemplate || 'moderne';
+}
+
+function getAccent(company: CompanySettings | null) {
+  return company?.pdfAccentColor || (getTemplate(company) === 'chantier' ? '#F59E0B' : getTemplate(company) === 'classique' ? '#1F2937' : '#E8621A');
+}
 
 export default function PDFPreview({ formData, company }: PDFPreviewProps) {
   const items = formData.items || [];
+  const visibleItems = items.filter(i => i.description).slice(0, 8);
+  const hiddenItemsCount = Math.max(0, items.filter(i => i.description).length - visibleItems.length);
   const totalHT = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-  const totalVAT = formData.vatRegime === 'franchise'
+  const totalVAT = formData.vatRegime === 'franchise' || formData.vatRegime === 'autoliquidation'
     ? 0
     : items.reduce((sum, item) => sum + (item.quantity * item.unitPrice * (item.vatRate / 100)), 0);
   const totalTTC = totalHT + totalVAT;
+  const template = getTemplate(company);
+  const accentColor = getAccent(company);
+  const title = formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'FACTURE D’ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE';
 
-  const accentColor = company?.pdfAccentColor || '#6750A4';
-  const visibleItems = items.filter(i => i.description).slice(0, 7);
-  const hiddenItemsCount = Math.max(0, items.filter(i => i.description).length - visibleItems.length);
+  const pageClass =
+    template === 'classique'
+      ? 'border-[1.5px] border-gray-900'
+      : template === 'chantier'
+        ? 'border border-amber-200'
+        : 'border border-gray-200';
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden w-full h-full min-h-0 flex">
-      {/* PDF Content */}
-      <div className="p-2 sm:p-3 bg-white overflow-hidden flex-1 min-h-0 flex items-center justify-center">
-        <div className="border border-gray-200 rounded-lg overflow-hidden mx-auto h-full max-h-full aspect-[210/297] max-w-full bg-white flex flex-col">
-          {/* Header band */}
-          <div className="h-2 shrink-0 relative" style={{ backgroundColor: accentColor }} />
+      <div className="p-2 bg-neutral-100 overflow-hidden flex-1 min-h-0 flex items-center justify-center">
+        <div className={`mx-auto h-full max-h-full aspect-[210/297] max-w-full bg-white overflow-hidden flex flex-col shadow-sm ${pageClass}`}>
+          {template === 'moderne' && <div className="h-2.5 shrink-0" style={{ backgroundColor: accentColor }} />}
+          {template === 'chantier' && (
+            <div className="h-10 shrink-0 flex items-center px-4 text-[10px] font-black uppercase tracking-[0.22em] text-white" style={{ backgroundColor: accentColor }}>
+              Document chantier
+            </div>
+          )}
 
-          <div className="p-3 xl:p-4 flex-1 min-h-0 flex flex-col">
-            {/* Company header */}
-            <div className="flex justify-between items-start gap-2 mb-3 min-w-0 shrink-0">
+          <div className="p-4 flex-1 min-h-0 flex flex-col">
+            <header className={`shrink-0 flex justify-between gap-3 ${template === 'classique' ? 'border-b border-gray-900 pb-3 mb-4' : 'mb-4'}`}>
               <div className="min-w-0">
                 {company?.logoUrl ? (
-                  <img src={company.logoUrl} alt="Logo" className="h-8 mb-1 rounded object-contain" />
+                  <img src={company.logoUrl} alt="Logo" className="h-9 max-w-[120px] object-contain mb-1" />
                 ) : (
-                  <div className="font-bold text-gray-900 text-sm xl:text-base">{company?.name || 'Mon Entreprise'}</div>
+                  <div className="font-black text-gray-950 text-sm leading-tight">{company?.name || 'Mon Entreprise'}</div>
                 )}
                 {!company?.hideCompanyInfo && (
-                  <div className="text-[9px] xl:text-[10px] text-gray-500 mt-1 space-y-0.5 break-words leading-tight">
-                    {company?.address && <div>{company.address}</div>}
+                  <div className="text-[9px] text-gray-500 leading-tight space-y-0.5">
+                    {company?.address && <div className="line-clamp-2">{company.address}</div>}
                     {company?.siret && <div>SIRET: {company.siret}</div>}
                   </div>
                 )}
               </div>
               <div className="text-right shrink-0">
-                <div className="text-base xl:text-lg font-bold leading-tight" style={{ color: accentColor }}>
-                  {formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'FACTURE D\'ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE'}
+                <div className="text-lg font-black leading-none" style={{ color: template === 'classique' ? '#111827' : accentColor }}>
+                  {title}
                 </div>
-                <div className="text-[10px] xl:text-xs text-gray-600 mt-0.5">{formData.number || 'N° en attente'}</div>
-                {formData.date && <div className="text-[9px] xl:text-[10px] text-gray-500 mt-0.5">{format(new Date(formData.date), 'dd MMM yyyy', { locale: fr })}</div>}
+                <div className="text-[10px] font-bold text-gray-600 mt-1">{formData.number || 'N° en attente'}</div>
+                {formData.date && <div className="text-[9px] text-gray-500 mt-0.5">{format(new Date(formData.date), 'dd MMM yyyy', { locale: fr })}</div>}
               </div>
-            </div>
+            </header>
 
-            {/* Client */}
-            <div className="bg-gray-50 rounded-lg p-2 mb-3 shrink-0">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Facturé à</div>
-              <div className="font-semibold text-gray-900 text-xs xl:text-sm truncate">{formData.clientName || '—'}</div>
-            </div>
+            <section className={`shrink-0 rounded-lg p-2 mb-3 ${template === 'classique' ? 'border border-gray-300' : 'bg-gray-50'}`}>
+              <div className="text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">Facturé à</div>
+              <div className="font-bold text-gray-950 text-xs truncate">{formData.clientName || '—'}</div>
+            </section>
 
-            {/* Items table */}
-            {items.length > 0 && items[0].description ? (
-              <table className="w-full table-fixed mb-2 text-xs shrink-0">
+            {visibleItems.length > 0 ? (
+              <table className="w-full table-fixed text-[10px] shrink-0">
                 <thead>
-                  <tr className="text-left text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                    <th className="pb-1.5">Description</th>
-                    <th className="pb-1.5 text-center w-9">Qté</th>
-                    <th className="pb-1.5 text-right w-14">P.U.</th>
-                    <th className="pb-1.5 text-right w-14">Total</th>
+                  <tr className={`${template === 'classique' ? 'border-y border-gray-900 text-gray-950' : 'text-white'} uppercase tracking-wider`}>
+                    <th className="py-1.5 px-1 text-left" style={{ backgroundColor: template === 'classique' ? 'transparent' : accentColor }}>Description</th>
+                    <th className="py-1.5 px-1 text-center w-8" style={{ backgroundColor: template === 'classique' ? 'transparent' : accentColor }}>Qté</th>
+                    <th className="py-1.5 px-1 text-right w-12" style={{ backgroundColor: template === 'classique' ? 'transparent' : accentColor }}>P.U.</th>
+                    <th className="py-1.5 px-1 text-right w-14" style={{ backgroundColor: template === 'classique' ? 'transparent' : accentColor }}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleItems.map((item, idx) => (
                     <tr key={idx} className="border-b border-gray-100">
-                      <td className="py-1 pr-2 text-gray-900 text-[10px] xl:text-[11px] leading-tight break-words">{item.description}</td>
-                      <td className="py-1 text-center text-gray-600 text-[10px]">{item.quantity}</td>
-                      <td className="py-1 text-right text-gray-600 text-[9px] xl:text-[10px] tabular-nums">{formatCurrency(item.unitPrice)}</td>
-                      <td className="py-1 text-right font-medium text-gray-900 text-[9px] xl:text-[10px] tabular-nums">{formatCurrency(item.quantity * item.unitPrice)}</td>
+                      <td className="py-1.5 pr-1 text-gray-900 leading-tight break-words">{item.description}</td>
+                      <td className="py-1.5 text-center text-gray-600">{item.quantity}</td>
+                      <td className="py-1.5 text-right text-gray-600 tabular-nums">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-1.5 text-right font-bold text-gray-950 tabular-nums">{formatCurrency(item.quantity * item.unitPrice)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="bg-gray-50 rounded-lg p-6 text-center mb-4">
-                <div className="text-gray-400 text-xs">Ajoutez des prestations pour voir l'aperçu</div>
-              </div>
-            )}
-            {hiddenItemsCount > 0 && (
-              <div className="text-[9px] text-gray-500 mb-1 shrink-0">
-                + {hiddenItemsCount} ligne{hiddenItemsCount > 1 ? 's' : ''} dans le PDF complet
-              </div>
+              <div className="bg-gray-50 rounded-lg p-5 text-center mb-3 text-gray-400 text-xs">Ajoutez des prestations pour voir l’aperçu</div>
             )}
 
-            {/* Totals */}
-            {totalHT > 0 && (
-              <div className="flex justify-end mt-auto shrink-0">
-                <div className="w-40">
-                  <div className="flex justify-between py-0.5 text-[10px] xl:text-xs text-gray-600">
-                    <span>Total HT</span>
-                    <span>{formatCurrency(totalHT)}</span>
-                  </div>
-                  {formData.vatRegime !== 'franchise' && totalVAT > 0 && (
-                    <div className="flex justify-between py-0.5 text-[10px] xl:text-xs text-gray-600 border-b border-gray-200">
-                      <span>TVA</span>
-                      <span>{formatCurrency(totalVAT)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-1 text-xs xl:text-sm font-bold border-t border-gray-300 mt-1" style={{ color: accentColor }}>
-                    <span>Total TTC</span>
-                    <span>{formatCurrency(totalTTC)}</span>
-                  </div>
+            {hiddenItemsCount > 0 && <div className="text-[9px] text-gray-500 mt-1">+ {hiddenItemsCount} ligne{hiddenItemsCount > 1 ? 's' : ''} dans le PDF complet</div>}
+
+            <div className="mt-auto flex justify-end shrink-0 pt-2">
+              <div className={`w-40 rounded-lg ${template === 'chantier' ? 'bg-amber-50 p-2' : ''}`}>
+                <div className="flex justify-between py-0.5 text-[10px] text-gray-600"><span>Total HT</span><span>{formatCurrency(totalHT)}</span></div>
+                {formData.vatRegime === 'standard' && totalVAT > 0 && <div className="flex justify-between py-0.5 text-[10px] text-gray-600"><span>TVA</span><span>{formatCurrency(totalVAT)}</span></div>}
+                <div className="flex justify-between py-1 text-xs font-black border-t border-gray-300 mt-1" style={{ color: template === 'classique' ? '#111827' : accentColor }}>
+                  <span>Total TTC</span><span>{formatCurrency(totalTTC)}</span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Notes */}
-            {formData.notes && (
-              <div className="mt-2 pt-2 border-t border-gray-200 shrink-0">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Notes</div>
-                <div className="text-[9px] xl:text-[10px] text-gray-600 leading-snug line-clamp-3">{formData.notes}</div>
-              </div>
+            {(formData.notes || company?.pdfFooterText) && (
+              <footer className="mt-2 pt-2 border-t border-gray-200 text-[9px] text-gray-500 leading-snug line-clamp-3 shrink-0">
+                {formData.notes || company?.pdfFooterText}
+              </footer>
             )}
           </div>
 
-          {/* Footer band */}
-          <div className="h-1.5 shrink-0" style={{ backgroundColor: accentColor }} />
+          {template === 'moderne' && <div className="h-1.5 shrink-0" style={{ backgroundColor: accentColor }} />}
         </div>
       </div>
     </div>
