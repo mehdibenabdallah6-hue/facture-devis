@@ -15,6 +15,39 @@ import type { Invoice } from '../contexts/DataContext';
 import { checkInvoiceCompliance } from '../lib/compliance';
 import { ComplianceChecklist } from './ComplianceChecklist';
 
+/**
+ * Build the canonical FR mandatory-mention block that satisfies the
+ * compliance checker for a given regime / client kind. Used by the
+ * "auto-fix" button so users don't have to know the exact wording.
+ */
+function buildLegalMentions(
+  regime: string | undefined,
+  isB2B: boolean,
+  isQuote: boolean
+): string {
+  const lines: string[] = [];
+  if (regime === 'franchise') {
+    lines.push('TVA non applicable, art. 293 B du CGI.');
+  }
+  if (regime === 'autoliquidation') {
+    lines.push('Autoliquidation — TVA due par le preneur (art. 283-2 nonies du CGI).');
+  }
+  if (!isQuote) {
+    lines.push(
+      "En cas de retard de paiement, des pénalités au taux annuel de 3 fois le taux d'intérêt légal seront appliquées."
+    );
+    if (isB2B) {
+      lines.push(
+        "Tout retard de paiement entraîne une indemnité forfaitaire pour frais de recouvrement de 40 € (art. D.441-5 Code de commerce)."
+      );
+    }
+  }
+  if (isQuote) {
+    lines.push('Devis valable 30 jours à compter de sa date d\'émission.');
+  }
+  return lines.join('\n');
+}
+
 export interface ValidateInvoiceButtonProps {
   invoice: Invoice;
   /** Appelé après succès, avec le numéro assigné. */
@@ -30,9 +63,10 @@ export function ValidateInvoiceButton({
   label = 'Valider la facture',
   className = '',
 }: ValidateInvoiceButtonProps) {
-  const { company, clients, validateInvoice } = useData();
+  const { company, clients, validateInvoice, updateInvoice } = useData();
   const [isOpen, setIsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [autoFixing, setAutoFixing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const client = useMemo(
@@ -44,6 +78,40 @@ export function ValidateInvoiceButton({
     () => checkInvoiceCompliance(invoice, company, client),
     [invoice, company, client]
   );
+
+  // Issues whose code starts with `mention.` or `tva.*.mention` or `quote.*`
+  // are 100% solvable by appending standard legal text to `invoice.notes`.
+  // We surface a single "Insérer les mentions manquantes" button that lets
+  // the user fix all of them at once — that was the user's pain point: the
+  // checker tells them what's missing but doesn't help them fix it.
+  const fixableMentionCodes = new Set([
+    'tva.franchise.mention',
+    'tva.autoliq.mention',
+    'mention.latePenalties',
+    'mention.indemnity40',
+    'mention.paymentTerms',
+    'quote.validity',
+    'quote.btp.bonPourAccord',
+  ]);
+  const hasFixableMentions = report.issues.some(i => fixableMentionCodes.has(i.code));
+
+  const handleAutoFixMentions = async () => {
+    setAutoFixing(true);
+    setError(null);
+    try {
+      const regime = invoice.vatRegime || company?.vatRegime || 'standard';
+      const isB2B = client?.type === 'B2B';
+      const isQuote = invoice.type === 'quote';
+      const block = buildLegalMentions(regime, isB2B, isQuote);
+      const existing = (invoice.notes || '').trim();
+      const merged = existing ? `${existing}\n\n${block}` : block;
+      await updateInvoice(invoice.id, { notes: merged });
+    } catch (e: any) {
+      setError(e?.message || "Impossible d'insérer les mentions automatiques.");
+    } finally {
+      setAutoFixing(false);
+    }
+  };
 
   // Une facture déjà verrouillée ne peut pas être re-validée.
   if (invoice.isLocked) {
@@ -86,7 +154,11 @@ export function ValidateInvoiceButton({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
+        // z-[110] to clear the mobile bottom nav (z-50), the desktop sidebar
+        // (z-50) and the sticky page header (z-40). Toasts at z-[9999] still
+        // render above us — that's intentional so a "facture validée" toast
+        // is visible after we close.
+        <div className="fixed inset-0 z-[110] bg-on-surface/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
           <div
             role="dialog"
             aria-modal="true"
@@ -107,6 +179,32 @@ export function ValidateInvoiceButton({
                 report={report}
                 okMessage="Vous pouvez valider en toute sérénité."
               />
+
+              {hasFixableMentions && (
+                <button
+                  type="button"
+                  onClick={handleAutoFixMentions}
+                  disabled={autoFixing || submitting}
+                  className="w-full inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-3 rounded-xl bg-secondary-container text-on-secondary-container font-bold text-sm hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {autoFixing ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
+                      </svg>
+                      Insertion…
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                      </svg>
+                      Insérer les mentions légales manquantes
+                    </>
+                  )}
+                </button>
+              )}
 
               {error && (
                 <div className="rounded-xl bg-error-container text-on-error-container border border-error/30 p-3 text-sm">

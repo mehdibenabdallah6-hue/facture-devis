@@ -55,11 +55,16 @@ export default function Settings() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    await saveCompany(formData);
-    setIsSaving(false);
-    setSaved(true);
-    const timer = setTimeout(() => setSaved(false), 3000);
-    return () => clearTimeout(timer);
+    try {
+      await saveCompany(formData);
+      setSaved(true);
+      const timer = setTimeout(() => setSaved(false), 3000);
+      return () => clearTimeout(timer);
+    } catch {
+      // saveCompany already surfaces a toast; just don't flip to "Saved".
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

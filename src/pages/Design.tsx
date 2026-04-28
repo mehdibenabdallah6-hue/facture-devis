@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useToast } from '../contexts/ToastContext';
 import {
   Palette,
   Upload,
@@ -189,6 +190,7 @@ const TEMPLATE_DEFAULT_COLORS: Record<TemplateId, string> = {
  */
 export default function Design() {
   const { company, saveCompany } = useData();
+  const { error: toastError } = useToast();
   const letterheadRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -233,7 +235,12 @@ export default function Design() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await compressImageToDataURL(file, 2000, 0.75);
+      // Letterhead used to be 2000px @ 0.75 — at that size a single image
+      // can already eat 700–900 KB and combined with the logo blew past
+      // Firestore's 1 MiB doc limit, which made the Save fail silently.
+      // 1500px @ 0.7 keeps print-quality on A4 (~127 dpi) while staying
+      // safely under 500 KB.
+      const dataUrl = await compressImageToDataURL(file, 1500, 0.7);
       setFormData(prev => ({ ...prev, letterheadUrl: dataUrl }));
     } catch (err) {
       console.error('Erreur papier:', err);
@@ -297,10 +304,32 @@ export default function Design() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await saveCompany(formData);
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      // Belt-and-braces guard against the Firestore 1 MiB doc limit. We can't
+      // know the exact serialised size cheaply, but a quick payload-string
+      // estimate catches the typical "user uploaded a huge letterhead + logo"
+      // case before the round-trip and lets us surface a friendly message
+      // instead of the generic Firestore "value too large" error.
+      const approxBytes =
+        (formData.letterheadUrl?.length || 0) + (formData.logoUrl?.length || 0);
+      if (approxBytes > 900_000) {
+        toastError(
+          'Image trop volumineuse',
+          "Papier à en-tête + logo dépassent 1 Mo. Essayez avec une image plus légère ou redimensionnez-la avant l'import."
+        );
+        return;
+      }
+      await saveCompany(formData);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      // saveCompany already toasts the underlying Firestore error itself;
+      // we just don't flip to "Sauvegardé" so the user notices something
+      // went wrong. Log for dev visibility.
+      console.error('Design.handleSave failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

@@ -84,7 +84,7 @@ export function CreditNoteButton({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[110] bg-on-surface/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
           <div
             role="dialog"
             aria-modal="true"

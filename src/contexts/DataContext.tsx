@@ -501,7 +501,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ...(company ? {} : { createdAt: now })
       }, { merge: true });
     } catch (error) {
+      // handleFirestoreError surfaces a toast for the user but historically
+      // swallowed the throw — which made the Design page show "Sauvegardé"
+      // even when nothing was actually written (most often: a letterhead /
+      // logo data-URL pushing the doc past Firestore's 1 MiB limit). We now
+      // re-throw so callers can keep their UI in sync with reality.
       handleFirestoreError(error, OperationType.WRITE, `companies/${user.uid}`);
+      throw error;
     }
   };
 

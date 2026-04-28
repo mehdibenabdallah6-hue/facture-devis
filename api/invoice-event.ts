@@ -45,7 +45,19 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+  // Defensive body parsing — Vercel sometimes hands us a string body when the
+  // Content-Type header is missing or malformed; an unhandled JSON.parse throw
+  // here was bubbling up as a generic 500 with no useful payload.
+  let body: any = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch (e: any) {
+      res.status(400).json({ error: 'Invalid JSON body', detail: e.message });
+      return;
+    }
+  }
+  body = body || {};
   const invoiceId: string | undefined = body.invoiceId;
   const type: string | undefined = body.type;
   const metadata = body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
@@ -59,7 +71,20 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { db } = ensureFirebaseAdmin();
+  let db: ReturnType<typeof ensureFirebaseAdmin>['db'];
+  try {
+    ({ db } = ensureFirebaseAdmin());
+  } catch (e: any) {
+    // Surface the real reason instead of returning an opaque 500 — the most
+    // common cause is missing FIREBASE_SERVICE_ACCOUNT / trio env vars on the
+    // Vercel project, and we want this to be obvious in the function logs.
+    console.error('invoice-event: Firebase Admin init failed:', e);
+    res.status(500).json({
+      error: 'Firebase Admin not configured on the server.',
+      detail: e?.message,
+    });
+    return;
+  }
 
   try {
     const invoiceSnap = await db.collection('invoices').doc(invoiceId).get();
@@ -107,7 +132,17 @@ function pruneMetadata(meta: Record<string, any>): Record<string, any> {
     } else if (Array.isArray(v)) {
       out[k] = v.slice(0, 20);
     } else if (typeof v === 'object') {
-      out[k] = JSON.parse(JSON.stringify(v).slice(0, 2000));
+      // Don't attempt to round-trip the value through JSON.parse(slice(...)) —
+      // truncating a JSON string at a fixed byte length breaks the syntax and
+      // throws (which used to surface as a generic 500). Just stringify and
+      // store the truncated string verbatim; we keep an audit trail, not a
+      // queryable record.
+      try {
+        const s = JSON.stringify(v);
+        out[k] = s.length > 2000 ? s.slice(0, 2000) + '…' : s;
+      } catch {
+        // Circular refs etc. — drop silently rather than crash the event log.
+      }
     }
     keys++;
   }

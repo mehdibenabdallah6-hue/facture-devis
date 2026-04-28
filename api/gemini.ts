@@ -11,7 +11,10 @@ import { verifyAuth } from './_verify-auth';
 import { ensureFirebaseAdmin } from './_firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
-const GEMINI_MODEL = 'gemini-3-flash-preview';
+// Stable, generally-available Gemini models. `gemini-3-flash-preview` was a
+// short-lived preview that has since been retired — calling it now returns
+// 404 from the Generative Language API and surfaces as a 500 to clients.
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
 
 // Mirror of src/lib/billing.ts and src/hooks/usePlan.ts. Keep in sync if
@@ -296,7 +299,7 @@ Règles importantes :
     } catch (primaryError: any) {
       console.warn(`Primary model ${GEMINI_MODEL} failed, trying fallback ${GEMINI_FALLBACK_MODEL}...`);
       try {
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_FALLBACK_MODEL}:generateContent?key=${apiKey}`;
+        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FALLBACK_MODEL}:generateContent?key=${apiKey}`;
         const data = await callGemini(GEMINI_FALLBACK_MODEL, fallbackUrl);
         return res.status(200).json({ ...data, _fallback: true });
       } catch (fallbackError: any) {

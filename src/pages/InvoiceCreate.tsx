@@ -2986,75 +2986,29 @@ export default function InvoiceCreate() {
                </div>
             </div>
             
-            <div className="flex-1 overflow-auto p-8 bg-surface-container-lowest/30 custom-scrollbar">
-               {/* Document simulation */}
-               <div className="bg-white text-stone-800 shadow-2xl rounded-sm p-10 min-h-[700px] border border-stone-200 transform group-hover:scale-[1.01] transition-transform duration-500 origin-top">
-                  <header className="flex justify-between items-start mb-10 border-b-4 border-stone-800 pb-8">
-                     <div>
-                       <h2 className="text-3xl font-black text-stone-800 mb-2">{company?.name || 'Mon Entreprise'}</h2>
-                       <p className="text-xs text-stone-500 font-medium uppercase tracking-tighter">SIRET: {company?.siret || '...'}</p>
-                     </div>
-                     <div className="text-right">
-                       <h3 className="text-lg font-black bg-stone-800 text-white px-3 py-1 inline-block mb-2">
-                         {formData.type === 'quote' ? 'DEVIS' : 'FACTURE'}
-                       </h3>
-                       <p className="text-sm font-bold text-stone-800">N° {formData.number || '...'}</p>
-                       <p className="text-xs text-stone-500">{format(new Date(formData.date || Date.now()), 'dd/MM/yyyy')}</p>
-                     </div>
-                  </header>
-
-                  <div className="mb-10 flex justify-end">
-                    <div className="w-1/2 text-right">
-                       <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Destinataire</p>
-                       <p className="text-lg font-bold text-stone-800">{clients.find(c => c.id === formData.clientId)?.name || formData.clientName || '...'}</p>
-                    </div>
-                  </div>
-
-                  <table className="w-full text-sm mb-10">
-                     <thead className="bg-stone-50 text-stone-500 text-[10px] font-black uppercase tracking-widest border-b border-stone-200">
-                        <tr>
-                          <th className="py-3 text-left">Désignation</th>
-                          <th className="py-3 text-right px-4">Qté</th>
-                          <th className="py-3 text-right">Total HT</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-stone-100">
-                        {(formData.items || []).map((item, idx) => {
-                          const isRevealPending = proposalRevealRun > 0 && idx >= revealedItemCount;
-                          return (
-                           <tr
-                             key={idx}
-                             style={{ transitionDelay: `${Math.min(idx * 75, 300)}ms` }}
-                             className={`transition-all duration-300 ${isRevealPending ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}
-                           >
-                              <td className="py-4 font-medium text-stone-700">{item.description || '...'}</td>
-                              <td className="py-4 text-right px-4 text-stone-500">{item.quantity}</td>
-                              <td className="py-4 text-right font-bold text-stone-800">{formatCurrency(item.quantity * item.unitPrice)}</td>
-                           </tr>
-                          );
-                        })}
-                     </tbody>
-                  </table>
-
-                  <div className="flex justify-end pt-6 border-t-2 border-stone-800">
-                     <div className="w-1/2 space-y-3">
-                        <div className="flex justify-between text-xs font-bold text-stone-500">
-                           <span>Total HT</span>
-                           <span>{formatCurrency(totalHT)}</span>
-                        </div>
-                        {formData.vatRegime === 'standard' && (
-                           <div className="flex justify-between text-xs font-bold text-stone-500">
-                              <span>TVA</span>
-                              <span>{formatCurrency(totalVAT)}</span>
-                           </div>
-                        )}
-                        <div className="flex justify-between text-lg font-black text-stone-800 border-t border-stone-200 pt-3">
-                           <span>Total TTC</span>
-                           <span>{formatCurrency(visibleTotalTTC)}</span>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+            <div className="flex-1 overflow-auto p-4 lg:p-6 bg-surface-container-lowest/30 custom-scrollbar">
+               {/*
+                 The previous preview used a hand-rolled doc with text-3xl
+                 headings + p-10 spacing inside a 5/12 column. On most laptop
+                 widths (~1280px), the content area was ~390px wide — way too
+                 narrow for the typography, so the table overflowed and the
+                 layout looked uncadré ("mal cadrée"). We now reuse the
+                 production-grade PDFPreview component which is already tuned
+                 to fit a compact column without overflow, and reflects the
+                 user's pdfAccentColor + logo just like the real PDF will.
+                */}
+               <PDFPreview
+                 formData={{
+                   ...formData,
+                   clientName:
+                     clients.find(c => c.id === formData.clientId)?.name ||
+                     formData.clientName,
+                   totalHT,
+                   totalVAT,
+                   totalTTC: visibleTotalTTC,
+                 }}
+                 company={company}
+               />
             </div>
             
             <div className="p-6 bg-surface-container-high/80 backdrop-blur-md flex flex-col gap-4">

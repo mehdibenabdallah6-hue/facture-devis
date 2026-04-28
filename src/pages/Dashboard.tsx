@@ -170,7 +170,18 @@ export default function Dashboard() {
   const hasPrice = (articles?.length || 0) > 0;
   const hasInvoice = invoices.length > 0;
   const hasSent = invoices.some(inv => inv.status === 'sent' || inv.status === 'paid');
-  const hasDesign = !!company?.logoUrl;
+  // "Design step done" was previously gated on `logoUrl` — but most artisans
+  // tweak the colour or template without ever uploading a logo, then complain
+  // that the step won't tick. We now consider the design step satisfied as
+  // soon as ANY of: a logo is uploaded, the accent colour was moved off the
+  // default '#E8621A', or a non-default template is chosen.
+  const DEFAULT_ACCENT = '#E8621A';
+  const hasDesign = !!(
+    company?.logoUrl ||
+    (company?.pdfAccentColor &&
+      company.pdfAccentColor.toLowerCase() !== DEFAULT_ACCENT.toLowerCase()) ||
+    (company?.pdfTemplate && company.pdfTemplate !== 'moderne')
+  );
   const onboardingDone = hasPrice && hasInvoice && hasDesign && hasSent;
   const onboardingSteps: { key: string; label: string; done: boolean; to: string; tourId?: string }[] = [
     { key: 'catalog', label: 'Ajouter un prix', done: hasPrice, to: '/app/catalog' },
