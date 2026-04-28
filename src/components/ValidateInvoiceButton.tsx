@@ -53,8 +53,6 @@ export interface ValidateInvoiceButtonProps {
   invoice: Invoice;
   /** Appelé après succès, avec le numéro assigné. */
   onValidated?: (assignedNumber: string) => void;
-  /** Persiste les changements visibles avant l'appel serveur de validation. */
-  beforeValidate?: () => Promise<void>;
   /** Override du libellé du bouton. */
   label?: string;
   className?: string;
@@ -63,7 +61,6 @@ export interface ValidateInvoiceButtonProps {
 export function ValidateInvoiceButton({
   invoice,
   onValidated,
-  beforeValidate,
   label = 'Valider la facture',
   className = '',
 }: ValidateInvoiceButtonProps) {
@@ -144,8 +141,11 @@ export function ValidateInvoiceButton({
     setError(null);
     setSubmitting(true);
     try {
-      await beforeValidate?.();
-      const { number } = await validateInvoice(invoice.id);
+      // The validation API now receives the visible draft and saves it
+      // server-side before assigning the legal number. This avoids fragile
+      // client Firestore updates being rejected just before validation.
+      const { chantierPhotos: _chantierPhotos, ...draft } = invoice;
+      const { number } = await validateInvoice(invoice.id, draft);
       setIsOpen(false);
       onValidated?.(number);
     } catch (e: any) {

@@ -71,8 +71,18 @@ export default async function handler(req: any, res: any) {
   }
 
   // 2. Body
-  const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+  let body: any = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch (e: any) {
+      res.status(400).json({ error: 'Invalid JSON body', detail: e.message });
+      return;
+    }
+  }
+  body = body || {};
   const invoiceId: string | undefined = body.invoiceId;
+  const draft = body.draft && typeof body.draft === 'object' ? body.draft : null;
   if (!invoiceId || typeof invoiceId !== 'string') {
     res.status(400).json({ error: 'invoiceId is required' });
     return;
@@ -97,20 +107,22 @@ export default async function handler(req: any, res: any) {
         return { number: invoice.number, alreadyValidated: true };
       }
 
-      const type: InvoiceType = (invoice.type as InvoiceType) || 'invoice';
+      // Pull company for the prefix and VAT defaults.
+      const companySnap = await tx.get(companyRef);
+      const company = companySnap.exists ? (companySnap.data() as any) : {};
+      const draftPatch = draft ? sanitizeDraftPatch(draft, invoice, company) : null;
+      const invoiceForValidation = draftPatch ? { ...invoice, ...draftPatch } : invoice;
+
+      const type: InvoiceType = (invoiceForValidation.type as InvoiceType) || 'invoice';
       if (!['invoice', 'quote', 'deposit', 'credit'].includes(type)) {
         throw httpError(400, `Invalid invoice type: ${type}`);
       }
-
-      // Pull company for the prefix.
-      const companySnap = await tx.get(companyRef);
-      const company = companySnap.exists ? (companySnap.data() as any) : {};
 
       // Counter doc — one per (company, type, year) for strict legal continuity.
       // Quote sequences and credit-note sequences are independent of invoice
       // sequences per French practice: gaps in the invoice sequence are
       // suspicious to URSSAF/DGFIP, but quotes/avoirs follow their own series.
-      const issueDate = invoice.date ? new Date(invoice.date) : new Date();
+      const issueDate = invoiceForValidation.date ? new Date(invoiceForValidation.date) : new Date();
       const year = isNaN(issueDate.getTime()) ? new Date().getFullYear() : issueDate.getFullYear();
       const counterId = `${type}-${year}`;
       const counterRef = companyRef.collection('counters').doc(counterId);
@@ -133,6 +145,7 @@ export default async function handler(req: any, res: any) {
       }, { merge: true });
 
       tx.update(invoiceRef, {
+        ...(draftPatch || {}),
         number,
         status: 'validated',
         isLocked: true,
@@ -156,6 +169,7 @@ export default async function handler(req: any, res: any) {
           previousNumber: invoice.number || null,
           counterId,
           counterValue: nextValue,
+          draftPatched: !!draftPatch,
         },
       });
 
@@ -174,4 +188,94 @@ function httpError(status: number, message: string): Error {
   const e = new Error(message);
   (e as any).status = status;
   return e;
+}
+
+function sanitizeDraftPatch(draft: any, existing: any, company: any): Record<string, any> {
+  const type = pickEnum<InvoiceType>(draft.type, ['invoice', 'quote', 'deposit', 'credit'], existing.type || 'invoice');
+  const vatRegime = pickEnum(
+    draft.vatRegime,
+    ['standard', 'franchise', 'autoliquidation'],
+    existing.vatRegime || company.vatRegime || 'standard'
+  );
+  const items = sanitizeItems(
+    Array.isArray(draft.items) ? draft.items : existing.items,
+    vatRegime,
+    vatRegime === 'standard' ? toNumber(company.defaultVat, 20) : 0
+  );
+  const totals = calculateTotals(items, vatRegime);
+
+  return pruneUndefined({
+    type,
+    clientId: toStringValue(draft.clientId ?? existing.clientId, 100),
+    clientName: toStringValue(draft.clientName ?? existing.clientName, 100),
+    clientEmail: toStringValue(draft.clientEmail ?? existing.clientEmail, 100),
+    date: toStringValue(draft.date || existing.date || new Date().toISOString().slice(0, 10), 50),
+    dueDate: toStringValue(draft.dueDate ?? existing.dueDate, 50),
+    serviceDate: toStringValue(draft.serviceDate ?? existing.serviceDate, 50),
+    vatRegime,
+    items,
+    totalHT: totals.totalHT,
+    totalVAT: totals.totalVAT,
+    totalTTC: totals.totalTTC,
+    notes: toStringValue(draft.notes ?? existing.notes, 4000),
+    paymentMethod: toStringValue(draft.paymentMethod ?? existing.paymentMethod, 100),
+  });
+}
+
+function sanitizeItems(items: any, vatRegime: string, defaultVat: number) {
+  const source = Array.isArray(items) ? items : [];
+  return source.slice(0, 100).map((item: any) => {
+    const quantity = toNumber(item?.quantity, 1);
+    const unitPrice = toNumber(item?.unitPrice, 0);
+    return {
+      description: toStringValue(item?.description, 500),
+      quantity,
+      unitPrice,
+      vatRate: vatRegime === 'standard' ? toNumber(item?.vatRate, defaultVat) : 0,
+    };
+  });
+}
+
+function calculateTotals(items: Array<{ quantity: number; unitPrice: number; vatRate: number }>, vatRegime: string) {
+  let totalHT = 0;
+  let totalVAT = 0;
+  for (const item of items) {
+    const lineHT = item.quantity * item.unitPrice;
+    totalHT += lineHT;
+    if (vatRegime === 'standard') {
+      totalVAT += lineHT * (item.vatRate / 100);
+    }
+  }
+  totalHT = round2(totalHT);
+  totalVAT = round2(totalVAT);
+  return {
+    totalHT,
+    totalVAT,
+    totalTTC: round2(totalHT + totalVAT),
+  };
+}
+
+function pickEnum<T extends string>(value: any, allowed: T[], fallback: T): T {
+  return allowed.includes(value) ? value : fallback;
+}
+
+function toNumber(value: any, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toStringValue(value: any, maxLength: number): string {
+  if (value == null) return '';
+  return String(value).slice(0, maxLength);
+}
+
+function pruneUndefined<T extends Record<string, any>>(obj: T): T {
+  for (const key of Object.keys(obj)) {
+    if (obj[key] === undefined) delete obj[key];
+  }
+  return obj;
+}
+
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }

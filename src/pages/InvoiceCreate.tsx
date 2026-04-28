@@ -1187,11 +1187,6 @@ export default function InvoiceCreate() {
     } as Omit<Invoice, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>;
   };
 
-  const saveCurrentDraftForValidation = async () => {
-    if (!id || currentInvoice?.isLocked) return;
-    await updateInvoice(id, buildCurrentInvoicePayload(formData.status || 'draft'));
-  };
-
   const handleSave = async (status: Invoice['status'] = 'draft') => {
     // Check plan invoice limit for new invoices
     if (!id && !checkInvoiceLimit()) {
@@ -2916,7 +2911,6 @@ export default function InvoiceCreate() {
                         totalVAT,
                         totalTTC,
                       } as Invoice}
-                      beforeValidate={saveCurrentDraftForValidation}
                       onValidated={(num) => {
                         // Le numéro est attribué par le serveur — on rafraîchit le formulaire
                         // pour que l'aperçu colle. Un toast aurait été plus discret mais on

@@ -328,7 +328,7 @@ interface DataContextType {
    * Returns the assigned number. Idempotent — re-calling on an already
    * validated invoice returns the existing number without re-incrementing.
    */
-  validateInvoice: (invoiceId: string) => Promise<{ number: string; alreadyValidated: boolean }>;
+  validateInvoice: (invoiceId: string, draft?: Partial<Invoice>) => Promise<{ number: string; alreadyValidated: boolean }>;
   /**
    * Create a credit note (avoir) from a validated invoice. The original
    * invoice MUST be locked. Returns the new credit-note id and number.
@@ -844,11 +844,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ---- Server-side validation: assigns the legal number, locks the invoice. ----
   const validateInvoice = async (
-    invoiceId: string
+    invoiceId: string,
+    draft?: Partial<Invoice>
   ): Promise<{ number: string; alreadyValidated: boolean }> => {
     return callApi<{ ok: true; number: string; alreadyValidated: boolean }>(
       '/api/invoice-validate',
-      { invoiceId }
+      { invoiceId, ...(draft ? { draft } : {}) }
     ).then(r => ({ number: r.number, alreadyValidated: r.alreadyValidated }));
   };
 
