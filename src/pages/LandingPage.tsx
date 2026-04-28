@@ -31,7 +31,7 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ profession }: LandingPageProps) {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -206,13 +206,13 @@ export default function LandingPage({ profession }: LandingPageProps) {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={login}
+            onClick={() => navigate('/connexion')}
             className="hidden sm:inline-flex bg-transparent border border-on-surface/15 text-on-surface px-5 py-2 rounded-[10px] text-[13px] font-semibold hover:bg-on-surface/5 transition-colors"
           >
             Se connecter
           </button>
           <button
-            onClick={login}
+            onClick={() => navigate('/inscription?mode=register')}
             className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-3.5 sm:px-5 py-2 rounded-[10px] text-xs sm:text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform whitespace-nowrap"
           >
             Essai gratuit →
@@ -239,7 +239,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           </p>
           <div className="flex flex-col gap-3">
             <button
-              onClick={login}
+              onClick={() => navigate('/inscription?mode=register')}
               className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white border-none px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg w-full sm:w-fit active:scale-[0.98] transition-transform"
             >
               <Mic className="w-[18px] h-[18px]" />
@@ -330,13 +330,13 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
-                onClick={login}
+                onClick={() => navigate('/inscription?mode=register')}
                 className="min-touch bg-primary text-white rounded-[10px] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
               >
                 <Send className="w-3 h-3" /> Envoyer
               </button>
               <button
-                onClick={login}
+                onClick={() => navigate('/inscription?mode=register')}
                 className="min-touch bg-background border-spark text-on-surface rounded-[10px] py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5"
               >
                 <Download className="w-3 h-3" /> PDF
@@ -639,7 +639,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   ))}
                 </div>
                 <button
-                  onClick={login}
+                  onClick={() => navigate('/inscription?mode=register')}
                   className={`w-full min-touch rounded-[10px] py-3 text-[13px] font-bold ${
                     highlight
                       ? 'bg-white text-primary'
@@ -663,7 +663,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           Rejoignez 500+ artisans qui ont simplifié leur facturation.
         </p>
         <button
-          onClick={login}
+          onClick={() => navigate('/inscription?mode=register')}
           className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-5 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform w-full sm:w-auto"
         >
           <Mic className="w-[18px] h-[18px]" />
@@ -712,7 +712,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               {
                 t: 'Produit',
                 links: [
-                  { l: 'Essai gratuit', to: '#', onClick: login },
+                  { l: 'Essai gratuit', to: '/inscription?mode=register' },
                   { l: 'Nouveautés', to: '/nouveautes' },
                   { l: 'Contact', to: '/contact' },
                 ],
@@ -737,7 +737,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                     onClick={e => {
                       if ((l as { onClick?: () => void }).onClick) {
                         e.preventDefault();
-                        (l as { onClick: () => void }).onClick();
+                        (l as unknown as { onClick: () => void }).onClick();
                       }
                     }}
                     className="block text-xs text-white/40 mb-2 hover:text-white/70 transition-colors"

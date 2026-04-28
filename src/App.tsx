@@ -43,6 +43,7 @@ const Upgrade = lazyWithRetry(() => import('./pages/Upgrade'));
 const Contact = lazyWithRetry(() => import('./pages/Contact'));
 const Changelog = lazyWithRetry(() => import('./pages/Changelog'));
 const ReferralPage = lazyWithRetry(() => import('./pages/ReferralPage'));
+const AuthPage = lazyWithRetry(() => import('./pages/AuthPage'));
 
 // Loading fallback for lazy routes
 const PageLoader = () => (
@@ -117,6 +118,8 @@ export default function App() {
               <Route path="/confidentialite" element={<PrivacyPolicy />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/nouveautes" element={<Changelog />} />
+              <Route path="/connexion" element={<Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
+              <Route path="/inscription" element={<Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
               <Route path="/sign/:quoteId" element={<PublicSignature />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

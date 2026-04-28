@@ -40,9 +40,9 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
         : 'border border-gray-200';
 
   return (
-    <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden w-full h-full min-h-0 flex">
-      <div className="p-2 bg-neutral-100 overflow-hidden flex-1 min-h-0 flex items-center justify-center">
-        <div className={`mx-auto h-full max-h-full aspect-[210/297] max-w-full bg-white overflow-hidden flex flex-col shadow-sm ${pageClass}`}>
+    <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden w-full">
+      <div className="p-3 sm:p-4 bg-neutral-100 overflow-hidden flex items-start justify-center">
+        <div className={`mx-auto w-full max-w-[520px] aspect-[210/297] bg-white overflow-hidden flex flex-col shadow-xl ${pageClass}`}>
           {template === 'moderne' && <div className="h-2.5 shrink-0" style={{ backgroundColor: accentColor }} />}
           {template === 'chantier' && (
             <div className="h-10 shrink-0 flex items-center px-4 text-[10px] font-black uppercase tracking-[0.22em] text-white" style={{ backgroundColor: accentColor }}>

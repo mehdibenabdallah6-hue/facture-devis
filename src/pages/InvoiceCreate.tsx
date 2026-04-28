@@ -1443,12 +1443,18 @@ export default function InvoiceCreate() {
       const n = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
       return [n >> 16 & 255, n >> 8 & 255, n & 255];
     };
+    const getImageFormat = (src: string): 'PNG' | 'JPEG' | 'WEBP' => {
+      const mime = src.match(/^data:image\/([^;,]+)/i)?.[1]?.toLowerCase();
+      if (mime === 'jpg' || mime === 'jpeg') return 'JPEG';
+      if (mime === 'webp') return 'WEBP';
+      return 'PNG';
+    };
     const accentRgb = hexToRgb(accentHex);
     
     // Insert Letterhead background if present
     if (company?.letterheadUrl) {
       try {
-        doc.addImage(company.letterheadUrl, 'JPEG', 0, 0, 210, 297);
+        doc.addImage(company.letterheadUrl, getImageFormat(company.letterheadUrl), 0, 0, 210, 297);
       } catch (err) {
         console.error("Erreur ajout papier en-tête:", err);
       }
@@ -1483,7 +1489,7 @@ export default function InvoiceCreate() {
       if (!company?.letterheadUrl) {
         if (company?.logoUrl) {
           try {
-            doc.addImage(company.logoUrl, 'PNG', 14, 12, 20, 20); // Keep size reasonable
+            doc.addImage(company.logoUrl, getImageFormat(company.logoUrl), 14, 12, 20, 20); // Keep size reasonable
           } catch (logoError) {
             console.error("Erreur d'ajout du logo:", logoError);
             doc.setFontSize(24);
@@ -2269,7 +2275,7 @@ export default function InvoiceCreate() {
       )}
       <div className={`animate-fade-in grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 transition-all duration-700 ${(step === 'paywall' || step === 'activation_pending') ? 'blur-md pointer-events-none opacity-50' : ''}`}>
       {/* Form Column */}
-      <div className="lg:col-span-7 space-y-4 md:space-y-8 pb-8">
+      <div className="lg:col-span-6 space-y-4 md:space-y-8 pb-8">
         <header className="space-y-1.5 md:space-y-2 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 md:gap-4">
           <div>
             <button onClick={() => navigate('/app/invoices')} className="min-touch flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface text-xs md:text-sm font-bold mb-2 md:mb-3 transition-colors group -ml-2 px-2">
@@ -3078,9 +3084,9 @@ export default function InvoiceCreate() {
       </div>
 
       {/* Preview Column (Hidden on mobile) */}
-      <div className="hidden lg:block lg:col-span-5 sticky top-8 h-[calc(100vh-4rem)]">
-         <div className="bg-surface-container rounded-[3rem] h-full shadow-2xl border border-outline-variant/10 overflow-hidden flex flex-col relative group">
-            <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/50 backdrop-blur-md z-10">
+      <div className="hidden lg:block lg:col-span-6 sticky top-6 self-start">
+         <div className="bg-surface-container rounded-[2.5rem] shadow-2xl border border-outline-variant/10 overflow-hidden flex flex-col relative group">
+            <div className="px-6 py-5 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/50 backdrop-blur-md z-10">
                <h3 className="font-headline font-black text-on-surface uppercase tracking-widest text-sm flex items-center gap-2">
                  <FileText className="w-5 h-5 text-primary" />
                  Aperçu Temps Réel
@@ -3092,7 +3098,7 @@ export default function InvoiceCreate() {
                </div>
             </div>
             
-            <div className="flex-1 overflow-hidden p-3 lg:p-4 bg-surface-container-lowest/30 min-h-0">
+            <div className="overflow-hidden p-4 xl:p-5 bg-surface-container-lowest/30">
                {/*
                  The previous preview used a hand-rolled doc with text-3xl
                  headings + p-10 spacing inside a 5/12 column. On most laptop
@@ -3117,7 +3123,7 @@ export default function InvoiceCreate() {
                />
             </div>
             
-            <div className="p-6 bg-surface-container-high/80 backdrop-blur-md flex flex-col gap-4">
+            <div className="p-5 bg-surface-container-high/80 backdrop-blur-md flex flex-col gap-4">
               <div className="flex justify-between items-center">
                  <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Plus d'options</p>
                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">PLAN PRO</span>

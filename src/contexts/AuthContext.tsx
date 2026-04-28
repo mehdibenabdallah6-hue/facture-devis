@@ -6,7 +6,9 @@ import {
   GoogleAuthProvider, 
   signOut,
   browserLocalPersistence,
-  setPersistence
+  setPersistence,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { track, identifyUser } from '../services/analytics';
@@ -15,6 +17,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  registerWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -44,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
+    await setPersistence(auth, browserLocalPersistence);
     const result = await signInWithPopup(auth, provider);
     // Distinguish first-time signup vs returning login. Firebase exposes
     // creationTime / lastSignInTime; if they're equal (within ~5 s) it's a
@@ -61,13 +66,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence);
+    const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+    track('login_completed', {
+      provider: 'password',
+      uid: result.user.uid,
+    });
+  };
+
+  const registerWithEmail = async (email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence);
+    const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    track('signup_completed', {
+      provider: 'password',
+      uid: result.user.uid,
+    });
+  };
+
   const logout = async () => {
     track('logout');
     await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
