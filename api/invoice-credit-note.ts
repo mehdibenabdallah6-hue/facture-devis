@@ -24,8 +24,8 @@
  */
 
 import { Timestamp } from 'firebase-admin/firestore';
-import { ensureFirebaseAdmin } from './_firebase-admin';
-import { verifyAuth } from './_verify-auth';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
+import { verifyAuth } from './_verify-auth.js';
 
 function buildNumber(prefix: string, year: number, n: number): string {
   return `${prefix}-${year}-${String(n).padStart(4, '0')}`;

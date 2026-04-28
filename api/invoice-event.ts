@@ -11,8 +11,8 @@
  *   appends the event with a server-side timestamp.
  */
 
-import { ensureFirebaseAdmin } from './_firebase-admin';
-import { verifyAuth } from './_verify-auth';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
+import { verifyAuth } from './_verify-auth.js';
 
 const ALLOWED_TYPES = new Set([
   'create',

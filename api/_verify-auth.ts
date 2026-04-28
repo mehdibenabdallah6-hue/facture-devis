@@ -5,7 +5,7 @@
  * Use this in every API route that performs writes on behalf of a user —
  * NEVER trust a userId passed in the request body.
  */
-import { ensureFirebaseAdmin } from './_firebase-admin';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
 
 export async function verifyAuth(req: any): Promise<{ uid: string; email?: string }> {
   const header: string | undefined = req.headers?.authorization || req.headers?.Authorization;

@@ -20,7 +20,7 @@
 //   - Vercel sets `Authorization: Bearer ${CRON_SECRET}` on cron invocations.
 //     We accept either that secret or `?secret=...` for manual triggers.
 
-import { ensureFirebaseAdmin } from './_firebase-admin';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const REMINDER_FROM = 'Photofacto <factures@photofacto.fr>';

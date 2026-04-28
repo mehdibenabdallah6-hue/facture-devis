@@ -32,8 +32,8 @@
  */
 
 import { Timestamp } from 'firebase-admin/firestore';
-import { ensureFirebaseAdmin } from './_firebase-admin';
-import { verifyAuth } from './_verify-auth';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
+import { verifyAuth } from './_verify-auth.js';
 
 type InvoiceType = 'invoice' | 'quote' | 'deposit' | 'credit';
 

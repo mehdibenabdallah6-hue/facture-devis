@@ -7,8 +7,8 @@
 //    counter the way it could when increments lived in DataContext).
 //  - On AI failure (both models down) we roll back the quota so the user
 //    isn't billed a quota-slot for nothing.
-import { verifyAuth } from './_verify-auth';
-import { ensureFirebaseAdmin } from './_firebase-admin';
+import { verifyAuth } from './_verify-auth.js';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // Stable, generally-available Gemini models. `gemini-3-flash-preview` was a

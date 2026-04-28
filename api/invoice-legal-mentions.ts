@@ -6,8 +6,8 @@
  * Firestore rules depending on the invoice state/shape, so this endpoint keeps
  * the write authoritative while preserving the same ownership and lock checks.
  */
-import { ensureFirebaseAdmin } from './_firebase-admin';
-import { verifyAuth } from './_verify-auth';
+import { ensureFirebaseAdmin } from './_firebase-admin.js';
+import { verifyAuth } from './_verify-auth.js';
 
 const MAX_NOTES_LENGTH = 4000;
 
