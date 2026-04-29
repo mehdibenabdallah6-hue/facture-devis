@@ -1449,6 +1449,24 @@ export default function InvoiceCreate() {
       if (mime === 'webp') return 'WEBP';
       return 'PNG';
     };
+    const normalizePdfImage = async (src: string): Promise<{ dataUrl: string; width: number; height: number; format: 'PNG' }> => {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Image PDF illisible'));
+        img.src = src;
+      });
+      const canvas = document.createElement('canvas');
+      const maxSize = 520;
+      const ratio = Math.min(1, maxSize / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+      canvas.width = Math.max(1, Math.round((image.naturalWidth || image.width) * ratio));
+      canvas.height = Math.max(1, Math.round((image.naturalHeight || image.height) * ratio));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas PDF indisponible');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height, format: 'PNG' };
+    };
     const accentRgb = hexToRgb(accentHex);
     
     // Insert Letterhead background if present
@@ -1472,9 +1490,9 @@ export default function InvoiceCreate() {
           doc.line(14, 42, 196, 42);
         } else if (template === 'chantier') {
           doc.setFillColor(...accentRgb);
-          doc.rect(0, 0, 210, 28, 'F');
+          doc.rect(0, 0, 210, 18, 'F');
           doc.setFillColor(255, 251, 235);
-          doc.rect(0, 28, 210, 14, 'F');
+          doc.rect(0, 18, 210, 12, 'F');
         } else {
           doc.setFillColor(...accentRgb);
           doc.rect(0, 0, 210, 10, 'F');
@@ -1487,10 +1505,19 @@ export default function InvoiceCreate() {
     // Draw logo independently from company details: hiding details must not hide branding.
     if (!company?.letterheadUrl && company?.logoUrl) {
       try {
-        doc.addImage(company.logoUrl, getImageFormat(company.logoUrl), 14, 12, 20, 20);
-        yPos = 36;
+        const logo = await normalizePdfImage(company.logoUrl);
+        const logoRatio = logo.width / Math.max(1, logo.height);
+        const logoW = Math.min(28, Math.max(14, 18 * logoRatio));
+        const logoH = logoW / logoRatio;
+        const logoY = template === 'chantier' ? 34 : 14;
+        doc.addImage(logo.dataUrl, logo.format, 14, logoY, logoW, logoH);
+        yPos = logoY + logoH + 5;
       } catch (logoError) {
         console.error("Erreur d'ajout du logo:", logoError);
+        doc.setTextColor(28, 25, 23);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text(company?.name || 'Mon Entreprise', 14, template === 'chantier' ? 44 : 25);
       }
     }
 
@@ -1524,12 +1551,21 @@ export default function InvoiceCreate() {
     // Draw Document Title & Number (Top Right)
     try {
       const title = formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE';
-      doc.setTextColor(...(template === 'classique' || company?.letterheadUrl ? [28, 25, 23] as [number, number, number] : accentRgb));
-      doc.setFontSize(20);
-      doc.text(title, 140, 22);
-      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text(`N° ${formData.number}`, 140, 30);
+      if (template === 'chantier' && !company?.letterheadUrl) {
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(15);
+        doc.text(title, 196, 12, { align: 'right' });
+        doc.setTextColor(28, 25, 23);
+        doc.setFontSize(10);
+        doc.text(`N° ${formData.number}`, 196, 25, { align: 'right' });
+      } else {
+        doc.setTextColor(...(template === 'classique' || company?.letterheadUrl ? [28, 25, 23] as [number, number, number] : accentRgb));
+        doc.setFontSize(20);
+        doc.text(title, 140, 22);
+        doc.setFontSize(11);
+        doc.text(`N° ${formData.number}`, 140, 30);
+      }
       doc.setFont('helvetica', 'normal');
     } catch (e) {
       console.error("Title rendering error:", e);
@@ -1660,39 +1696,42 @@ export default function InvoiceCreate() {
     doc.setFontSize(8);
     doc.setTextColor(150);
     
-    let footerY = 270;
-    
+    const footerLines: string[] = [];
+
     if (formData.vatRegime === 'franchise') {
-      doc.text('TVA non applicable, art. 293 B du CGI.', 105, footerY, { align: 'center' });
-      footerY += 5;
+      footerLines.push('TVA non applicable, art. 293 B du CGI.');
     } else if (formData.vatRegime === 'autoliquidation') {
-      doc.text('Autoliquidation de la TVA (Art. 283-2 nonies du CGI).', 105, footerY, { align: 'center' });
-      footerY += 5;
+      footerLines.push('Autoliquidation de la TVA (Art. 283-2 nonies du CGI).');
     }
     
     if (company?.decennale) {
-      doc.text(`Assurance Décennale: ${company.decennale}`, 105, footerY, { align: 'center' });
-      footerY += 5;
+      footerLines.push(`Assurance Décennale: ${company.decennale}`);
     }
     if (company?.rcPro) {
-      doc.text(`Assurance RC Pro: ${company.rcPro}`, 105, footerY, { align: 'center' });
-      footerY += 5;
+      footerLines.push(`Assurance RC Pro: ${company.rcPro}`);
     }
     if (company?.pdfFooterText) {
-      doc.text(company.pdfFooterText, 105, footerY, { align: 'center' });
-      footerY += 5;
+      footerLines.push(company.pdfFooterText);
     }
 
     if (formData.type !== 'quote' && formData.type !== 'credit') {
-      doc.setTextColor(150);
-      doc.text("Conforme aux exigences de la réforme de facturation électronique 2026.", 105, footerY, { align: 'center' });
-      footerY += 5;
+      footerLines.push("Conforme aux exigences de la réforme de facturation électronique 2026.");
     }
 
     const footerParts = [company?.name, company?.address, company?.siret ? `SIRET: ${company.siret}` : ''].filter(Boolean);
-    doc.text(footerParts.join(' — '), 105, footerY, { align: 'center' });
+    if (footerParts.length > 0) {
+      footerLines.push(footerParts.join(' — '));
+    }
     if (formData.type !== 'quote' && formData.type !== 'credit') {
-      doc.text(`En cas de retard de paiement, une indemnité forfaitaire de 40€ sera appliquée.`, 105, footerY + 5, { align: 'center' });
+      footerLines.push('En cas de retard de paiement, une indemnité forfaitaire de 40€ sera appliquée.');
+    }
+
+    if (footerLines.length > 0) {
+      const flattenedFooter = footerLines.flatMap(line => doc.splitTextToSize(line, 175) as string[]);
+      const footerStartY = Math.max(252, Math.min(276, 286 - flattenedFooter.length * 4));
+      flattenedFooter.forEach((line, index) => {
+        doc.text(line, 105, footerStartY + index * 4, { align: 'center' });
+      });
     }
 
     if (formData.chantierPhotos && formData.chantierPhotos.length > 0) {
