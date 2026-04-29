@@ -123,8 +123,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       setMeta(seoData[profession].title, seoData[profession].description);
     } else {
       setMeta(
-        'Photofacto — Photo + description = facture à valider | Facturation IA pour artisans',
-        "Photofacto : ajoutez une photo, décrivez le chantier en quelques mots, l'IA prépare une proposition de facture modifiable. Essai gratuit 14 jours.",
+        'Photofacto — Facturation BTP + Chorus Pro pour artisans',
+        "Le logiciel de facturation pensé pour les artisans BTP qui veulent créer des devis, factures Factur-X et dossiers prêts pour Chorus Pro. Essai gratuit 14 jours.",
       );
     }
   }, [profession]);
@@ -166,11 +166,11 @@ export default function LandingPage({ profession }: LandingPageProps) {
     </>
   ) : (
     <>
-      Photo + description
+      Le logiciel de facturation
       <br />
-      rapide
+      pensé pour les artisans BTP
       <br />
-      <span className="text-primary">facture à valider.</span>
+      <span className="text-primary">et Chorus Pro.</span>
     </>
   );
 
@@ -226,16 +226,16 @@ export default function LandingPage({ profession }: LandingPageProps) {
           <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-2.5 md:px-3 py-1.5 mb-4 md:mb-7">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
             <span className="text-[11px] md:text-xs font-semibold text-primary-dim">
-              + de 500 artisans · Conforme Factur-X 2026
+              Artisans BTP · Factur-X · Chorus Pro
             </span>
           </div>
           <h1 className="font-headline font-extrabold text-[33px] sm:text-[52px] lg:text-[62px] leading-[1.04] text-secondary-dim mb-4 md:mb-5">
             {heroTitle}
           </h1>
           <p className="text-[15px] md:text-[17px] text-on-surface-variant leading-[1.55] md:leading-[1.7] max-w-[480px] mb-5 md:mb-8">
-            Artisans — dictez votre prestation depuis le chantier. L'IA Gemini génère une{' '}
-            <strong className="text-on-surface">facture conforme</strong> instantanément. Fini
-            l'Excel et le papier.
+            Créez vos devis et factures BTP, vérifiez les mentions légales, exportez en{' '}
+            <strong className="text-on-surface">Factur-X</strong> et préparez vos dépôts Chorus Pro
+            sans tableur ni bricolage administratif.
           </p>
           <div className="flex flex-col gap-3">
             <button
@@ -247,7 +247,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               <ArrowRight className="w-4 h-4" />
             </button>
             <div className="flex flex-wrap gap-3 sm:gap-5">
-              {['Sans carte bancaire', 'Annulation facile', 'Mentions FR & Factur-X'].map(t => (
+              {['Sans carte bancaire', 'Factur-X', 'Chorus Pro pour marchés publics'].map(t => (
                 <div
                   key={t}
                   className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant"
@@ -350,11 +350,11 @@ export default function LandingPage({ profession }: LandingPageProps) {
       <section className="bg-white border-y-spark py-4 md:py-7">
         <div className="max-w-[1200px] mx-auto px-4 md:px-14 grid grid-cols-2 sm:grid-cols-5 gap-2.5 md:gap-3">
           {[
-            ['500+', 'artisans actifs'],
-            ['10s', 'par facture'],
-            ['2h', 'gagnées / semaine'],
-            ['4.9/5', 'note moyenne'],
+            ['BTP', 'spécial artisans'],
+            ['Chorus', 'marchés publics'],
             ['Factur-X', 'PDF/A-3 + CII'],
+            ['SIRET', 'mentions vérifiées'],
+            ['IA', 'brouillon à valider'],
           ].map(([v, l], i) => (
             <div key={v as string} className="flex items-center justify-center gap-5 rounded-xl md:rounded-2xl bg-background/70 px-2 py-2.5 sm:bg-transparent sm:px-0 sm:py-0">
               {i > 0 && <div className="hidden md:block w-px h-10 bg-outline-variant" />}
@@ -372,10 +372,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
         <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-8 md:mb-11">
             <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
-              La facturation sans effort
+              Du chantier au dépôt Chorus
             </h2>
             <p className="text-[15px] text-on-surface-variant max-w-md mx-auto">
-              Photo + description rapide : l'IA prépare une proposition, vous vérifiez et validez.
+              Décrivez la prestation, vérifiez les mentions, exportez une facture prête pour vos clients publics.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
@@ -383,20 +383,20 @@ export default function LandingPage({ profession }: LandingPageProps) {
               {
                 n: '01',
                 icon: <Mic className="w-[22px] h-[22px] text-primary" />,
-                t: 'Photo + description',
-                d: "Ajoutez une photo du chantier, puis décrivez ou dictez la prestation en quelques mots.",
+                t: 'Chantier décrit simplement',
+                d: "Photo si utile, description rapide, catalogue de prix : l'IA prépare un brouillon réaliste.",
               },
               {
                 n: '02',
                 icon: <Zap className="w-[22px] h-[22px] text-primary fill-primary" />,
-                t: "L'IA prépare un brouillon",
-                d: "Elle s'appuie d'abord sur votre description et vos tarifs catalogue quand ils existent.",
+                t: 'Mentions vérifiées',
+                d: 'SIRET, TVA, client, échéance et lignes restent visibles avant validation.',
               },
               {
                 n: '03',
                 icon: <Check className="w-[22px] h-[22px] text-primary" strokeWidth={3} />,
-                t: 'Validez et envoyez',
-                d: 'PDF professionnel, conforme Factur-X 2026, envoyé en un clic depuis votre téléphone.',
+                t: 'Factur-X puis Chorus Pro',
+                d: 'Téléchargez le PDF Factur-X et gardez un document propre pour les marchés publics.',
               },
             ].map(({ n, icon, t, d }) => (
               <div
@@ -423,32 +423,32 @@ export default function LandingPage({ profession }: LandingPageProps) {
       <section id="features" className="pb-10 md:pb-16 px-4 md:px-14 bg-background">
         <div className="max-w-[1200px] mx-auto">
           <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2 text-center">
-            Tout ce qu'il vous faut
+            Pensé pour les factures BTP publiques
           </h2>
           <p className="text-[15px] text-on-surface-variant text-center mb-8 md:mb-10">
-            Un outil complet, pensé par et pour les artisans.
+            Pas un logiciel généraliste : les bons garde-fous pour devis, factures, avoirs et Chorus Pro.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {[
               {
                 icon: <FileText className="w-[18px] h-[18px] text-primary" />,
-                t: 'Factures & Devis',
-                d: 'Créez factures, devis, acomptes et avoirs conformes en quelques secondes.',
+                t: 'Factures & devis BTP',
+                d: 'Créez factures, devis, acomptes et avoirs avec les infos légales visibles.',
               },
               {
                 icon: <Users className="w-[18px] h-[18px] text-primary" />,
-                t: 'Fichier clients',
-                d: 'Gérez votre carnet B2B et B2C avec SIREN, TVA intra et historique.',
+                t: 'Clients publics et privés',
+                d: 'Gérez B2B, B2C et clients publics avec SIREN, TVA intra et historique.',
               },
               {
                 icon: <ShieldCheck className="w-[18px] h-[18px] text-primary" />,
-                t: 'Conforme 2026',
-                d: 'Toutes les mentions légales obligatoires, vérifiées automatiquement.',
+                t: 'Contrôles avant validation',
+                d: 'Les mentions bloquantes sont signalées avant d’envoyer une facture officielle.',
               },
               {
                 icon: <Send className="w-[18px] h-[18px] text-primary" />,
-                t: 'Envoi par email',
-                d: "Envoyez vos PDF directement depuis l'app, avec signature électronique.",
+                t: 'Factur-X & Chorus Pro',
+                d: "Exportez le PDF Factur-X et préparez vos dépôts pour les marchés publics.",
               },
             ].map(({ icon, t, d }) => (
               <div
@@ -535,7 +535,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   '10 factures / mois',
                   '5 extractions IA / mois',
                   'PDF téléchargeable',
-                  'Conformité Factur-X 2026',
+                  'Export Factur-X',
                 ],
                 cta: 'Commencer gratuitement',
                 highlight: false,
@@ -549,7 +549,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   'Factures & Devis illimités',
                   '50 extractions IA / mois',
                   'Calculateur de surfaces',
-                  'Conformité Factur-X 2026',
+                  'Contrôles mentions BTP',
                 ],
                 cta: "S'abonner à Solo",
                 highlight: true,
@@ -563,7 +563,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   'Tout le plan Solo',
                   'IA en illimité',
                   'Photos chantier dans PDF',
-                  'Export FEC & Chorus Pro',
+                  'Préparation Chorus Pro',
                 ],
                 cta: 'Passer en Pro',
                 highlight: false,
@@ -657,10 +657,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
       {/* ── CTA final ──────────────────────────────────────────── */}
       <section className="bg-secondary-dim py-8 md:py-14 px-4 md:px-6 text-center">
         <h2 className="font-headline font-extrabold text-[28px] md:text-[40px] text-white mb-2.5 leading-tight">
-          Prêt à gagner 2h par semaine ?
+          Prêt à facturer vos marchés publics plus proprement ?
         </h2>
         <p className="text-sm md:text-[15px] text-white/50 mb-6 md:mb-8">
-          Rejoignez 500+ artisans qui ont simplifié leur facturation.
+          Photofacto aide les artisans BTP à passer de la prestation terrain à une facture claire, vérifiable et prête pour Chorus Pro.
         </p>
         <button
           onClick={() => navigate('/inscription?mode=register')}
@@ -695,7 +695,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </span>
               </div>
               <p className="text-xs text-white/30 leading-relaxed">
-                Photo + description rapide = facture prête à valider. L'IA au service des artisans.
+                Le logiciel de facturation pensé pour les artisans BTP, Factur-X et Chorus Pro.
               </p>
             </div>
             {[
