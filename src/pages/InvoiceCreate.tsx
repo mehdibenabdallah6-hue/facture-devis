@@ -1484,26 +1484,19 @@ export default function InvoiceCreate() {
       }
     }
     
+    // Draw logo independently from company details: hiding details must not hide branding.
+    if (!company?.letterheadUrl && company?.logoUrl) {
+      try {
+        doc.addImage(company.logoUrl, getImageFormat(company.logoUrl), 14, 12, 20, 20);
+        yPos = 36;
+      } catch (logoError) {
+        console.error("Erreur d'ajout du logo:", logoError);
+      }
+    }
+
     // Draw Company Info (Top Left)
     if (!company?.hideCompanyInfo) {
-      if (!company?.letterheadUrl) {
-        if (company?.logoUrl) {
-          try {
-            doc.addImage(company.logoUrl, getImageFormat(company.logoUrl), 14, 12, 20, 20); // Keep size reasonable
-          } catch (logoError) {
-            console.error("Erreur d'ajout du logo:", logoError);
-            doc.setFontSize(24);
-            doc.setFont('helvetica', 'bold');
-            doc.text(company?.name || 'Facture', 14, 25);
-          }
-        } else {
-          doc.setFontSize(24);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(28, 25, 23);
-          doc.text(company?.name || 'Mon Entreprise', 14, 25);
-        }
-      } else {
-        // Dark text if letterhead
+      if (!company?.logoUrl || company?.letterheadUrl) {
         doc.setTextColor(28, 25, 23);
         doc.setFontSize(24);
         doc.setFont('helvetica', 'bold');
@@ -1511,8 +1504,9 @@ export default function InvoiceCreate() {
       }
 
       doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(100);
-      
+
       if (company?.address) {
         const addressLines = doc.splitTextToSize(company.address, 80);
         doc.text(addressLines, 14, yPos);
