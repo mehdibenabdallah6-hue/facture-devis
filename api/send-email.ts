@@ -48,8 +48,10 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Contenu de l’e-mail manquant.' });
     }
 
+    const verifiedFrom = extractEmailAddress(process.env.RESEND_FROM_EMAIL || 'factures@photofacto.fr');
+    const senderName = sanitizeEmailName(fromName || 'Photofacto');
     const emailPayload: Record<string, any> = {
-      from: process.env.RESEND_FROM_EMAIL || 'Photofacto <contact@photofacto.fr>',
+      from: `${senderName}${senderName.toLowerCase().includes('photofacto') ? '' : ' via Photofacto'} <${verifiedFrom}>`,
       to: cleanRecipients,
       subject,
       html,
@@ -86,6 +88,19 @@ export default async function handler(req: any, res: any) {
     console.error('send-email error:', err);
     return res.status(500).json({ error: err.message || 'Erreur serveur lors de l’envoi.' });
   }
+}
+
+function sanitizeEmailName(value: string): string {
+  return String(value || '')
+    .replace(/[<>"\r\n]/g, '')
+    .trim()
+    .slice(0, 80) || 'Photofacto';
+}
+
+function extractEmailAddress(value: string): string {
+  const raw = String(value || '').trim();
+  const match = raw.match(/<([^>]+)>/);
+  return (match?.[1] || raw || 'factures@photofacto.fr').trim();
 }
 
 function buildContactHtml({ fromName, fromEmail, message }: Record<string, any>): string {

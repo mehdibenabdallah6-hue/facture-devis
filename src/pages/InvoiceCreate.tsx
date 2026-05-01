@@ -5,6 +5,7 @@ import { InvoiceHistoryPanel } from '../components/InvoiceHistoryPanel';
 import { ValidateInvoiceButton } from '../components/ValidateInvoiceButton';
 import { CreditNoteButton } from '../components/CreditNoteButton';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import PaddlePaywall from '../components/PaddlePaywall';
@@ -295,6 +296,7 @@ function SignatureShareButton({ invoiceId, shareQuoteForSignature }: { invoiceId
 export default function InvoiceCreate() {
   const { id } = useParams();
   const { company, clients, invoices, invoiceEvents, articles, addInvoice, updateInvoice, shareQuoteForSignature, addClient, logInvoiceEvent } = useData();
+  const { user } = useAuth();
   // Source of truth pour l'invoice en cours d'édition. On la regarde
   // depuis le store Firestore plutôt que depuis `formData` car le verrou
   // (`isLocked`) n'apparaît dans formData qu'après refresh.
@@ -1249,6 +1251,7 @@ export default function InvoiceCreate() {
   const handleSendEmail = async () => {
     const client = clients.find(c => c.id === formData.clientId);
     const email = client?.email || '';
+    const artisanEmail = company?.email || user?.email || '';
     
     if (!email) {
       showError('Email manquant', "Le client n'a pas d'adresse e-mail renseignée.");
@@ -1276,6 +1279,8 @@ export default function InvoiceCreate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: email,
+          fromName: company?.name || user?.displayName || 'Votre artisan',
+          fromEmail: artisanEmail,
           subject: `${docName} ${formData.number} - ${company?.name || 'Photofacto'}`,
           html: `
             <p>Bonjour,</p>

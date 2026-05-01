@@ -7,6 +7,7 @@ import { Search, Plus, FileText, Edit, Trash2, Send, Euro, RefreshCw, Filter, Sh
 import { Invoice } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { EmptyInvoicesState, EmptySearchState } from '../components/EmptyStates';
 import { UpsellBanner } from '../components/UpsellBanner';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus, getInvoiceStatusLabel } from '../components/InvoiceStatusBadge';
@@ -19,6 +20,7 @@ import type { default as JsPDFType } from 'jspdf';
 
 export default function InvoicesList() {
   const { invoices, clients, company, deleteInvoice, updateInvoice, shareQuoteForSignature, logInvoiceEvent } = useData();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -222,11 +224,14 @@ export default function InvoicesList() {
 
     setIsSendingReminder(invoice.id);
     try {
+      const artisanEmail = company?.email || user?.email || '';
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: email,
+          fromName: company?.name || user?.displayName || 'Votre artisan',
+          fromEmail: artisanEmail,
           subject: `Relance facture ${invoice.number} - ${company?.name || 'Photofacto'}`,
           html: `
             <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
