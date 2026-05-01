@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import SignatureCanvas from '../components/SignatureCanvas';
-import { Camera, CheckCircle2, FileText, AlertCircle, ShieldCheck, Building2 } from 'lucide-react';
+import PhotofactoWordmark from '../components/PhotofactoWordmark';
+import { CheckCircle2, FileText, AlertCircle, ShieldCheck, Building2, PenLine, UserRound } from 'lucide-react';
 
 type SharedQuote = {
   // Original invoice data
@@ -116,7 +117,7 @@ export default function PublicSignature() {
       <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,98,26,0.12),transparent_32%),linear-gradient(135deg,#fffaf5_0%,#f7f2ec_48%,#eef7f4_100%)] flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center shadow-sm">
-            <Camera className="w-8 h-8 text-primary" />
+            <PenLine className="w-8 h-8 text-primary" />
           </div>
           <p className="text-on-surface-variant font-medium">Chargement du devis...</p>
         </div>
@@ -170,12 +171,8 @@ export default function PublicSignature() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,98,26,0.14),transparent_34%),linear-gradient(135deg,#fffaf5_0%,#f7f2ec_48%,#eef7f4_100%)] font-body">
       {/* Header */}
       <nav className="sticky top-0 z-10 flex items-center justify-center gap-2.5 border-b border-white/60 bg-white/80 p-4 backdrop-blur-xl">
-        <div className="w-10 h-10 bg-primary text-on-primary rounded-xl flex items-center justify-center shadow-md shadow-primary/15">
-          <Camera className="w-5 h-5" />
-        </div>
-        <span className="wordmark-photofacto text-xl">
-          <span className="wm-photo">PHOTO</span><span className="wm-facto">FACTO</span>
-        </span>
+        <img src="/icons/icon-192.png" alt="Photofacto" className="h-10 w-10 rounded-xl object-contain shadow-sm" />
+        <PhotofactoWordmark className="text-xl" />
       </nav>
 
       <main className="max-w-3xl mx-auto px-4 py-6 md:py-10 space-y-5 md:space-y-6">
@@ -276,7 +273,22 @@ export default function PublicSignature() {
         </section>
 
         {/* Signature Section */}
-        <section className="bg-white/95 rounded-[2rem] p-5 md:p-8 shadow-xl shadow-primary/5 border border-primary/15 space-y-5 backdrop-blur-sm animate-fade-in-up animation-delay-200">
+        <section className="bg-white/95 rounded-[2rem] p-5 md:p-8 shadow-xl shadow-primary/5 border-2 border-primary/20 space-y-5 backdrop-blur-sm animate-fade-in-up animation-delay-200">
+          <div className="rounded-3xl bg-primary text-on-primary p-4 md:p-5 shadow-spark-cta">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                <PenLine className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">Dernière étape</p>
+                <h2 className="font-headline text-2xl font-extrabold leading-tight">Entrez votre nom pour signer le devis</h2>
+                <p className="mt-1 text-sm font-medium text-white/80">
+                  Le cadre de signature apparaît juste après votre nom.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-primary text-on-primary rounded-2xl flex items-center justify-center shadow-spark-cta">
               <FileText className="w-5 h-5 text-on-primary" />
@@ -288,19 +300,23 @@ export default function PublicSignature() {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 block">Votre nom complet</label>
-            <input
-              type="text"
-              value={signerName}
-              onChange={(e) => setSignerName(e.target.value)}
-              placeholder="Prénom Nom"
-              className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-primary/20 focus:border-primary/40 font-medium transition-all"
-            />
+            <label className="text-xs font-bold text-primary uppercase tracking-widest mb-2 block">1. Votre nom complet</label>
+            <div className="relative">
+              <UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
+              <input
+                type="text"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                placeholder="Ex : Jean Dupont"
+                autoComplete="name"
+                className="w-full bg-primary/5 border-2 border-primary/25 rounded-2xl pl-12 pr-4 py-4 text-base focus:ring-4 focus:ring-primary/15 focus:border-primary font-bold text-on-surface placeholder:text-on-surface-variant/60 transition-all"
+              />
+            </div>
           </div>
 
           {signerName.trim() ? (
             <div className="animate-fade-in">
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 block">Votre signature</label>
+              <label className="text-xs font-bold text-primary uppercase tracking-widest mb-2 block">2. Votre signature</label>
               <SignatureCanvas
                 onSave={handleSign}
                 width={Math.min(500, window.innerWidth - 80)}
@@ -308,9 +324,14 @@ export default function PublicSignature() {
               />
             </div>
           ) : (
-            <p className="text-center text-sm text-on-surface-variant py-6 bg-surface-container-low/60 rounded-2xl border border-outline-variant/10">
-              Entrez votre nom pour afficher le cadre de signature
-            </p>
+            <div className="flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-4 text-sm text-on-surface">
+              <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <p>
+                <strong>Commencez par écrire votre nom complet.</strong>
+                <br />
+                La zone de signature apparaîtra ensuite automatiquement.
+              </p>
+            </div>
           )}
 
           {signing && (
