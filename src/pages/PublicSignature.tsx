@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import SignatureCanvas from '../components/SignatureCanvas';
-import { Camera, CheckCircle2, FileText, AlertCircle } from 'lucide-react';
+import { Camera, CheckCircle2, FileText, AlertCircle, ShieldCheck, Building2 } from 'lucide-react';
 
 type SharedQuote = {
   // Original invoice data
@@ -113,9 +113,9 @@ export default function PublicSignature() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,98,26,0.12),transparent_32%),linear-gradient(135deg,#fffaf5_0%,#f7f2ec_48%,#eef7f4_100%)] flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center shadow-sm">
             <Camera className="w-8 h-8 text-primary" />
           </div>
           <p className="text-on-surface-variant font-medium">Chargement du devis...</p>
@@ -126,8 +126,8 @@ export default function PublicSignature() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center px-6">
-        <div className="bg-surface-container-lowest rounded-3xl p-10 text-center max-w-md shadow-lg border border-outline-variant/10">
+      <div className="min-h-screen bg-[linear-gradient(135deg,#fffaf5_0%,#f7f2ec_55%,#eef7f4_100%)] flex items-center justify-center px-6">
+        <div className="bg-surface-container-lowest rounded-3xl p-8 md:p-10 text-center max-w-md shadow-xl border border-outline-variant/10">
           <div className="w-16 h-16 bg-error-container rounded-2xl flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-error" />
           </div>
@@ -140,8 +140,8 @@ export default function PublicSignature() {
 
   if (signed) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center px-6">
-        <div className="bg-surface-container-lowest rounded-3xl p-10 text-center max-w-md shadow-lg border border-outline-variant/10 animate-scale-in">
+      <div className="min-h-screen bg-[linear-gradient(135deg,#fffaf5_0%,#f7f2ec_55%,#eef7f4_100%)] flex items-center justify-center px-6">
+        <div className="bg-surface-container-lowest rounded-3xl p-8 md:p-10 text-center max-w-md shadow-xl border border-outline-variant/10 animate-scale-in">
           <div className="w-20 h-20 bg-tertiary-container rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-tertiary" />
           </div>
@@ -167,10 +167,10 @@ export default function PublicSignature() {
   }
 
   return (
-    <div className="min-h-screen bg-surface font-body">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,98,26,0.14),transparent_34%),linear-gradient(135deg,#fffaf5_0%,#f7f2ec_48%,#eef7f4_100%)] font-body">
       {/* Header */}
-      <nav className="flex items-center justify-center gap-2.5 p-5 border-b border-outline-variant/10">
-        <div className="w-10 h-10 bg-primary text-on-primary rounded-xl flex items-center justify-center shadow-md">
+      <nav className="sticky top-0 z-10 flex items-center justify-center gap-2.5 border-b border-white/60 bg-white/80 p-4 backdrop-blur-xl">
+        <div className="w-10 h-10 bg-primary text-on-primary rounded-xl flex items-center justify-center shadow-md shadow-primary/15">
           <Camera className="w-5 h-5" />
         </div>
         <span className="wordmark-photofacto text-xl">
@@ -178,26 +178,30 @@ export default function PublicSignature() {
         </span>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-3xl mx-auto px-4 py-6 md:py-10 space-y-5 md:space-y-6">
         {/* Title */}
-        <div className="text-center">
-          <h1 className="font-headline font-extrabold text-2xl md:text-3xl text-on-surface mb-2">
+        <div className="text-center animate-fade-in-up">
+          <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/70 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Signature sécurisée
+          </div>
+          <h1 className="font-headline font-extrabold text-3xl md:text-4xl text-on-surface mb-2 tracking-tight">
             Devis à signer
           </h1>
-          <p className="text-on-surface-variant">
+          <p className="text-sm md:text-base text-on-surface-variant">
             De <strong>{quote?.companyName}</strong> pour <strong>{quote?.clientName}</strong>
           </p>
         </div>
 
         {/* Quote Details */}
-        <section className="bg-surface-container-lowest rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/10 space-y-6">
+        <section className="bg-white/90 rounded-[2rem] p-5 md:p-8 shadow-xl shadow-black/5 border border-white/70 space-y-6 backdrop-blur-sm animate-fade-in-up animation-delay-100">
           {/* Header info */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 pb-4 border-b border-outline-variant/10">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Devis N°</p>
               <p className="font-headline font-extrabold text-xl text-on-surface">{quote?.number}</p>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Date</p>
               <p className="font-bold text-on-surface">
                 {quote?.date ? new Date(quote.date).toLocaleDateString('fr-FR') : ''}
@@ -209,7 +213,10 @@ export default function PublicSignature() {
           <div className="grid sm:grid-cols-2 gap-6 pb-4 border-b border-outline-variant/10">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Émetteur</p>
-              <p className="font-bold text-on-surface">{quote?.companyName}</p>
+              <p className="font-bold text-on-surface inline-flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                {quote?.companyName}
+              </p>
               <p className="text-sm text-on-surface-variant">{quote?.companyAddress}</p>
               {quote?.companySiret && <p className="text-xs text-on-surface-variant mt-1">SIRET: {quote.companySiret}</p>}
             </div>
@@ -225,15 +232,15 @@ export default function PublicSignature() {
             <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Prestations</p>
             <div className="space-y-2">
               {quote?.items.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between py-3 px-4 rounded-xl bg-surface-container-low/50">
+                <div key={idx} className="flex items-start justify-between gap-3 py-3 px-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/5">
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm text-on-surface truncate">{item.description}</p>
+                    <p className="font-bold text-sm text-on-surface break-words">{item.description}</p>
                     <p className="text-xs text-on-surface-variant">
                       {item.quantity} × {formatCurrency(item.unitPrice)}
                       {quote.vatRegime === 'standard' && ` (TVA ${item.vatRate}%)`}
                     </p>
                   </div>
-                  <span className="font-bold text-primary ml-4">
+                  <span className="shrink-0 font-bold text-primary">
                     {formatCurrency(item.quantity * item.unitPrice)}
                   </span>
                 </div>
@@ -253,7 +260,7 @@ export default function PublicSignature() {
                 <span className="font-bold text-on-surface">{formatCurrency(quote?.totalVAT || 0)}</span>
               </div>
             )}
-            <div className="flex justify-between w-full sm:w-72 text-2xl font-headline font-extrabold text-primary bg-primary/5 p-4 rounded-2xl border border-primary/10">
+            <div className="flex justify-between w-full sm:w-72 text-xl md:text-2xl font-headline font-extrabold text-primary bg-primary/5 p-4 rounded-2xl border border-primary/10">
               <span>TOTAL TTC</span>
               <span>{formatCurrency(quote?.totalTTC || 0)}</span>
             </div>
@@ -269,13 +276,13 @@ export default function PublicSignature() {
         </section>
 
         {/* Signature Section */}
-        <section className="bg-surface-container-lowest rounded-3xl p-6 md:p-8 shadow-sm border border-primary/20 space-y-5">
+        <section className="bg-white/95 rounded-[2rem] p-5 md:p-8 shadow-xl shadow-primary/5 border border-primary/15 space-y-5 backdrop-blur-sm animate-fade-in-up animation-delay-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <FileText className="w-5 h-5 text-primary" />
+            <div className="w-11 h-11 bg-primary text-on-primary rounded-2xl flex items-center justify-center shadow-spark-cta">
+              <FileText className="w-5 h-5 text-on-primary" />
             </div>
             <div>
-              <h2 className="font-headline font-extrabold text-lg text-on-surface">Accepter et signer</h2>
+              <h2 className="font-headline font-extrabold text-xl text-on-surface">Accepter et signer</h2>
               <p className="text-xs text-on-surface-variant">En signant, vous acceptez les termes de ce devis</p>
             </div>
           </div>
@@ -287,7 +294,7 @@ export default function PublicSignature() {
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
               placeholder="Prénom Nom"
-              className="w-full bg-white border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/40 font-medium transition-all"
+              className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-primary/20 focus:border-primary/40 font-medium transition-all"
             />
           </div>
 
@@ -301,7 +308,7 @@ export default function PublicSignature() {
               />
             </div>
           ) : (
-            <p className="text-center text-sm text-on-surface-variant py-6 bg-surface-container-low/50 rounded-xl">
+            <p className="text-center text-sm text-on-surface-variant py-6 bg-surface-container-low/60 rounded-2xl border border-outline-variant/10">
               Entrez votre nom pour afficher le cadre de signature
             </p>
           )}

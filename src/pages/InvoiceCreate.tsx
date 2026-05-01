@@ -14,7 +14,7 @@ import { UpsellBanner } from '../components/UpsellBanner';
 import { calculateInvoiceTotals } from '../lib/invoiceTotals';
 
 // Rest of imports...
-import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus, Euro } from 'lucide-react';
+import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus, Euro, MessageCircle, Copy } from 'lucide-react';
 import { usePlan } from '../hooks/usePlan';
 import { compressImageToDataURL } from '../services/imageUtils';
 // jsPDF + jspdf-autotable + xlsx are heavy (~1.3MB combined). They are only
@@ -228,43 +228,82 @@ const getSuggestions = (profession: string) => {
 };
 
 // Signature share button component for quotes
-function SignatureShareButton({ invoiceId, shareQuoteForSignature }: { invoiceId: string; shareQuoteForSignature: (id: string) => Promise<string> }) {
+function SignatureShareButton({
+  invoiceId,
+  shareQuoteForSignature,
+  clientName,
+  clientEmail,
+  companyName,
+}: {
+  invoiceId: string;
+  shareQuoteForSignature: (id: string) => Promise<string>;
+  clientName?: string;
+  clientEmail?: string;
+  companyName?: string;
+}) {
   const [isSharing, setIsSharing] = useState(false);
   const [shared, setShared] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [showOptions, setShowOptions] = useState(false);
 
-  const handleShare = async () => {
+  const getShareUrl = async () => {
+    if (shareUrl) return shareUrl;
+
     setIsSharing(true);
     try {
       const url = await shareQuoteForSignature(invoiceId);
       setShareUrl(url);
-      
-      const text = encodeURIComponent(`Bonjour, voici le devis pour le chantier.\nVous pouvez le consulter et le signer directement en ligne en cliquant ici :\n${url}`);
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const waUrl = isMobile ? `whatsapp://send?text=${text}` : `https://web.whatsapp.com/send?text=${text}`;
-      
-      window.open(waUrl, '_blank');
-      
-      await navigator.clipboard.writeText(url);
-      setShared(true);
-
-      setTimeout(() => setShared(false), 5000);
-    } catch (err) {
-      console.error('Error sharing:', err);
+      return url;
     } finally {
       setIsSharing(false);
     }
   };
 
+  const handlePrepare = async () => {
+    try {
+      await getShareUrl();
+      setShowOptions(true);
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
+  const buildMessage = (url: string) =>
+    `Bonjour${clientName ? ` ${clientName}` : ''},\n\nVoici le devis à consulter et signer en ligne :\n${url}\n\nCordialement,\n${companyName || 'Votre artisan'}`;
+
+  const handleCopy = async () => {
+    try {
+      const url = await getShareUrl();
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 5000);
+    } catch (err) {
+      console.error('Error copying signature link:', err);
+    }
+  };
+
+  const handleEmail = async () => {
+    const url = await getShareUrl();
+    const subject = encodeURIComponent(`Devis à signer${companyName ? ` - ${companyName}` : ''}`);
+    const body = encodeURIComponent(buildMessage(url));
+    window.location.href = `mailto:${clientEmail || ''}?subject=${subject}&body=${body}`;
+  };
+
+  const handleWhatsApp = async () => {
+    const url = await getShareUrl();
+    const text = encodeURIComponent(buildMessage(url));
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <button
-        onClick={handleShare}
+        onClick={handlePrepare}
         disabled={isSharing}
-        className={`w-full min-touch flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-3.5 md:py-5 rounded-2xl font-bold text-sm md:text-lg transition-all active:scale-95 disabled:opacity-50 ${
+        className={`btn-glow w-full min-touch flex items-center justify-center gap-2 md:gap-3 px-5 md:px-8 py-3.5 md:py-4 rounded-2xl font-bold text-base md:text-lg transition-all active:scale-95 disabled:opacity-50 ${
           shared
             ? 'bg-tertiary-container text-tertiary border-2 border-tertiary/20'
-            : 'bg-gradient-to-r from-primary/90 to-secondary text-on-primary shadow-lg shadow-secondary/20 hover:shadow-xl hover:-translate-y-0.5'
+            : 'bg-primary text-on-primary shadow-spark-cta hover:shadow-xl hover:-translate-y-0.5'
         }`}
       >
         {isSharing ? (
@@ -275,19 +314,50 @@ function SignatureShareButton({ invoiceId, shareQuoteForSignature }: { invoiceId
         ) : shared ? (
           <>
             <Check className="w-5 h-5" />
-            Lien copié ! Envoyez-le au client
+            Lien copié
           </>
         ) : (
           <>
             <Share2 className="w-5 h-5" />
-            ✍️ Envoyer pour signature
+            Envoyer pour signature
           </>
         )}
       </button>
-      {shareUrl && shared && (
-        <p className="text-xs text-center text-on-surface-variant bg-surface-container-low/50 rounded-xl px-4 py-2.5 truncate">
-          🔗 {shareUrl}
-        </p>
+      {showOptions && shareUrl && (
+        <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-3 shadow-sm">
+          <p className="mb-3 text-center text-xs font-semibold text-on-surface-variant">
+            Choisissez comment envoyer le lien au client.
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="min-touch inline-flex items-center justify-center gap-2 rounded-xl bg-surface-container-high px-3 py-3 text-sm font-bold text-on-surface transition-all hover:bg-surface-container-highest active:scale-95"
+            >
+              <Copy className="h-4 w-4" />
+              Copier
+            </button>
+            <button
+              type="button"
+              onClick={handleEmail}
+              className="min-touch inline-flex items-center justify-center gap-2 rounded-xl bg-secondary-container px-3 py-3 text-sm font-bold text-secondary transition-all hover:bg-secondary hover:text-on-secondary active:scale-95"
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={handleWhatsApp}
+              className="min-touch inline-flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-3 py-3 text-sm font-bold text-amber-800 transition-all hover:bg-amber-100 active:scale-95"
+            >
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp
+            </button>
+          </div>
+          <p className="mt-3 truncate rounded-xl bg-surface-container-low px-3 py-2 text-center text-xs text-on-surface-variant">
+            {shareUrl}
+          </p>
+        </div>
       )}
     </div>
   );
@@ -2458,7 +2528,13 @@ export default function InvoiceCreate() {
         {/* Signature button - placed at top for visibility on mobile */}
         {formData.type === 'quote' && id && (
           <div className="animate-fade-in-up animation-delay-100 flex flex-col gap-3">
-            <SignatureShareButton invoiceId={id} shareQuoteForSignature={shareQuoteForSignature} />
+            <SignatureShareButton
+              invoiceId={id}
+              shareQuoteForSignature={shareQuoteForSignature}
+              clientName={formData.clientName}
+              clientEmail={formData.clientEmail}
+              companyName={company?.name}
+            />
             {(formData.status === 'accepted' || formData.status === 'sent') && (
               <button 
                 onClick={() => navigate(`/app/invoices/new?fromQuote=${id}`)}

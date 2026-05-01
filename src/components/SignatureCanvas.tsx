@@ -122,7 +122,7 @@ export default function SignatureCanvas({ onSave, width = 500, height = 200 }: S
 
   return (
     <div className="space-y-4">
-      <div className="relative rounded-2xl border-2 border-dashed border-outline-variant/30 bg-white overflow-hidden" style={{ touchAction: 'none' }}>
+      <div className="relative rounded-3xl border border-outline-variant/15 bg-white overflow-hidden shadow-inner" style={{ touchAction: 'none' }}>
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}
@@ -135,15 +135,15 @@ export default function SignatureCanvas({ onSave, width = 500, height = 200 }: S
           className="cursor-crosshair w-full"
           style={{ maxWidth: '100%', height: 'auto' }}
         />
-        <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium text-outline-variant pointer-events-none">
+        <p className="absolute bottom-3 left-1/2 w-[calc(100%-2rem)] -translate-x-1/2 text-center text-[10px] font-bold uppercase tracking-wider text-outline pointer-events-none">
           Signez ici avec votre doigt ou votre souris
         </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
           onClick={clear}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-outline-variant/20 text-on-surface-variant font-bold text-sm hover:bg-surface-container-high transition-colors"
+          className="min-touch flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 text-on-surface-variant font-bold text-sm hover:bg-surface-container-high transition-colors active:scale-95"
         >
           <Eraser className="w-4 h-4" />
           Effacer
@@ -151,7 +151,7 @@ export default function SignatureCanvas({ onSave, width = 500, height = 200 }: S
         <button
           onClick={save}
           disabled={!hasSignature}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="min-touch flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-on-primary font-bold text-sm shadow-spark-cta hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
           <Check className="w-4 h-4" />
           Valider la signature

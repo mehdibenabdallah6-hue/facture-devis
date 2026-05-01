@@ -3,7 +3,7 @@ import { useData, InvoiceLockedError } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Search, Plus, FileText, Edit, Trash2, Send, Euro, RefreshCw, Filter, Share2, Link, Check, CheckCircle2, FileSpreadsheet, MessageCircle, Archive, Lock, FilePlus2 } from 'lucide-react';
+import { Search, Plus, FileText, Edit, Trash2, Send, Euro, RefreshCw, Filter, Share2, Link, Check, CheckCircle2, FileSpreadsheet, MessageCircle, Archive, Lock, FilePlus2, Mail } from 'lucide-react';
 import { Invoice } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
 import { useToast } from '../contexts/ToastContext';
@@ -32,6 +32,8 @@ export default function InvoicesList() {
   const [isSharing, setIsSharing] = useState<string | null>(null);
   const [isSendingReminder, setIsSendingReminder] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [signatureShareUrls, setSignatureShareUrls] = useState<Record<string, string>>({});
+  const [activeSignatureShareId, setActiveSignatureShareId] = useState<string | null>(null);
   const { isPro } = usePlan();
 
   const exportCSV = () => {
@@ -263,24 +265,74 @@ export default function InvoicesList() {
     }
   };
 
-  const handleShare = async (invoiceId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsSharing(invoiceId);
+  const getSignatureShareUrl = async (invoice: Invoice) => {
+    if (signatureShareUrls[invoice.id]) return signatureShareUrls[invoice.id];
+
+    setIsSharing(invoice.id);
     try {
-      const shareUrl = await shareQuoteForSignature(invoiceId);
-      const text = encodeURIComponent(`Bonjour, voici le devis pour le chantier.\nVous pouvez le consulter et le signer directement en ligne en cliquant ici :\n${shareUrl}`);
-      
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const waUrl = isMobile ? `whatsapp://send?text=${text}` : `https://web.whatsapp.com/send?text=${text}`;
-      
-      window.open(waUrl, '_blank');
-      
-      // Fallback copy to clipboard just in case
-      await navigator.clipboard.writeText(shareUrl);
-      setCopiedLink(invoiceId);
-      setTimeout(() => setCopiedLink(null), 3000);
+      const shareUrl = await shareQuoteForSignature(invoice.id);
+      setSignatureShareUrls(prev => ({ ...prev, [invoice.id]: shareUrl }));
+      return shareUrl;
+    } finally {
+      setIsSharing(null);
+    }
+  };
+
+  const buildSignatureShareMessage = (invoice: Invoice, shareUrl: string) => {
+    const client = clients.find(c => c.id === invoice.clientId);
+    return `Bonjour${client?.name || invoice.clientName ? ` ${client?.name || invoice.clientName}` : ''},\n\nVoici le devis ${invoice.number} à consulter et signer en ligne :\n${shareUrl}\n\nCordialement,\n${company?.name || 'Votre artisan'}`;
+  };
+
+  const handleShare = async (invoice: Invoice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await getSignatureShareUrl(invoice);
+      setActiveSignatureShareId(activeSignatureShareId === invoice.id ? null : invoice.id);
     } catch (err) {
       console.error('Error sharing:', err);
+      showError("Impossible de préparer le lien de signature.");
+    }
+  };
+
+  const handleCopySignatureLink = async (invoice: Invoice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const shareUrl = await getSignatureShareUrl(invoice);
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedLink(invoice.id);
+      success('Lien de signature copié');
+      setTimeout(() => setCopiedLink(null), 3000);
+    } catch (err) {
+      console.error('Error copying signature link:', err);
+      showError("Impossible de copier le lien de signature.");
+    }
+  };
+
+  const handleEmailSignatureLink = async (invoice: Invoice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const client = clients.find(c => c.id === invoice.clientId);
+    const clientEmail = client?.email || invoice.clientEmail || '';
+
+    try {
+      const shareUrl = await getSignatureShareUrl(invoice);
+      const subject = encodeURIComponent(`Devis ${invoice.number} à signer`);
+      const body = encodeURIComponent(buildSignatureShareMessage(invoice, shareUrl));
+      window.location.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
+    } catch (err) {
+      console.error('Error opening signature email:', err);
+      showError("Impossible d'ouvrir l'email de signature.");
+    }
+  };
+
+  const handleWhatsAppSignatureLink = async (invoice: Invoice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const shareUrl = await getSignatureShareUrl(invoice);
+      const text = encodeURIComponent(buildSignatureShareMessage(invoice, shareUrl));
+      window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('Error opening WhatsApp signature link:', err);
+      showError("Impossible d'ouvrir WhatsApp.");
     } finally {
       setIsSharing(null);
     }
@@ -609,14 +661,38 @@ export default function InvoicesList() {
                     </button>
                   )}
                   {invoice.type === 'quote' && (invoice.status === 'sent' || invoice.status === 'draft') && (
-                    <button
-                      disabled={isSharing === invoice.id}
-                      onClick={(e) => handleShare(invoice.id, e)}
-                      className="min-touch flex items-center justify-center gap-2 rounded-xl bg-primary/10 text-primary px-3 py-2.5 text-xs font-bold disabled:opacity-50"
-                    >
-                      {copiedLink === invoice.id ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                      {copiedLink === invoice.id ? 'Copié' : 'Signer'}
-                    </button>
+                    <div className="col-span-2 space-y-2">
+                      <button
+                        disabled={isSharing === invoice.id}
+                        onClick={(e) => handleShare(invoice, e)}
+                        className="min-touch flex w-full items-center justify-center gap-2 rounded-xl bg-primary text-on-primary px-3 py-2.5 text-xs font-bold shadow-sm disabled:opacity-50"
+                      >
+                        {isSharing === invoice.id ? (
+                          <div className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                        ) : copiedLink === invoice.id ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Share2 className="w-4 h-4" />
+                        )}
+                        {copiedLink === invoice.id ? 'Lien copié' : 'Envoyer pour signature'}
+                      </button>
+                      {activeSignatureShareId === invoice.id && signatureShareUrls[invoice.id] && (
+                        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-2">
+                          <button onClick={(e) => handleCopySignatureLink(invoice, e)} className="min-touch flex items-center justify-center gap-1.5 rounded-xl bg-surface-container-high px-2 py-2 text-[11px] font-bold text-on-surface">
+                            <Link className="w-3.5 h-3.5" />
+                            Copier
+                          </button>
+                          <button onClick={(e) => handleEmailSignatureLink(invoice, e)} className="min-touch flex items-center justify-center gap-1.5 rounded-xl bg-secondary-container px-2 py-2 text-[11px] font-bold text-secondary">
+                            <Mail className="w-3.5 h-3.5" />
+                            Email
+                          </button>
+                          <button onClick={(e) => handleWhatsAppSignatureLink(invoice, e)} className="min-touch flex items-center justify-center gap-1.5 rounded-xl bg-amber-50 px-2 py-2 text-[11px] font-bold text-amber-800">
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                   {invoice.type === 'invoice' && ['validated', 'sent', 'overdue'].includes(invoice.status) && (
                     <button
@@ -772,25 +848,46 @@ export default function InvoicesList() {
                           </button>
                         )}
                         {invoice.type === 'quote' && (invoice.status === 'sent' || invoice.status === 'draft') && (
-                          <button 
-                            disabled={isSharing === invoice.id} 
-                            onClick={(e) => handleShare(invoice.id, e)} 
-                            className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px] ${
+                          <div className="relative inline-flex">
+                            <button
+                              disabled={isSharing === invoice.id}
+                              onClick={(e) => handleShare(invoice, e)}
+                              className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px] ${
                               copiedLink === invoice.id 
-                                ? 'bg-tertiary-container text-tertiary' 
-                                : 'bg-primary/10 text-primary hover:bg-primary hover:text-on-primary'
+                                ? 'bg-tertiary-container text-tertiary'
+                                : 'bg-primary text-on-primary hover:opacity-90 shadow-sm'
                             }`}
-                            title={copiedLink === invoice.id ? 'Lien copié !' : 'Partager pour signature'}
-                          >
-                            {isSharing === invoice.id ? (
-                              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            ) : copiedLink === invoice.id ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <Share2 className="w-4 h-4" />
+                              title={copiedLink === invoice.id ? 'Lien copié !' : 'Envoyer pour signature'}
+                            >
+                              {isSharing === invoice.id ? (
+                                <div className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                              ) : copiedLink === invoice.id ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                <Share2 className="w-4 h-4" />
+                              )}
+                              {copiedLink === invoice.id ? 'Copié' : 'Signature'}
+                            </button>
+                            {activeSignatureShareId === invoice.id && signatureShareUrls[invoice.id] && (
+                              <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-3 shadow-xl">
+                                <p className="mb-2 text-xs font-semibold text-on-surface-variant">Envoyer le lien par :</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <button onClick={(e) => handleCopySignatureLink(invoice, e)} className="min-touch inline-flex items-center justify-center gap-1.5 rounded-xl bg-surface-container-high px-2 py-2 text-xs font-bold text-on-surface">
+                                    <Link className="w-3.5 h-3.5" />
+                                    Copier
+                                  </button>
+                                  <button onClick={(e) => handleEmailSignatureLink(invoice, e)} className="min-touch inline-flex items-center justify-center gap-1.5 rounded-xl bg-secondary-container px-2 py-2 text-xs font-bold text-secondary">
+                                    <Mail className="w-3.5 h-3.5" />
+                                    Email
+                                  </button>
+                                  <button onClick={(e) => handleWhatsAppSignatureLink(invoice, e)} className="min-touch inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-50 px-2 py-2 text-xs font-bold text-amber-800">
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    WhatsApp
+                                  </button>
+                                </div>
+                              </div>
                             )}
-                            {copiedLink === invoice.id ? 'Copié' : 'Signer'}
-                          </button>
+                          </div>
                         )}
                         {invoice.type === 'invoice' && ['validated', 'sent', 'overdue'].includes(invoice.status) && (
                           <button disabled={isUpdating === invoice.id} onClick={(e) => handleStatusChange(invoice.id, 'paid', e)} className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-tertiary text-on-tertiary hover:opacity-90 rounded-xl transition-colors disabled:opacity-50 text-xs font-bold min-h-[44px]" title="Marquer comme payée">
