@@ -81,29 +81,62 @@ export default function PublicSignature() {
     setSigning(true);
 
     try {
-      const now = new Date().toISOString();
+      const response = await fetch('/api/quote-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteId,
+          signerName: signerName.trim(),
+          signatureDataUrl,
+        }),
+      });
+      const data = await response.json().catch(() => null);
 
-      // Update shared quote
-      await updateDoc(doc(db, 'sharedQuotes', quoteId), {
+      if (!response.ok) {
+        throw new Error(data?.error || 'Signature API failed');
+      }
+
+      setQuote(prev => prev ? {
+        ...prev,
         signature: signatureDataUrl,
-        signedAt: now,
+        signedAt: data?.signedAt || new Date().toISOString(),
         signedByName: signerName.trim(),
         status: 'accepted',
-      });
-
-      // Update original invoice
-      await updateDoc(doc(db, 'invoices', quote.originalInvoiceId), {
-        status: 'accepted',
-        signature: signatureDataUrl,
-        signedAt: now,
-        signedByName: signerName.trim(),
-        updatedAt: now,
-      });
+      } : prev);
 
       setSigned(true);
     } catch (err) {
-      console.error(err);
-      setError("Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
+      console.error('quote-sign API failed, falling back to client write:', err);
+      try {
+        const now = new Date().toISOString();
+
+        await updateDoc(doc(db, 'sharedQuotes', quoteId), {
+          signature: signatureDataUrl,
+          signedAt: now,
+          signedByName: signerName.trim(),
+          status: 'accepted',
+        });
+
+        await updateDoc(doc(db, 'invoices', quote.originalInvoiceId), {
+          status: 'accepted',
+          signature: signatureDataUrl,
+          signedAt: now,
+          signedByName: signerName.trim(),
+          updatedAt: now,
+        });
+
+        setQuote(prev => prev ? {
+          ...prev,
+          signature: signatureDataUrl,
+          signedAt: now,
+          signedByName: signerName.trim(),
+          status: 'accepted',
+        } : prev);
+        setSigned(true);
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        setError("Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
+      }
     } finally {
       setSigning(false);
     }

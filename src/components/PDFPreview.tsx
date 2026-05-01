@@ -31,6 +31,9 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
   const template = getTemplate(company);
   const accentColor = getAccent(company);
   const title = formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'FACTURE D’ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE';
+  const signedDate = formData.signedAt
+    ? format(new Date(formData.signedAt), 'dd MMM yyyy', { locale: fr })
+    : null;
 
   const pageClass =
     template === 'classique'
@@ -120,6 +123,14 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
               <footer className="mt-2 pt-2 border-t border-gray-200 text-[9px] text-gray-500 leading-snug line-clamp-3 shrink-0">
                 {formData.notes || company?.pdfFooterText}
               </footer>
+            )}
+
+            {formData.signature && formData.signedByName && signedDate && (
+              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[9px] text-emerald-900 shrink-0">
+                <div className="font-black uppercase tracking-wider">Devis signé</div>
+                <div>Signé par {formData.signedByName} le {signedDate}</div>
+                <img src={formData.signature} alt="Signature" className="mt-1 h-8 max-w-[120px] object-contain opacity-80" />
+              </div>
             )}
           </div>
 
