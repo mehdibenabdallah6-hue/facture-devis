@@ -58,6 +58,8 @@ export interface CompanySettings {
   invoiceCounter?: number;
   quoteCounter?: number;
   address?: string;
+  email?: string;
+  phone?: string;
   siret?: string;
   vatNumber?: string;
   legalForm?: string;
@@ -969,7 +971,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       notes: invoice.notes || '',
       companyName: company.name || '',
       companyAddress: company.address || '',
-      companyEmail: company.email || '',
+      companyEmail: company.email || user.email || '',
       companyPhone: company.phone || '',
       companySiret: company.siret || '',
       status: 'pending_signature',

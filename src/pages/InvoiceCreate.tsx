@@ -326,7 +326,7 @@ function SignatureShareButton({
       <div className="flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-on-surface">
         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p>
-          Envoyez ce lien au client : il signe en ligne, la signature s’ajoute automatiquement au devis et vous recevez un email quand c’est signé si votre email entreprise est renseigné.
+          Envoyez ce lien au client : il signe en ligne, la signature s’ajoute automatiquement au devis et vous recevez un email quand c’est signé.
         </p>
       </div>
       {showOptions && shareUrl && (

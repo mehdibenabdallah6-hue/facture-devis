@@ -15,6 +15,7 @@ export default function Settings() {
   const [formData, setFormData] = useState({
     name: '',
     profession: '',
+    email: '',
     address: '',
     siret: '',
     vatNumber: '',
@@ -36,6 +37,7 @@ export default function Settings() {
       setFormData({
         name: company.name || '',
         profession: company.profession || '',
+        email: company.email || user?.email || '',
         address: company.address || '',
         siret: company.siret || '',
         vatNumber: company.vatNumber || '',
@@ -176,6 +178,20 @@ export default function Settings() {
                   className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 text-sm font-medium"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Email de contact</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={e => setFormData({...formData, email: e.target.value})}
+                placeholder={user?.email || 'contact@entreprise.fr'}
+                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/20 text-sm font-medium"
+              />
+              <p className="mt-1.5 text-xs text-on-surface-variant">
+                Utilisé pour recevoir les notifications, par exemple quand un devis est signé.
+              </p>
             </div>
             
             <div>
