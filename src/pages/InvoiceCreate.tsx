@@ -514,8 +514,21 @@ export default function InvoiceCreate() {
     }
   };
 
-  const filteredClients = clientSearch.trim()
-    ? clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+  const isPlaceholderClientName = (value?: string) =>
+    (value || '').trim().toLowerCase() === 'client à compléter';
+
+  const effectiveClientSearch = isPlaceholderClientName(clientSearch) ? '' : clientSearch;
+
+  const handleClientFocus = () => {
+    if (isPlaceholderClientName(clientSearch || formData.clientName)) {
+      setClientSearch('');
+      setFormData(prev => ({ ...prev, clientName: '', clientId: '' }));
+    }
+    setShowClientDropdown(true);
+  };
+
+  const filteredClients = effectiveClientSearch.trim()
+    ? clients.filter(c => c.name.toLowerCase().includes(effectiveClientSearch.toLowerCase()))
     : clients.slice(0, 10);
 
   useEffect(() => {
@@ -2602,7 +2615,7 @@ export default function InvoiceCreate() {
                     type="text"
                     value={clientSearch || formData.clientName || ''}
                     onChange={e => handleClientSearchChange(e.target.value)}
-                    onFocus={() => setShowClientDropdown(true)}
+                    onFocus={handleClientFocus}
                     placeholder="Rechercher ou saisir un client..."
                     className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
                   />
@@ -2650,18 +2663,18 @@ export default function InvoiceCreate() {
                     ))
                   ) : (
                     <div className="px-4 py-3">
-                      <p className="text-sm text-on-surface-variant mb-2">Aucun client trouvé pour "{clientSearch}"</p>
+                      <p className="text-sm text-on-surface-variant mb-2">Aucun client trouvé pour "{effectiveClientSearch}"</p>
                       <button
                         type="button"
                         onClick={() => {
-                          setFormData(prev => ({ ...prev, clientName: clientSearch.trim() }));
+                          setFormData(prev => ({ ...prev, clientName: effectiveClientSearch.trim() }));
                           setShowClientDropdown(false);
                           setShowNewClientModal(true);
                         }}
                         className="w-full flex items-center gap-2 bg-primary/10 text-primary font-semibold px-3 py-2 rounded-xl text-sm transition-colors justify-center"
                       >
                         <Plus className="w-4 h-4" />
-                        Créer "{clientSearch}"
+                        Créer "{effectiveClientSearch}"
                       </button>
                     </div>
                   )}
