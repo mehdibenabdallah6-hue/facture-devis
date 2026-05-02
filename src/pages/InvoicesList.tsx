@@ -226,29 +226,20 @@ export default function InvoicesList() {
 
     setIsSendingReminder(invoice.id);
     try {
-      const artisanEmail = company?.email || user?.email || '';
-      const response = await fetch('/api/send-email', {
+      if (!user) {
+        showError('Connexion requise', "Reconnectez-vous avant d'envoyer une relance.");
+        return;
+      }
+      const token = await user.getIdToken();
+      const response = await fetch('/api/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          action: 'send-invoice',
+          invoiceId: invoice.id,
+          kind: 'reminder',
           to: email,
-          fromName: company?.name || user?.displayName || 'Votre artisan',
-          fromEmail: artisanEmail,
-          subject: `Relance facture ${invoice.number} - ${company?.name || 'Photofacto'}`,
-          html: `
-            <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
-              <p>Bonjour ${client?.name || invoice.clientName || ''},</p>
-              <p>Sauf erreur de notre part, la facture suivante reste en attente de règlement :</p>
-              <ul>
-                <li><strong>Facture :</strong> ${invoice.number}</li>
-                <li><strong>Montant :</strong> ${formatCurrency(invoice.totalTTC)}</li>
-                <li><strong>Date :</strong> ${format(new Date(invoice.date), 'dd/MM/yyyy')}</li>
-              </ul>
-              ${invoice.shareUrl ? `<p><a href="${invoice.shareUrl}" style="color:#E8621A;font-weight:700">Consulter la facture</a></p>` : ''}
-              <p>Merci de procéder au règlement ou de nous contacter si vous avez déjà effectué le paiement.</p>
-              <p>Cordialement,<br/><strong>${company?.name || 'Photofacto'}</strong></p>
-            </div>
-          `,
+          message: `Sauf erreur de notre part, la facture ${invoice.number} d'un montant de ${formatCurrency(invoice.totalTTC)} reste en attente de règlement. Merci de procéder au règlement ou de nous contacter si vous avez déjà effectué le paiement.`,
         }),
       });
       const sendResult = await response.json().catch(() => null);

@@ -23,7 +23,6 @@
  *   must be authoritative. Doing it client-side would let users skip the lock.
  */
 
-import { Timestamp } from 'firebase-admin/firestore';
 import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { verifyAuth } from './_verify-auth.js';
 
@@ -68,6 +67,13 @@ export default async function handler(req: any, res: any) {
       // a real, issued invoice, not a draft.
       if (source.isLocked !== true || source.type !== 'invoice') {
         throw httpError(400, 'Credit notes can only be issued for validated invoices');
+      }
+      if (source.creditedBy) {
+        return {
+          creditNoteId: source.creditedBy,
+          number: source.creditedByNumber || null,
+          alreadyExists: true,
+        };
       }
 
       const companyRef = db.collection('companies').doc(uid);
@@ -128,12 +134,14 @@ export default async function handler(req: any, res: any) {
         notes: reason ? `Avoir suite à : ${reason}` : `Avoir sur facture ${source.number}`,
         linkedInvoiceId: invoiceId,
         linkedInvoiceNumber: source.number,
+        creditNoteFor: invoiceId,
         createdAt: nowIso,
         updatedAt: nowIso,
       });
 
       tx.update(sourceRef, {
         creditedBy: creditRef.id,
+        creditedByNumber: number,
         creditedAt: nowIso,
         updatedAt: nowIso,
       });

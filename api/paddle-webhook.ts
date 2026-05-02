@@ -1,6 +1,8 @@
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import * as crypto from 'crypto';
+import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import { methodNotAllowed, ok, serverError, unauthorized } from './_lib/http.js';
+import { verifyPaddleSignature } from './_lib/paddle.js';
+import { planFromPriceId } from './_lib/billing.js';
 
 type PaddleEvent = {
   event_id?: string;
@@ -9,78 +11,142 @@ type PaddleEvent = {
   data?: {
     id?: string;
     status?: string;
+    customer_id?: string;
     items?: Array<{ price?: { id?: string } }>;
     custom_data?: {
       userId?: string;
-      planId?: 'starter' | 'pro';
       billingCycle?: 'monthly' | 'annual';
     };
   };
 };
 
-function getRawBody(req: any): string {
-  if (typeof req.rawBody === 'string') return req.rawBody;
-  if (typeof req.body === 'string') return req.body;
-  return JSON.stringify(req.body ?? {});
-}
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-function parseSignatureHeader(signatureHeader: string): { timestamp: string | null; signatures: string[] } {
-  const parts = signatureHeader.split(';').map((part) => part.trim());
-  const timestamp = parts.find((part) => part.startsWith('ts='))?.slice(3) ?? null;
-  const signatures = parts
-    .filter((part) => part.startsWith('h1='))
-    .map((part) => part.slice(3))
-    .filter(Boolean);
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') return methodNotAllowed(res);
 
-  return { timestamp, signatures };
-}
+  const secret = process.env.PADDLE_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('Missing PADDLE_WEBHOOK_SECRET');
+    return serverError(res, new Error('PADDLE_WEBHOOK_SECRET missing'));
+  }
 
-function verifyPaddleSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
-  const { timestamp, signatures } = parseSignatureHeader(signatureHeader);
-  if (!timestamp || signatures.length === 0) return false;
+  const rawBody = await getRawBody(req);
+  const signatureHeader = req.headers['paddle-signature'];
+  if (typeof signatureHeader !== 'string' || !signatureHeader) {
+    return unauthorized(res, 'Signature Paddle manquante.');
+  }
+  if (!verifyPaddleSignature(rawBody, signatureHeader, secret)) {
+    return unauthorized(res, 'Signature Paddle invalide ou expirée.');
+  }
 
-  const payload = `${timestamp}:${rawBody}`;
-  const expected = crypto.createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
+  try {
+    const event = JSON.parse(rawBody) as PaddleEvent;
+    const eventType = event.event_type || '';
+    const data = event.data;
+    const eventId = event.event_id || crypto.createHash('sha256').update(rawBody).digest('hex');
+    const occurredAt = event.occurred_at || new Date().toISOString();
 
-  return signatures.some((signature) => {
-    const expectedBuffer = Buffer.from(expected, 'hex');
-    const receivedBuffer = Buffer.from(signature, 'hex');
-    return (
-      expectedBuffer.length === receivedBuffer.length &&
-      crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+    if (!eventType || !data) return res.status(400).json({ error: 'Payload Paddle invalide.' });
+
+    const { db } = ensureFirebaseAdmin();
+    const eventRef = db.collection('paddleEvents').doc(eventId);
+
+    if (!eventType.startsWith('subscription.')) {
+      await eventRef.set({
+        eventId,
+        eventType,
+        ignored: true,
+        receivedAt: new Date().toISOString(),
+      }, { merge: true });
+      return ok(res, { received: true, ignored: true });
+    }
+
+    const userId = data.custom_data?.userId;
+    if (!userId) {
+      await eventRef.set({
+        eventId,
+        eventType,
+        ignored: true,
+        reason: 'missing_user_id',
+        receivedAt: new Date().toISOString(),
+      }, { merge: true });
+      return ok(res, { received: true, warning: 'No userId' });
+    }
+
+    const priceId = data.items?.[0]?.price?.id || null;
+    const plan = planFromPriceId(priceId);
+    const normalizedStatus = normalizeStatus(
+      eventType === 'subscription.canceled' ? 'canceled' : data.status,
     );
-  });
-}
+    const billingCycle = data.custom_data?.billingCycle || inferBillingCycle(priceId);
+    const nowIso = new Date().toISOString();
 
-function getFirebaseServiceAccount() {
-  const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (rawServiceAccount) {
-    return JSON.parse(rawServiceAccount);
-  }
+    const result = await db.runTransaction(async tx => {
+      const existingEvent = await tx.get(eventRef);
+      if (existingEvent.exists) return { duplicate: true };
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      const companyRef = db.collection('companies').doc(userId);
+      const companySnap = await tx.get(companyRef);
+      const company = companySnap.exists ? (companySnap.data() as any) : {};
+      const lastEventAt = company?.paddleLastEventAt;
 
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error('Missing Firebase Admin credentials');
-  }
+      tx.set(eventRef, {
+        eventId,
+        eventType,
+        userId,
+        paddleSubscriptionId: data.id || null,
+        priceId,
+        receivedAt: nowIso,
+        occurredAt,
+      });
 
-  return {
-    projectId,
-    clientEmail,
-    privateKey,
-  };
-}
+      if (lastEventAt && new Date(occurredAt) < new Date(lastEventAt)) {
+        return { duplicate: false, stale: true };
+      }
 
-function ensureFirebaseAdmin() {
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(getFirebaseServiceAccount()),
+      tx.set(companyRef, {
+        plan,
+        billingCycle,
+        subscriptionStatus: normalizedStatus,
+        pendingPlan: null,
+        pendingBillingCycle: null,
+        paddleCustomerId: data.customer_id || company?.paddleCustomerId || null,
+        paddleSubscriptionId: data.id || company?.paddleSubscriptionId || null,
+        paddlePriceId: priceId,
+        paddleLastEventAt: occurredAt,
+        updatedAt: nowIso,
+      }, { merge: true });
+
+      tx.set(db.collection('invoiceEvents').doc(), {
+        invoiceId: userId,
+        companyId: userId,
+        ownerId: userId,
+        actorId: 'paddle:webhook',
+        type: auditTypeFor(eventType, normalizedStatus),
+        resourceType: 'subscription',
+        resourceId: data.id || eventId,
+        timestamp: nowIso,
+        metadata: {
+          eventId,
+          eventType,
+          priceId: priceId || '',
+          plan,
+          status: normalizedStatus,
+        },
+      });
+
+      return { duplicate: false, stale: false };
     });
-  }
 
-  return getFirestore();
+    return ok(res, { received: true, ...result });
+  } catch (error) {
+    return serverError(res, error);
+  }
 }
 
 function normalizeStatus(status?: string): string {
@@ -96,88 +162,23 @@ function normalizeStatus(status?: string): string {
   }
 }
 
-export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+function auditTypeFor(eventType: string, status: string) {
+  if (eventType === 'subscription.created') return 'subscription_created';
+  if (eventType === 'subscription.canceled' || status === 'canceled') return 'subscription_cancelled';
+  if (eventType === 'subscription.payment_failed') return 'payment_failed';
+  return 'subscription_updated';
+}
 
-  const secret = process.env.PADDLE_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error('Missing PADDLE_WEBHOOK_SECRET');
-    return res.status(500).json({ error: 'Configuration webhook Paddle manquante.' });
-  }
+function inferBillingCycle(priceId: string | null): 'monthly' | 'annual' | null {
+  if (!priceId) return null;
+  return /annual|year/i.test(priceId) ? 'annual' : 'monthly';
+}
 
-  const signatureHeader = req.headers['paddle-signature'];
-  if (typeof signatureHeader !== 'string' || !signatureHeader) {
-    return res.status(401).json({ error: 'Missing signature' });
-  }
-
-  const rawBody = getRawBody(req);
-  if (!verifyPaddleSignature(rawBody, signatureHeader, secret)) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
-  try {
-    const event = JSON.parse(rawBody) as PaddleEvent;
-    const eventType = event.event_type;
-    const data = event.data;
-
-    if (!eventType || !data) {
-      return res.status(400).json({ error: 'Invalid event payload' });
-    }
-
-    if (!eventType.startsWith('subscription.')) {
-      return res.status(200).json({ received: true, ignored: true });
-    }
-
-    const db = ensureFirebaseAdmin();
-    const userId = data.custom_data?.userId;
-
-    if (!userId) {
-      console.warn('[Paddle Webhook] userId absent dans custom_data');
-      return res.status(200).json({ received: true, warning: 'No userId' });
-    }
-
-    const companyRef = db.collection('companies').doc(userId);
-    const companySnap = await companyRef.get();
-    const company = companySnap.exists ? companySnap.data() : {};
-    const incomingOccurredAt = event.occurred_at || new Date().toISOString();
-    const lastEventAt = company?.paddleLastEventAt;
-
-    if (lastEventAt && new Date(incomingOccurredAt) < new Date(lastEventAt)) {
-      return res.status(200).json({ received: true, ignored: 'stale_event' });
-    }
-
-    const planId = data.custom_data?.planId || company?.pendingPlan || company?.plan || 'starter';
-    const billingCycle =
-      data.custom_data?.billingCycle || company?.pendingBillingCycle || company?.billingCycle || null;
-    const priceId = data.items?.[0]?.price?.id || company?.paddlePriceId || null;
-    const normalizedStatus = normalizeStatus(
-      eventType === 'subscription.canceled' ? 'canceled' : data.status,
-    );
-
-    await companyRef.set(
-      {
-        plan: planId,
-        billingCycle,
-        subscriptionStatus: normalizedStatus,
-        pendingPlan: null,
-        pendingBillingCycle: null,
-        paddleSubscriptionId: data.id || company?.paddleSubscriptionId || null,
-        paddlePriceId: priceId,
-        paddleLastEventAt: incomingOccurredAt,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    );
-
-    console.log(
-      `[Paddle Webhook] ${eventType} -> ${userId} (${planId}, ${normalizedStatus})`,
-    );
-
-    return res.status(200).json({ received: true });
-  } catch (error: any) {
-    console.error('Webhook error:', error);
-    return res.status(500).json({ error: error.message });
-  }
+async function getRawBody(req: any): Promise<string> {
+  if (typeof req.rawBody === 'string') return req.rawBody;
+  if (Buffer.isBuffer(req.body)) return req.body.toString('utf8');
+  if (typeof req.body === 'string') return req.body;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  return Buffer.concat(chunks).toString('utf8');
 }

@@ -13,6 +13,12 @@
  * 
  * Docs: https://pennylane.readme.io/reference
  */
+import { verifyAuth } from './_lib/auth.js';
+import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import { parseJsonBody } from './_lib/http.js';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import { writeAuditEvent } from './_lib/audit.js';
+import { sanitizeText } from './_lib/validators.js';
 
 const PENNYLANE_BASE_URL = 'https://app.pennylane.com/api/external/v2';
 
@@ -52,18 +58,34 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const PENNYLANE_API_KEY = process.env.PENNYLANE_API_KEY;
-
-  if (!PENNYLANE_API_KEY) {
-    console.error('Missing PENNYLANE_API_KEY');
-    return res.status(500).json({ error: 'Clé API Pennylane manquante. Configurez PENNYLANE_API_KEY dans Vercel.' });
+  let authCtx: { uid: string; email?: string };
+  try {
+    authCtx = await verifyAuth(req);
+  } catch (e: any) {
+    return res.status(e.status || 401).json({ error: e.message || 'Unauthorized' });
   }
 
   try {
-    const { invoice, company } = req.body as PennylaneInvoicePayload;
+    const limited = await checkRateLimit(`uid:pennylane:${authCtx.uid}`, 10, 60 * 60 * 1000);
+    if (!limited.ok) return res.status(429).json({ error: 'Trop de demandes Pennylane récemment.' });
 
-    if (!invoice || !company) {
-      return res.status(400).json({ error: 'Missing invoice or company data' });
+    const PENNYLANE_API_KEY = process.env.PENNYLANE_API_KEY;
+    const body = parseJsonBody(req);
+    const invoiceId = sanitizeText(body.invoiceId, 120);
+    if (!invoiceId) return res.status(400).json({ error: 'invoiceId requis' });
+
+    const { invoice } = await loadOwnedPennylanePayload(invoiceId, authCtx.uid);
+
+    if (!PENNYLANE_API_KEY) {
+      await writeAuditEvent({
+        ownerId: authCtx.uid,
+        actorUid: authCtx.uid,
+        type: 'integration_export_requested',
+        resourceType: 'invoice',
+        resourceId: invoiceId,
+        metadata: { integration: 'pennylane', status: 'not_configured' },
+      });
+      return res.status(501).json({ error: 'Connecteur Pennylane non encore activé.', prepared: true });
     }
 
     // Build Pennylane invoice payload
@@ -116,11 +138,28 @@ export default async function handler(req: any, res: any) {
 
     if (!response.ok) {
       console.error('[Pennylane] API Error:', data);
+      await writeAuditEvent({
+        ownerId: authCtx.uid,
+        actorUid: authCtx.uid,
+        type: 'integration_export_failed',
+        resourceType: 'invoice',
+        resourceId: invoiceId,
+        metadata: { integration: 'pennylane', status: response.status },
+      }).catch(() => undefined);
       return res.status(response.status).json({
         error: 'Erreur Pennylane',
         details: data.message || data.error || JSON.stringify(data),
       });
     }
+
+    await writeAuditEvent({
+      ownerId: authCtx.uid,
+      actorUid: authCtx.uid,
+      type: 'integration_export_succeeded',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      metadata: { integration: 'pennylane', pennylaneInvoiceId: data.invoice?.id || data.id || '' },
+    });
 
     return res.status(200).json({
       success: true,
@@ -132,9 +171,51 @@ export default async function handler(req: any, res: any) {
 
   } catch (error: any) {
     console.error('[Pennylane] Error:', error);
+    if (error?.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
     return res.status(500).json({
       error: error.message,
       details: 'La soumission à Pennylane a échoué.',
     });
   }
+}
+
+async function loadOwnedPennylanePayload(invoiceId: string, uid: string): Promise<PennylaneInvoicePayload> {
+  const { db } = ensureFirebaseAdmin();
+  const invoiceSnap = await db.collection('invoices').doc(invoiceId).get();
+  if (!invoiceSnap.exists) throw Object.assign(new Error('Facture introuvable.'), { status: 404 });
+  const rawInvoice = invoiceSnap.data() as any;
+  if (rawInvoice.ownerId !== uid) throw Object.assign(new Error('Accès interdit.'), { status: 403 });
+
+  const companySnap = await db.collection('companies').doc(uid).get();
+  const company = companySnap.exists ? (companySnap.data() as any) : {};
+  const clientSnap = rawInvoice.clientId ? await db.collection('clients').doc(rawInvoice.clientId).get() : null;
+  const client = clientSnap?.exists ? (clientSnap.data() as any) : {};
+
+  return {
+    invoice: {
+      number: rawInvoice.number || '',
+      type: rawInvoice.type || 'invoice',
+      date: rawInvoice.date || '',
+      dueDate: rawInvoice.dueDate || rawInvoice.date || '',
+      clientName: rawInvoice.clientName || client.name || '',
+      clientSiren: client.siren || '',
+      clientVatNumber: client.vatNumber || '',
+      clientAddress: client.address || '',
+      vatRegime: rawInvoice.vatRegime || company.vatRegime || 'standard',
+      items: Array.isArray(rawInvoice.items) ? rawInvoice.items : [],
+      totalHT: Number(rawInvoice.totalHT || 0),
+      totalVAT: Number(rawInvoice.totalVAT || 0),
+      totalTTC: Number(rawInvoice.totalTTC || 0),
+      notes: rawInvoice.notes || '',
+    },
+    company: {
+      name: company.name || company.legalName || '',
+      siret: company.siret || '',
+      vatNumber: company.vatNumber || '',
+      address: company.address || '',
+      legalForm: company.legalForm || '',
+    },
+  };
 }

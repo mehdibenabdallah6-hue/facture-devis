@@ -1,8 +1,9 @@
 /**
- * Factur-X / ZUGFeRD generator for French e-invoicing reform 2026.
+ * Factur-X / ZUGFeRD export helper.
  * 
- * Generates CII (Cross Industry Invoice) XML conforming to EN16931 / Factur-X MINIMUM profile,
- * and embeds it into an existing jsPDF-generated PDF using pdf-lib.
+ * Generates CII XML and embeds it into an existing jsPDF-generated PDF using
+ * pdf-lib. This is an export aid, not a legal certification: full PDF/A-3b
+ * conformance still needs external validation and an ICC OutputIntent.
  * 
  * References:
  * - https://fnfe-mpe.org/factur-x/
@@ -19,6 +20,11 @@ export interface FacturXOptions {
   client?: Client;
   profile?: 'MINIMUM' | 'BASIC';
 }
+
+export const FACTURX_TECHNICAL_STATUS = {
+  facturxStatus: 'generated' as const,
+  pdfAStatus: 'not_validated' as const,
+};
 
 // ---------- XML Escaping ----------
 

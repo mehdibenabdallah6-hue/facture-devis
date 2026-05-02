@@ -11,6 +11,12 @@
  * Required env vars:
  *   CHORUS_LOGIN, CHORUS_PASSWORD, CHORUS_PISTE_CLIENT_ID, CHORUS_PISTE_SECRET
  */
+import { verifyAuth } from './_lib/auth.js';
+import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import { parseJsonBody } from './_lib/http.js';
+import { writeAuditEvent } from './_lib/audit.js';
+import { sanitizeText } from './_lib/validators.js';
 
 // ---------- Types ----------
 
@@ -319,17 +325,24 @@ async function checkFluxStatus(fluxId: string, token: string): Promise<any> {
 // ---------- Handler ----------
 
 export default async function handler(req: any, res: any) {
+  let authCtx: { uid: string; email?: string };
+  try {
+    authCtx = await verifyAuth(req);
+  } catch (e: any) {
+    return res.status(e.status || 401).json({ error: e.message || 'Unauthorized' });
+  }
+
   // POST: Submit invoice
   if (req.method === 'POST') {
     try {
-      const { invoice, company } = req.body as {
-        invoice: InvoicePayload;
-        company: CompanyPayload;
-      };
+      const limited = await checkRateLimit(`uid:chorus:${authCtx.uid}`, 10, 60 * 60 * 1000);
+      if (!limited.ok) return res.status(429).json({ error: 'Trop de demandes Chorus Pro récemment.' });
 
-      if (!invoice || !company) {
-        return res.status(400).json({ error: 'Missing invoice or company data' });
-      }
+      const body = parseJsonBody(req);
+      const invoiceId = sanitizeText(body.invoiceId, 120);
+      if (!invoiceId) return res.status(400).json({ error: 'invoiceId requis' });
+
+      const { invoice, company } = await loadOwnedInvoiceForExport(invoiceId, authCtx.uid);
 
       // Validate: only invoices subject to e-invoicing
       if (invoice.type === 'quote') {
@@ -337,6 +350,17 @@ export default async function handler(req: any, res: any) {
       }
       if (invoice.vatRegime === 'franchise') {
         return res.status(400).json({ error: 'Les entreprises en franchise de TVA sont exempt\u00e9es du d\u00e9p\u00f4t Chorus Pro' });
+      }
+      if (!hasChorusCredentials()) {
+        await writeAuditEvent({
+          ownerId: authCtx.uid,
+          actorUid: authCtx.uid,
+          type: 'integration_export_requested',
+          resourceType: 'invoice',
+          resourceId: invoice.id,
+          metadata: { integration: 'chorus', status: 'not_configured' },
+        });
+        return res.status(501).json({ error: 'Connecteur Chorus Pro non encore activé.', prepared: true });
       }
 
       // 1. Get auth token
@@ -348,6 +372,15 @@ export default async function handler(req: any, res: any) {
       // 3. Submit to Chorus Pro
       const result = await submitToChorusPro(xml, token);
 
+      await writeAuditEvent({
+        ownerId: authCtx.uid,
+        actorUid: authCtx.uid,
+        type: 'integration_export_succeeded',
+        resourceType: 'invoice',
+        resourceId: invoice.id,
+        metadata: { integration: 'chorus', fluxId: result.identifiantFlux || result.numeroFluxDepot || '' },
+      });
+
       return res.status(200).json({
         success: true,
         identifiantFlux: result.identifiantFlux || result.numeroFluxDepot,
@@ -357,6 +390,17 @@ export default async function handler(req: any, res: any) {
       });
     } catch (error: any) {
       console.error('[Chorus Pro] Error:', error);
+      await writeAuditEvent({
+        ownerId: authCtx.uid,
+        actorUid: authCtx.uid,
+        type: 'integration_export_failed',
+        resourceType: 'invoice',
+        resourceId: sanitizeText((typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {}).invoiceId, 120) || 'unknown',
+        metadata: { integration: 'chorus', reason: error.message || 'unknown' },
+      }).catch(() => undefined);
+      if (error?.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
       return res.status(500).json({
         error: error.message,
         details: 'La soumission à Chorus Pro a échoué. Vérifiez vos identifiants.',
@@ -370,6 +414,11 @@ export default async function handler(req: any, res: any) {
 
     if (action === 'status' && fluxId) {
       try {
+        const limited = await checkRateLimit(`uid:chorus-status:${authCtx.uid}`, 30, 60 * 60 * 1000);
+        if (!limited.ok) return res.status(429).json({ error: 'Trop de demandes Chorus Pro récemment.' });
+        if (!hasChorusCredentials()) {
+          return res.status(501).json({ error: 'Connecteur Chorus Pro non encore activé.' });
+        }
         const token = await getChorusToken();
         const result = await checkFluxStatus(fluxId as string, token);
         return res.status(200).json({ success: true, ...result });
@@ -382,4 +431,55 @@ export default async function handler(req: any, res: any) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function loadOwnedInvoiceForExport(invoiceId: string, uid: string): Promise<{ invoice: InvoicePayload; company: CompanyPayload }> {
+  const { db } = ensureFirebaseAdmin();
+  const invoiceSnap = await db.collection('invoices').doc(invoiceId).get();
+  if (!invoiceSnap.exists) throw Object.assign(new Error('Facture introuvable.'), { status: 404 });
+  const rawInvoice = invoiceSnap.data() as any;
+  if (rawInvoice.ownerId !== uid) throw Object.assign(new Error('Accès interdit.'), { status: 403 });
+
+  const companySnap = await db.collection('companies').doc(uid).get();
+  const rawCompany = companySnap.exists ? (companySnap.data() as any) : {};
+  const clientSnap = rawInvoice.clientId ? await db.collection('clients').doc(rawInvoice.clientId).get() : null;
+  const client = clientSnap?.exists ? (clientSnap.data() as any) : {};
+
+  return {
+    invoice: {
+      id: invoiceId,
+      number: rawInvoice.number || '',
+      type: rawInvoice.type || 'invoice',
+      date: rawInvoice.date || '',
+      dueDate: rawInvoice.dueDate || rawInvoice.date || '',
+      clientName: rawInvoice.clientName || client.name || '',
+      clientSiren: client.siren || rawInvoice.clientSiren || '',
+      clientVatNumber: client.vatNumber || rawInvoice.clientVatNumber || '',
+      clientAddress: client.address || rawInvoice.clientAddress || '',
+      vatRegime: rawInvoice.vatRegime || rawCompany.vatRegime || 'standard',
+      items: Array.isArray(rawInvoice.items) ? rawInvoice.items : [],
+      totalHT: Number(rawInvoice.totalHT || 0),
+      totalVAT: Number(rawInvoice.totalVAT || 0),
+      totalTTC: Number(rawInvoice.totalTTC || 0),
+    },
+    company: {
+      name: rawCompany.name || rawCompany.legalName || '',
+      siret: rawCompany.siret || '',
+      vatNumber: rawCompany.vatNumber || '',
+      address: rawCompany.address || '',
+      legalForm: rawCompany.legalForm || '',
+      capital: rawCompany.capital || 0,
+      defaultCurrency: rawCompany.defaultCurrency || 'EUR',
+      vatRegime: rawCompany.vatRegime || 'standard',
+    },
+  };
+}
+
+function hasChorusCredentials() {
+  return Boolean(
+    process.env.CHORUS_LOGIN &&
+    process.env.CHORUS_PASSWORD &&
+    process.env.CHORUS_PISTE_CLIENT_ID &&
+    process.env.CHORUS_PISTE_SECRET,
+  );
 }

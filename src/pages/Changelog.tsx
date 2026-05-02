@@ -52,7 +52,7 @@ const releases: Release[] = [
     version: 'v2.2',
     date: 'Mars 2026',
     entries: [
-      { type: 'feat', text: 'Conformité Factur-X + Chorus Pro' },
+      { type: 'feat', text: 'Préparation Factur-X + connecteurs publics' },
       { type: 'feat', text: 'Système de plans Freemium + Paddle' },
       { type: 'feat', text: 'Signature électronique de devis' },
     ],

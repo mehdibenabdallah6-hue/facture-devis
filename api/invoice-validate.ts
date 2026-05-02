@@ -31,7 +31,7 @@
  * if a draft is later deleted.
  */
 
-import { Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { verifyAuth } from './_verify-auth.js';
 
@@ -42,6 +42,12 @@ const PREFIX_FALLBACK: Record<InvoiceType, string> = {
   quote: 'D',
   credit: 'AV',
   deposit: 'AC',
+};
+const PAID_STATUSES = new Set(['active', 'trialing', 'past_due']);
+const PLAN_INVOICE_LIMITS: Record<string, number> = {
+  free: 10,
+  starter: -1,
+  pro: -1,
 };
 
 function buildNumber(prefix: string, year: number, n: number): string {
@@ -129,6 +135,10 @@ export default async function handler(req: any, res: any) {
       const counterSnap = await tx.get(counterRef);
       const previousValue = counterSnap.exists ? (counterSnap.data() as any).value || 0 : 0;
       const nextValue = previousValue + 1;
+      const quotaPatch = buildInvoiceQuotaPatch(company, type, new Date());
+      if (quotaPatch && quotaPatch.blocked) {
+        throw httpError(429, quotaPatch.message);
+      }
 
       const prefix = pickPrefix(type, company.invoicePrefix);
       const number = buildNumber(prefix, year, nextValue);
@@ -143,6 +153,9 @@ export default async function handler(req: any, res: any) {
         value: nextValue,
         updatedAt: nowIso,
       }, { merge: true });
+      if (quotaPatch) {
+        tx.set(companyRef, quotaPatch.patch, { merge: true });
+      }
 
       tx.update(invoiceRef, {
         ...(draftPatch || {}),
@@ -188,6 +201,43 @@ function httpError(status: number, message: string): Error {
   const e = new Error(message);
   (e as any).status = status;
   return e;
+}
+
+function buildInvoiceQuotaPatch(company: any, type: InvoiceType, now: Date) {
+  if (type !== 'invoice') return null;
+
+  const isPaid = PAID_STATUSES.has(company.subscriptionStatus || '');
+  const plan = isPaid && company.plan && company.plan !== 'free' ? company.plan : 'free';
+  const limit = PLAN_INVOICE_LIMITS[plan] ?? PLAN_INVOICE_LIMITS.free;
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastReset = company.monthlyInvoiceResetAt ? new Date(company.monthlyInvoiceResetAt) : null;
+  const needsReset =
+    !lastReset ||
+    lastReset.getMonth() !== now.getMonth() ||
+    lastReset.getFullYear() !== now.getFullYear();
+  const current = needsReset ? 0 : Number(company.monthlyInvoiceCount || 0);
+
+  if (limit !== -1 && current >= limit) {
+    return {
+      blocked: true as const,
+      message: `Quota factures atteint (${current}/${limit}). Passez au plan supérieur ou attendez le mois prochain.`,
+      patch: {},
+    };
+  }
+
+  return {
+    blocked: false as const,
+    patch: needsReset
+      ? {
+          monthlyInvoiceCount: 1,
+          monthlyInvoiceResetAt: monthStart.toISOString(),
+          updatedAt: now.toISOString(),
+        }
+      : {
+          monthlyInvoiceCount: FieldValue.increment(1),
+          updatedAt: now.toISOString(),
+        },
+  };
 }
 
 function sanitizeDraftPatch(draft: any, existing: any, company: any): Record<string, any> {

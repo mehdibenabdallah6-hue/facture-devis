@@ -64,7 +64,8 @@ service cloud.firestore {
     /**
      * Whitelist of fields that may be touched by the CLIENT after an invoice
      * is locked. Anything else (items, totals, dates, number, regime…) must
-     * stay frozen — only a credit note can correct the document.
+     * stay frozen — only a credit note or a server route can correct the
+     * legal document. Signature/share/credit fields are server-only.
      *
      * NOTE: the API uses the Admin SDK and bypasses rules entirely, so
      * server-side validation/credit-note flows are not blocked by this list.
@@ -73,11 +74,6 @@ service cloud.firestore {
       return [
         'status',
         'paymentMethod',
-        'signature',
-        'signedAt',
-        'signedByName',
-        'shareUrl',
-        'sharedQuoteId',
         'eInvoiceStatus',
         'eInvoiceProvider',
         'eInvoiceExternalId',
@@ -90,8 +86,6 @@ service cloud.firestore {
         'chorusError',
         'pennylaneId',
         'pennylaneStatus',
-        'creditedBy',
-        'creditedAt',
         'chantierPhotos',
         'updatedAt'
       ];
@@ -110,6 +104,159 @@ service cloud.firestore {
     function lockNotRemoved() {
       return resource.data.isLocked != true ||
              request.resource.data.isLocked == true;
+    }
+
+    function companyServerOnlyKeys() {
+      return [
+        'plan',
+        'subscriptionStatus',
+        'monthlyInvoiceCount',
+        'monthlyInvoiceResetAt',
+        'monthlyAiUsageCount',
+        'monthlyResetAt',
+        'paddleCustomerId',
+        'paddleSubscriptionId',
+        'paddlePriceId',
+        'pendingPlan',
+        'pendingBillingCycle',
+        'billingCycle',
+        'trialEndsAt',
+        'currentPeriodStart',
+        'currentPeriodEnd',
+        'cancelAtPeriodEnd',
+        'quota',
+        'legalCounters',
+        'invoiceCounters',
+        'auditTrail',
+        'invoiceCounter',
+        'quoteCounter',
+        'welcomeEmailSentAt'
+      ];
+    }
+
+    function companyClientEditableKeys() {
+      return [
+        'ownerId',
+        'name',
+        'legalName',
+        'tradeName',
+        'profession',
+        'address',
+        'postalCode',
+        'city',
+        'country',
+        'phone',
+        'email',
+        'website',
+        'siret',
+        'siren',
+        'vatNumber',
+        'legalForm',
+        'capital',
+        'vatRegime',
+        'decennale',
+        'rcPro',
+        'logoUrl',
+        'letterheadUrl',
+        'hideCompanyInfo',
+        'invoicePrefix',
+        'defaultPaymentTerms',
+        'defaultCurrency',
+        'defaultVat',
+        'paymentTerms',
+        'iban',
+        'bic',
+        'bankName',
+        'legalMentions',
+        'invoiceFooter',
+        'quoteFooter',
+        'pdfPreferences',
+        'notificationPreferences',
+        'pdfTemplate',
+        'pdfAccentColor',
+        'pdfFooterText',
+        'pdfShowPaymentTerms',
+        'pdfShowItemVat',
+        'trialStartedAt',
+        'createdAt',
+        'updatedAt',
+        'welcomeDiscountExpiry'
+      ];
+    }
+
+    function safeCompanyCreateBillingFields() {
+      return (!('plan' in request.resource.data) || request.resource.data.plan == 'free') &&
+             (!('subscriptionStatus' in request.resource.data) ||
+              request.resource.data.subscriptionStatus in ['trial', 'expired', 'cancelled']) &&
+             !request.resource.data.keys().hasAny([
+               'monthlyInvoiceCount',
+               'monthlyInvoiceResetAt',
+               'monthlyAiUsageCount',
+               'monthlyResetAt',
+               'paddleCustomerId',
+               'paddleSubscriptionId',
+               'paddlePriceId',
+               'pendingPlan',
+               'pendingBillingCycle',
+               'billingCycle',
+               'trialEndsAt',
+               'currentPeriodStart',
+               'currentPeriodEnd',
+               'quota',
+               'legalCounters',
+               'invoiceCounters',
+               'auditTrail',
+               'invoiceCounter',
+               'quoteCounter'
+             ]);
+    }
+
+    function onlyAllowedCompanyFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(companyClientEditableKeys());
+    }
+
+    function companySensitiveFieldsUntouched() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(companyServerOnlyKeys());
+    }
+
+    function noClientLegalValidationFieldsChanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'validatedAt',
+        'validatedBy',
+        'legalSequence',
+        'auditHash',
+        'creditedBy',
+        'creditedAt',
+        'creditNoteFor',
+        'signature',
+        'signedAt',
+        'signedByName',
+        'signatureProof',
+        'shareUrl',
+        'sharedQuoteId'
+      ]) &&
+      (!(request.resource.data.status == 'validated') || resource.data.status == 'validated') &&
+      (!(request.resource.data.isLocked == true) || resource.data.isLocked == true);
+    }
+
+    function safeClientInvoiceCreate() {
+      return request.resource.data.status in ['draft', 'sent'] &&
+             (!( 'isLocked' in request.resource.data ) || request.resource.data.isLocked == false) &&
+             !request.resource.data.keys().hasAny([
+               'validatedAt',
+               'validatedBy',
+               'legalSequence',
+               'auditHash',
+               'creditedBy',
+               'creditedAt',
+               'creditNoteFor',
+               'signature',
+               'signedAt',
+               'signedByName',
+               'signatureProof',
+               'shareUrl',
+               'sharedQuoteId'
+             ]);
     }
 
     // ===============================================================
@@ -228,8 +375,13 @@ service cloud.firestore {
 
     match /companies/{companyId} {
       allow read: if isOwner(companyId);
-      allow create: if isOwner(companyId) && isValidCompany();
-      allow update: if isOwner(companyId) && isValidCompany();
+      allow create: if isOwner(companyId) &&
+                    isValidCompany() &&
+                    safeCompanyCreateBillingFields();
+      allow update: if isOwner(companyId) &&
+                    isValidCompany() &&
+                    onlyAllowedCompanyFieldsChanged() &&
+                    companySensitiveFieldsUntouched();
       allow delete: if isOwner(companyId);
 
       // Counters legaux (par type / année). Lecture autorisée pour le
@@ -261,7 +413,7 @@ service cloud.firestore {
       // pourrait fabriquer une fausse facture validée).
       allow create: if isAuthenticated() &&
                        isValidInvoice() &&
-                       (!( 'isLocked' in request.resource.data ) || request.resource.data.isLocked == false);
+                       safeClientInvoiceCreate();
 
       // Update : seules les factures non-verrouillées peuvent être éditées
       // intégralement. Pour une facture verrouillée, on ne tolère que les
@@ -270,6 +422,7 @@ service cloud.firestore {
       allow update: if isDocOwner() &&
                        isValidInvoice() &&
                        uidNotModified() &&
+                       noClientLegalValidationFieldsChanged() &&
                        lockedFieldsUntouched() &&
                        lockNotRemoved();
 
@@ -285,6 +438,23 @@ service cloud.firestore {
     match /invoiceEvents/{eventId} {
       allow read: if isDocOwner();
       allow write: if false;
+    }
+
+    /**
+     * Paddle webhook idempotency store. Server-only: written by the Paddle
+     * webhook through Admin SDK, never by clients.
+     */
+    match /paddleEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    /**
+     * Firestore-backed rate limiting buckets. Server-only because exposing
+     * these documents would leak quota/timing information and let clients
+     * reset their own counters.
+     */
+    match /rateLimits/{limitId} {
+      allow read, write: if false;
     }
 
     /**
@@ -307,23 +477,13 @@ service cloud.firestore {
     }
 
     /**
-     * Sharable quote signature link. Le destinataire (client) n'est pas
-     * authentifié, donc lecture publique sur l'ID exact, mais aucune
-     * écriture publique. Création réservée au propriétaire de l'invoice
-     * source (champ ownerId), update du statut autorisée pour permettre
-     * la signature côté client (sans authentification — vérifié par le
-     * lien partagé qui agit comme bearer token).
+     * Liens de signature de devis.
+     * Le public ne lit/écrit jamais directement Firestore : il passe par
+     * /api/quote-public et /api/quote-sign, qui vérifient le token hashé.
      */
     match /sharedQuotes/{shareId} {
-      allow read: if true;
-      allow create: if isAuthenticated() &&
-                       request.resource.data.ownerId == request.auth.uid;
-      // Update: autorisé si on touche uniquement aux champs de signature
-      // (le client signataire n'est pas authentifié, mais ne peut pas
-      // toucher au montant ou au contenu).
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['signature', 'signedAt', 'signedByName', 'status', 'updatedAt']);
-      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow write: if false;
     }
   }
 }
