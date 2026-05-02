@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData, processReferral } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle2, ArrowRight, Camera, AlertCircle } from 'lucide-react';
+import { CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
 
 const PROFESSIONS = [
   { name: 'Plombier', emoji: '🔧' },
@@ -79,8 +79,8 @@ export default function Onboarding() {
         localStorage.removeItem('photofacto_referral');
       }
 
-      success('Bienvenue !', `Votre profil "${companyName.trim()}" est configuré.`);
-      navigate('/app');
+      success('Profil prêt', 'Vous pouvez créer votre premier devis.');
+      navigate('/app/invoices/new');
     } catch (err) {
       console.error(err);
       setError('Une erreur est survenue. Réessayez.');
@@ -105,7 +105,7 @@ export default function Onboarding() {
         <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-xl border border-outline-variant/10 space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Bienvenue ! 👋</h1>
-            <p className="text-on-surface-variant text-sm">Dites-nous en plus sur votre activité pour personnaliser l'expérience.</p>
+            <p className="text-on-surface-variant text-sm">Deux infos rapides, puis vous créez votre premier devis.</p>
           </div>
 
           {error && (
@@ -166,7 +166,7 @@ export default function Onboarding() {
             disabled={!companyName.trim() || !finalProfession || loading}
             className="btn-glow w-full bg-primary text-on-primary px-6 py-4 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-spark-cta text-base"
           >
-            {loading ? 'Configuration...' : 'Commencer'}
+            {loading ? 'Préparation...' : 'Créer mon premier devis'}
             {!loading && <ArrowRight className="w-5 h-5" />}
           </button>
         </div>

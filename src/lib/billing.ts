@@ -31,11 +31,11 @@ export const PLAN_PRICING: Record<
 };
 
 export const PLAN_FEATURES: Record<AppPlan, string[]> = {
-  free: ['10 factures/mois', '5 usages IA/mois', 'Conformité de base', 'Pas de photos PDF'],
+  free: ['10 factures/mois', '5 usages IA/mois', 'Mentions de base', 'Pas de photos PDF'],
   starter: [
     'Factures illimitées',
     '50 usages IA/mois',
-    'Conformité Factur-X',
+    'Export Factur-X',
     'Envoi emails auto',
   ],
   pro: ['Tout illimité', 'Photos dans PDF', 'Export CSV/FEC', 'Parrainage illimité'],

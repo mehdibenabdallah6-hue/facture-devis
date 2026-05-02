@@ -4,9 +4,10 @@ import { Star } from 'lucide-react';
 
 export interface Testimonial {
   text: string;
-  image: string;
   name: string;
   role: string;
+  image?: string;
+  initials?: string;
 }
 
 interface TestimonialsColumnProps {
@@ -34,7 +35,7 @@ export const TestimonialsColumn: React.FC<TestimonialsColumnProps> = ({
       >
         {[...new Array(2).fill(0)].map((_, index) => (
           <React.Fragment key={index}>
-            {testimonials.map(({ text, image, name, role }, i) => (
+            {testimonials.map(({ text, image, name, role, initials }, i) => (
               <div
                 key={i}
                 className="p-7 rounded-3xl border-spark bg-white shadow-spark-sm max-w-xs w-full"
@@ -48,14 +49,20 @@ export const TestimonialsColumn: React.FC<TestimonialsColumnProps> = ({
                   “{text}”
                 </div>
                 <div className="flex items-center gap-2.5 mt-5">
-                  <img
-                    width={40}
-                    height={40}
-                    src={image}
-                    alt={name}
-                    loading="lazy"
-                    className="h-10 w-10 rounded-full object-cover shrink-0"
-                  />
+                  {image ? (
+                    <img
+                      width={40}
+                      height={40}
+                      src={image}
+                      alt={name}
+                      loading="lazy"
+                      className="h-10 w-10 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-headline font-extrabold text-xs">
+                      {initials || name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex flex-col">
                     <div className="font-bold tracking-tight leading-5 text-on-surface text-xs">
                       {name}

@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { ToastProvider } from './contexts/ToastContext';
 import LandingPage from './pages/LandingPage';
+import PublicSeoPage from './pages/PublicSeoPage';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Onboarding from './pages/Onboarding';
@@ -113,6 +114,14 @@ export default function App() {
               <Route path="/plaquiste" element={<LandingPage profession="plaquiste" />} />
               <Route path="/chauffagiste" element={<LandingPage profession="chauffagiste" />} />
               <Route path="/paysagiste" element={<LandingPage profession="paysagiste" />} />
+              <Route path="/generateur-devis-artisan" element={<PublicSeoPage variant="generateur-devis-artisan" />} />
+              <Route path="/signature-devis-en-ligne-artisan" element={<PublicSeoPage variant="signature-devis-en-ligne-artisan" />} />
+              <Route path="/relance-facture-impayee-artisan" element={<PublicSeoPage variant="relance-facture-impayee-artisan" />} />
+              <Route path="/logiciel-devis-facture-artisan" element={<PublicSeoPage variant="logiciel-devis-facture-artisan" />} />
+              <Route path="/logiciel-devis-facture-btp" element={<PublicSeoPage variant="logiciel-devis-facture-btp" />} />
+              <Route path="/logiciel-facture-auto-entrepreneur-batiment" element={<PublicSeoPage variant="logiciel-facture-auto-entrepreneur-batiment" />} />
+              <Route path="/alternative-excel-devis-artisan" element={<PublicSeoPage variant="alternative-excel-devis-artisan" />} />
+              <Route path="/alternative-khosmos" element={<PublicSeoPage variant="alternative-khosmos" />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/cgv" element={<CGV />} />
               <Route path="/confidentialite" element={<PrivacyPolicy />} />

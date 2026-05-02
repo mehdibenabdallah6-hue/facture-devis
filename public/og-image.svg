@@ -37,16 +37,16 @@
   </text>
   
   <text x="80" y="280" font-family="Arial, sans-serif" font-size="32" font-weight="600" fill="#D0BCFF">
-    De la photo à la facture
+    Devis signé, facture envoyée
   </text>
   
   <text x="80" y="330" font-family="Arial, sans-serif" font-size="32" font-weight="600" fill="#D0BCFF">
-    en 10 secondes
+    client relancé
   </text>
   
   <!-- Tagline -->
   <text x="80" y="400" font-family="Arial, sans-serif" font-size="20" fill="#CAC4D0">
-    L'app de facturation IA pour artisans du bâtiment
+    L'app devis, factures et signature pour artisans
   </text>
   
   <!-- Badge -->

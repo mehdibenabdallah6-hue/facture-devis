@@ -71,7 +71,7 @@ export default function CGV() {
                 <ul className="text-on-surface-variant text-sm space-y-1">
                   <li>• Factures et devis illimités</li>
                   <li>• 50 utilisations de l'IA par mois</li>
-                  <li>• Conformité Factur-X</li>
+                  <li>• Export Factur-X</li>
                   <li>• Envoi d'emails automatique</li>
                 </ul>
               </div>

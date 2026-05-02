@@ -1,7 +1,7 @@
 {
   "name": "Photofacto",
   "short_name": "Photofacto",
-  "description": "De la photo à la facture en 10 secondes — Facturation IA pour artisans",
+  "description": "Devis, factures, signature en ligne et relances pour artisans",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
-import { ArrowRight, CheckCircle2, Sparkles, Camera } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function OnboardingSuccess() {
   const { company } = useData();
@@ -69,7 +69,7 @@ export default function OnboardingSuccess() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
               <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px] font-extrabold">2</span>
-              L'IA génère votre facture conforme :
+              Photofacto prépare un document à vérifier :
             </div>
             <div className="bg-white p-5 rounded-xl shadow-sm border border-outline-variant/10 text-on-surface">
               <div className="flex justify-between border-b border-outline-variant/10 pb-3 mb-3">
@@ -97,10 +97,10 @@ export default function OnboardingSuccess() {
 
         {/* CTA */}
         <button
-          onClick={() => navigate('/app')}
+          onClick={() => navigate('/app/invoices/new')}
           className="animate-fade-in-up animation-delay-400 btn-glow w-full bg-primary text-on-primary px-8 py-4 rounded-xl font-bold text-lg hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-spark-cta"
         >
-          C'est parti !
+          Créer mon premier devis
           <ArrowRight className="w-6 h-6" />
         </button>
       </div>
