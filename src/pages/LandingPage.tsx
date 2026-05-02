@@ -244,7 +244,7 @@ const stats = [
   ['IA', 'devis depuis photo ou dictée'],
   ['Signature', 'client signe sur téléphone'],
   ['Relances', 'impayés visibles'],
-  ['Catalogue', 'prix réutilisables'],
+  ['Catalogue', 'prix propres et réutilisables'],
   ['Factur-X', 'export prêt pour la suite'],
 ];
 
@@ -266,8 +266,8 @@ const workflowSteps = [
   {
     n: '02',
     icon: <PenLine className="w-[22px] h-[22px] text-primary" />,
-    t: 'Corrigez le devis',
-    d: 'Ajoutez vos prix, vos lignes, vos quantités et vos mentions. Vous gardez toujours le contrôle.',
+    t: 'Corrigez et structurez',
+    d: 'Ajoutez vos prix, vos lignes et vos quantités. Les prestations utiles nourrissent votre catalogue pour les prochains devis.',
   },
   {
     n: '03',
@@ -317,8 +317,8 @@ const features = [
   },
   {
     icon: <Package className="w-[18px] h-[18px] text-primary" />,
-    t: 'Catalogue prestations',
-    d: 'Gardez vos prix, articles, forfaits, main-d’œuvre et déplacements pour créer plus vite.',
+    t: 'Catalogue intelligent',
+    d: 'Importez vos prix depuis Excel, anciens devis, carnet ou notes. Photofacto les rend propres, cohérents et réutilisables.',
   },
   {
     icon: <Palette className="w-[18px] h-[18px] text-primary" />,
@@ -343,6 +343,30 @@ const trades = [
   ['Paysagiste', 'Tonte, taille, élagage, entretien, aménagement.'],
 ];
 
+const catalogSources = ['Excel', 'Carnet', 'Anciens devis', 'Photos chantier', 'Notes WhatsApp'];
+
+const catalogRows = [
+  { name: 'Pose carrelage sol', unit: 'm²', price: '45 €', tag: 'prix réutilisable' },
+  { name: 'Déplacement', unit: 'forfait', price: '35 €', tag: 'forfait clair' },
+  { name: 'Main-d’œuvre', unit: 'heure', price: '55 €', tag: 'marge maîtrisée' },
+  { name: 'Fournitures plomberie', unit: 'ligne', price: 'à vérifier', tag: 'à compléter' },
+];
+
+const catalogBenefits = [
+  {
+    t: 'Vous ne repartez plus de zéro',
+    d: 'Vos anciens prix, prestations et habitudes deviennent une base de travail propre.',
+  },
+  {
+    t: 'Vos devis deviennent cohérents',
+    d: 'Même nom de prestation, même unité, même prix de départ : moins d’oublis et moins d’écarts.',
+  },
+  {
+    t: 'Votre activité se structure toute seule',
+    d: 'À chaque client, devis, facture, signature ou relance, Photofacto enrichit votre espace commercial.',
+  },
+];
+
 const faq = [
   {
     q: 'Photofacto remplace-t-il mon logiciel de facturation ?',
@@ -355,6 +379,10 @@ const faq = [
   {
     q: 'Puis-je relancer les factures impayées ?',
     a: 'Oui. Photofacto affiche les factures en retard et vous aide à relancer vos clients.',
+  },
+  {
+    q: 'Puis-je réutiliser mes anciens prix et prestations ?',
+    a: 'Oui. L’objectif du catalogue intelligent est de partir de ce que vous avez déjà — Excel, carnet, anciens devis ou notes — pour créer une base propre et réutilisable.',
   },
   {
     q: "Est-ce que l'IA décide à ma place ?",
@@ -413,8 +441,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       setMeta(copy.title, copy.description);
     } else {
       setMeta(
-        'Photofacto — Devis, factures, signature en ligne et relances pour artisans',
-        "Créez vos devis avec l’IA, faites signer vos clients en ligne, générez vos factures, relancez les impayés et gardez tout au même endroit.",
+        'Photofacto — Devis, catalogue intelligent, signature et relances pour artisans',
+        "Créez vos devis avec l’IA, structurez votre catalogue de prix, faites signer vos clients, générez vos factures et relancez les impayés.",
       );
     }
   }, [copy]);
@@ -434,7 +462,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
   const heroSubtitle =
     copy?.subtitle ||
-    "Photofacto aide les artisans à créer leurs devis avec l'IA, les faire signer en ligne, générer les factures et relancer les clients sans perdre leurs soirées dans l'administratif.";
+    "Photofacto aide les artisans à créer leurs devis avec l'IA, mais surtout à structurer leur activité commerciale au fil de l’eau : clients, prestations, catalogue, signatures, factures et relances au même endroit.";
 
   // Common reveal-on-scroll motion props for section intros. Centralised so
   // we keep the same easing/timing across the page and don't accidentally
@@ -462,6 +490,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
         <div className="hidden lg:flex items-center gap-7">
           {[
             { label: 'Fonctionnalités', href: '#features' },
+            { label: 'Catalogue', href: '#catalogue' },
             { label: 'Signature', href: '#signature' },
             { label: 'Relances', href: '#relances' },
             { label: 'Tarifs', href: '#pricing' },
@@ -498,7 +527,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-2.5 md:px-3 py-1.5 mb-4 md:mb-7">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
               <span className="text-[11px] md:text-xs font-semibold text-primary-dim">
-                Photo ou dictée · Signature mobile · Relances clients
+                Photo ou dictée · Catalogue intelligent · Signature mobile
               </span>
             </div>
             <h1 className="font-headline font-extrabold text-[34px] sm:text-[52px] lg:text-[62px] leading-[1.04] text-secondary-dim mb-4 md:mb-5">
@@ -527,8 +556,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
             <div className="flex flex-wrap gap-3 sm:gap-5 mt-5">
               {[
                 'Photo ou dictée → devis prêt à modifier',
+                'Catalogue qui se construit au fil des devis',
                 'Signature client sur téléphone',
-                'Relances et suivi des paiements',
               ].map(t => (
                 <div
                   key={t}
@@ -653,7 +682,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </div>
             <div className="bg-secondary-dim text-white rounded-[20px] p-5 shadow-spark-lg">
               <div className="font-headline font-bold mb-4">Avec Photofacto</div>
-              {['Photo + dictée', 'Devis prêt à corriger', 'Lien de signature', 'Facture générée', 'Relance suivie'].map(item => (
+              {['Photo + dictée', 'Catalogue propre', 'Devis prêt à corriger', 'Lien de signature', 'Facture générée', 'Relance suivie'].map(item => (
                 <div key={item} className="flex items-center gap-2 py-2 text-sm text-white/75">
                   <Check className="w-4 h-4 text-primary" strokeWidth={3} />
                   {item}
@@ -704,7 +733,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             Tout ce qu’il faut pour gérer vos devis et factures artisan.
           </h2>
           <p className="text-[15px] text-on-surface-variant text-center mb-8 md:mb-10">
-            Pas un outil de plus à ouvrir : devis, signature, factures, clients, catalogue, PDF et relances restent au même endroit.
+            Pas un outil de plus à ouvrir : clients, catalogue, devis, signature, factures, PDF et relances restent dans le même espace.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {features.map(({ icon, t, d }) => (
@@ -717,6 +746,122 @@ export default function LandingPage({ profession }: LandingPageProps) {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="catalogue" className="py-10 md:py-16 px-4 md:px-14 bg-white border-y-spark overflow-hidden">
+        <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[0.95fr_1.05fr] gap-8 md:gap-12 items-center">
+          <motion.div {...fadeInUp}>
+            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary mb-3">
+              Catalogue intelligent
+            </div>
+            <h2 className="font-headline font-extrabold text-3xl md:text-[42px] text-secondary-dim mb-3 leading-tight">
+              Votre catalogue devient le cerveau commercial de votre activité.
+            </h2>
+            <p className="text-[15px] md:text-base text-on-surface-variant leading-relaxed max-w-2xl mb-6">
+              Photofacto ne fait pas juste “un devis avec l’IA”. Il vous aide à transformer ce que vous avez déjà — Excel, carnet, anciens devis, photos ou notes — en prestations propres, réutilisables et cohérentes.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {catalogSources.map(source => (
+                <span
+                  key={source}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/[0.08] border border-primary/[0.16] px-3 py-1.5 text-xs font-bold text-primary-dim"
+                >
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  {source}
+                </span>
+              ))}
+            </div>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {catalogBenefits.map(({ t, d }) => (
+                <div key={t} className="bg-background rounded-2xl border-spark p-4">
+                  <div className="font-headline font-bold text-sm text-secondary-dim mb-1.5">{t}</div>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">{d}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 24, rotate: 1 }}
+            whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+            className="relative"
+          >
+            <div className="absolute -inset-6 bg-[radial-gradient(circle_at_30%_20%,rgba(232,98,26,0.14),transparent_38%),radial-gradient(circle_at_80%_80%,rgba(46,52,64,0.10),transparent_34%)] rounded-[32px]" />
+            <div className="relative bg-secondary-dim rounded-[26px] p-4 md:p-5 shadow-spark-lg text-white overflow-hidden">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
+                    Espace commercial
+                  </div>
+                  <div className="font-headline font-extrabold text-2xl">Catalogue chantier</div>
+                </div>
+                <div className="w-11 h-11 rounded-2xl bg-primary/20 text-primary flex items-center justify-center">
+                  <Package className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-[0.78fr_1.22fr] gap-3">
+                <div className="rounded-2xl bg-white/8 border border-white/10 p-4">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-white/45 mb-3">
+                    Importer l’existant
+                  </div>
+                  {catalogSources.slice(0, 4).map((source, index) => (
+                    <div key={source} className="flex items-center gap-2 py-2 text-sm text-white/75">
+                      <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                        {index + 1}
+                      </span>
+                      {source}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl bg-white text-on-surface p-3 shadow-spark-md">
+                  <div className="flex items-center justify-between px-2 py-2 mb-1">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                        Prestations propres
+                      </div>
+                      <div className="font-headline font-bold text-secondary-dim">Prêtes à réutiliser</div>
+                    </div>
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="grid gap-2">
+                    {catalogRows.map(row => (
+                      <div
+                        key={row.name}
+                        className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-background border border-outline-variant/35 px-3 py-2.5"
+                      >
+                        <div>
+                          <div className="text-sm font-bold text-secondary-dim">{row.name}</div>
+                          <div className="text-[11px] text-on-surface-variant">{row.unit} · {row.tag}</div>
+                        </div>
+                        <div className="text-sm font-extrabold text-primary self-center">{row.price}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-primary/[0.14] border border-primary/25 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-white">Résultat : des devis plus rapides et mieux rangés.</div>
+                  <div className="text-xs text-white/55 mt-1">
+                    Chaque prestation validée peut servir de base au prochain chantier.
+                  </div>
+                </div>
+                <button
+                  onClick={goRegister}
+                  className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-spark-cta"
+                >
+                  Créer mon catalogue
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -945,7 +1090,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 price: '14,90€',
                 per: '/ mois',
                 sub: 'ou 129€ / an',
-                features: ['Devis & factures illimités', 'Signature en ligne', 'Clients & catalogue', 'Relances simples', 'PDF personnalisé'],
+                features: ['Devis & factures illimités', 'Signature en ligne', 'Clients & catalogue intelligent', 'Relances simples', 'PDF personnalisé'],
                 cta: 'Commencer avec Solo',
                 highlight: true,
               },
@@ -1044,7 +1189,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           Vos devis, factures, clients et relances au même endroit.
         </h2>
         <p className="text-sm md:text-[15px] text-white/55 mb-6 md:mb-8">
-          Faites votre devis avant même de quitter le chantier, envoyez le lien au client, puis suivez ce qui reste à encaisser.
+          Faites votre devis avant même de quitter le chantier, enrichissez votre catalogue, envoyez le lien au client, puis suivez ce qui reste à encaisser.
         </p>
         <button
           onClick={goRegister}
@@ -1074,7 +1219,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </span>
               </div>
               <p className="text-xs text-white/35 leading-relaxed">
-                Le logiciel de devis et factures pensé pour les artisans français : IA, signature en ligne, relances, PDF et Factur-X exportable.
+                Le logiciel de devis et factures pensé pour les artisans français : IA, catalogue intelligent, signature en ligne, relances, PDF et Factur-X exportable.
               </p>
             </div>
             {[
@@ -1084,7 +1229,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   { l: 'Devis & factures', to: '/logiciel-devis-facture-artisan' },
                   { l: 'Signature en ligne', to: '/signature-devis-en-ligne-artisan' },
                   { l: 'Relances clients', to: '/relance-facture-impayee-artisan' },
-                  { l: 'Catalogue prestations', to: '#features' },
+                  { l: 'Catalogue intelligent', to: '#catalogue' },
                   { l: 'Factur-X', to: '#features' },
                   { l: 'Tarifs', to: '#pricing' },
                 ],

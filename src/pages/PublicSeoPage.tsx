@@ -47,28 +47,28 @@ interface SeoPageData {
 
 const pageData: Record<PublicSeoVariant, SeoPageData> = {
   'generateur-devis-artisan': {
-    title: 'Générateur de devis artisan avec IA, signature et facture | Photofacto',
+    title: 'Générateur de devis artisan avec IA et catalogue intelligent | Photofacto',
     description:
-      'Générez un brouillon de devis artisan depuis une photo, une dictée ou une description, puis faites-le signer en ligne et transformez-le en facture.',
+      'Générez un brouillon de devis artisan depuis une photo, une dictée ou une description, réutilisez votre catalogue, puis faites signer et facturez.',
     eyebrow: 'Générateur de devis artisan',
     h1: <>Préparez un devis depuis une photo, une dictée ou quelques mots.</>,
     intro:
-      'Photofacto aide les artisans à passer de la note terrain au devis prêt à corriger, sans formulaire compliqué.',
-    bullets: ['Photo ou dictée', 'Devis modifiable', 'Lien de signature', 'Transformation en facture'],
+      'Photofacto aide les artisans à passer de la note terrain au devis prêt à corriger, tout en structurant leurs prix et prestations au fil des chantiers.',
+    bullets: ['Photo ou dictée', 'Catalogue intelligent', 'Devis modifiable', 'Lien de signature'],
     sections: [
       { title: 'Brouillon IA', text: 'L’IA prépare une proposition à partir de votre description. Vous gardez la validation finale.', icon: <Sparkles className="w-5 h-5" /> },
-      { title: 'Catalogue de prix', text: 'Réutilisez vos prestations habituelles, main-d’œuvre, forfaits et déplacements.', icon: <ClipboardList className="w-5 h-5" /> },
+      { title: 'Catalogue intelligent', text: 'Transformez Excel, anciens devis, carnet ou notes en prestations propres et réutilisables.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Devis prêt à envoyer', text: 'Corrigez les lignes, ajoutez vos mentions, puis envoyez au client.', icon: <FileText className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'Sans Photofacto',
-      before: ['Notes dispersées', 'Devis refait le soir', 'Prix retapés à chaque fois'],
+      before: ['Notes dispersées', 'Prix dans Excel ou carnet', 'Devis refait le soir'],
       afterTitle: 'Avec Photofacto',
-      after: ['Photo + description', 'Devis prêt à modifier', 'Prix catalogue réutilisés'],
+      after: ['Photo + description', 'Catalogue structuré', 'Prix catalogue réutilisés'],
     },
     faq: [
       { q: 'Est-ce que le devis est automatique ?', a: 'Non. Photofacto prépare un brouillon que vous vérifiez et modifiez avant envoi.' },
-      { q: 'Puis-je utiliser mes prix ?', a: 'Oui. Le catalogue permet de réutiliser vos prestations et prix habituels.' },
+      { q: 'Puis-je utiliser mes prix ?', a: 'Oui. Le catalogue intelligent permet de réutiliser vos prestations, forfaits, déplacements, main-d’œuvre et prix habituels.' },
     ],
   },
   'signature-devis-en-ligne-artisan': {
@@ -122,24 +122,24 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     ],
   },
   'logiciel-devis-facture-artisan': {
-    title: 'Logiciel devis facture artisan avec IA, signature et relances | Photofacto',
+    title: 'Logiciel devis facture artisan avec catalogue intelligent | Photofacto',
     description:
-      'Un seul outil pour créer devis et factures, gérer clients et catalogue, faire signer en ligne et suivre les paiements.',
+      'Un seul outil pour créer devis et factures, structurer votre catalogue, gérer clients, faire signer en ligne et suivre les paiements.',
     eyebrow: 'Logiciel devis facture artisan',
     h1: <>Vos devis, factures, clients et relances au même endroit.</>,
     intro:
-      'Photofacto simplifie le tunnel administratif complet des artisans, depuis le chantier jusqu’au paiement.',
-    bullets: ['Devis IA', 'Signature en ligne', 'Factures PDF', 'Suivi paiement'],
+      'Photofacto simplifie le tunnel commercial complet des artisans, depuis le chantier jusqu’au paiement, avec un catalogue qui se construit au fil de vos documents.',
+    bullets: ['Devis IA', 'Catalogue intelligent', 'Signature en ligne', 'Suivi paiement'],
     sections: [
       { title: 'Devis plus rapides', text: 'Photo, dictée ou description : partez d’un brouillon et corrigez.', icon: <Camera className="w-5 h-5" /> },
-      { title: 'Documents propres', text: 'Générez des PDF professionnels avec vos informations et votre design.', icon: <FileText className="w-5 h-5" /> },
-      { title: 'Tout centralisé', text: 'Clients, prestations, devis, factures et relances restent dans le même outil.', icon: <Users className="w-5 h-5" /> },
+      { title: 'Catalogue structuré', text: 'Importez vos prix existants et réutilisez vos prestations sans tout retaper.', icon: <ClipboardList className="w-5 h-5" /> },
+      { title: 'Tout centralisé', text: 'Clients, prestations, devis, factures, signatures et relances restent dans le même outil.', icon: <Users className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'Outils séparés',
-      before: ['Excel', 'Word', 'WhatsApp', 'Mails dispersés'],
+      before: ['Excel', 'Word', 'WhatsApp', 'Prix dispersés'],
       afterTitle: 'Photofacto',
-      after: ['Devis', 'Signature', 'Facture', 'Relance'],
+      after: ['Catalogue', 'Devis', 'Signature', 'Relance'],
     },
     faq: [
       { q: 'Photofacto est-il fait pour tous les artisans ?', a: 'Oui, surtout les artisans solo et petites entreprises qui veulent aller vite sans logiciel compliqué.' },
@@ -153,18 +153,18 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Logiciel devis facture BTP',
     h1: <>Un logiciel BTP pour créer, signer, facturer et relancer.</>,
     intro:
-      'Photofacto garde les usages terrain au centre : photo chantier, prestations, catalogue, PDF propre et suivi des paiements.',
-    bullets: ['Chantiers BTP', 'Photos terrain', 'Factur-X exportable', 'Marchés publics en secondaire'],
+      'Photofacto garde les usages terrain au centre : photo chantier, catalogue intelligent, PDF propre, signature client et suivi des paiements.',
+    bullets: ['Chantiers BTP', 'Catalogue intelligent', 'Factur-X exportable', 'Marchés publics en secondaire'],
     sections: [
       { title: 'Terrain d’abord', text: 'Le point de départ peut être une photo, une dictée ou une note rapide.', icon: <Camera className="w-5 h-5" /> },
-      { title: 'Documents structurés', text: 'PDF propre et export Factur-X pour préparer la suite.', icon: <ShieldCheck className="w-5 h-5" /> },
+      { title: 'Prix réutilisables', text: 'Vos prestations BTP, forfaits, unités et tarifs deviennent un catalogue propre.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Marchés publics', text: 'Photofacto prépare les informations utiles pour vos démarches Chorus Pro.', icon: <FileText className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'BTP à l’ancienne',
-      before: ['Photos dans le téléphone', 'Devis refait plus tard', 'Relances oubliées'],
+      before: ['Photos dans le téléphone', 'Prix dans plusieurs fichiers', 'Relances oubliées'],
       afterTitle: 'BTP avec Photofacto',
-      after: ['Photo exploitée', 'Devis signé', 'Facture suivie'],
+      after: ['Photo exploitée', 'Catalogue réutilisé', 'Facture suivie'],
     },
     faq: [
       { q: 'Chorus Pro est-il la promesse principale ?', a: 'Non. Photofacto sert d’abord à gérer le tunnel devis, signature, facture et paiement. Chorus reste un cas d’usage marchés publics.' },
@@ -178,18 +178,18 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Auto-entrepreneur bâtiment',
     h1: <>Facturez plus proprement sans passer vos soirées sur l’administratif.</>,
     intro:
-      'Photofacto aide les artisans solo à créer vite, envoyer clairement et suivre les paiements sans outil lourd.',
-    bullets: ['Simple sur téléphone', 'Clients centralisés', 'PDF propre', 'Relances visibles'],
+      'Photofacto aide les artisans solo à créer vite, garder leurs prix propres, envoyer clairement et suivre les paiements sans outil lourd.',
+    bullets: ['Simple sur téléphone', 'Catalogue de prix', 'PDF propre', 'Relances visibles'],
     sections: [
       { title: 'Pas de logiciel compliqué', text: 'L’interface reste directe : client, lignes, prix, envoi.', icon: <Smartphone className="w-5 h-5" /> },
-      { title: 'Devis avant facture', text: 'Faites signer le devis puis transformez-le en facture.', icon: <PenLine className="w-5 h-5" /> },
+      { title: 'Prix réutilisables', text: 'Gardez vos prestations, déplacements et forfaits pour ne plus repartir de zéro.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Franchise TVA', text: 'Vous gardez vos paramètres et mentions à vérifier selon votre situation.', icon: <ShieldCheck className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'Solo débordé',
-      before: ['Notes papier', 'Factures dispersées', 'Paiements non suivis'],
+      before: ['Notes papier', 'Prix retapés', 'Paiements non suivis'],
       afterTitle: 'Solo organisé',
-      after: ['Client créé', 'Devis signé', 'Facture relancée'],
+      after: ['Catalogue propre', 'Devis signé', 'Facture relancée'],
     },
     faq: [
       { q: 'Est-ce adapté à la micro-entreprise ?', a: 'Oui. Photofacto est pensé pour les artisans solo, auto-entrepreneurs et petites structures.' },
@@ -197,16 +197,16 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     ],
   },
   'alternative-excel-devis-artisan': {
-    title: 'Alternative Excel pour devis artisan avec signature | Photofacto',
+    title: 'Alternative Excel pour devis artisan avec catalogue intelligent | Photofacto',
     description:
-      'Remplacez les devis Excel par un outil artisan avec clients, catalogue, signature en ligne, PDF et relances.',
+      'Remplacez les devis Excel par un outil artisan avec catalogue intelligent, clients, signature en ligne, PDF et relances.',
     eyebrow: 'Alternative Excel devis artisan',
     h1: <>Arrêtez de refaire vos devis dans Excel à chaque chantier.</>,
     intro:
-      'Excel dépanne au début, mais il ne suit pas les signatures, les factures, les relances et les clients.',
-    bullets: ['Catalogue de prix', 'Signature client', 'PDF propre', 'Paiements suivis'],
+      'Excel dépanne au début, mais il ne structure pas votre catalogue, ne suit pas les signatures, les factures, les relances et les clients.',
+    bullets: ['Import Excel', 'Catalogue intelligent', 'Signature client', 'Paiements suivis'],
     sections: [
-      { title: 'Moins de retape', text: 'Vos prestations et clients reviennent d’un document à l’autre.', icon: <ClipboardList className="w-5 h-5" /> },
+      { title: 'Moins de retape', text: 'Vos prestations, unités, forfaits et clients reviennent d’un document à l’autre.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Moins d’oublis', text: 'Les statuts et relances ne dépendent plus d’un fichier perdu.', icon: <Bell className="w-5 h-5" /> },
       { title: 'Plus professionnel', text: 'Envoyez un lien de signature et un PDF propre.', icon: <FileText className="w-5 h-5" /> },
     ],
@@ -214,10 +214,10 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
       beforeTitle: 'Excel',
       before: ['Fichier copié', 'Erreurs de cellules', 'Aucune signature', 'Relance manuelle'],
       afterTitle: 'Photofacto',
-      after: ['Catalogue', 'Devis modifiable', 'Signature mobile', 'Relance suivie'],
+      after: ['Catalogue intelligent', 'Devis modifiable', 'Signature mobile', 'Relance suivie'],
     },
     faq: [
-      { q: 'Pourquoi quitter Excel ?', a: 'Pour gagner du temps sur les clients, les prix réutilisables, les signatures et les relances.' },
+      { q: 'Pourquoi quitter Excel ?', a: 'Pour gagner du temps sur les clients, les prix réutilisables, les signatures et les relances, sans garder votre activité commerciale dans plusieurs fichiers.' },
       { q: 'Puis-je garder mes habitudes ?', a: 'Oui. Vous pouvez continuer à décrire vos prestations simplement, Photofacto structure ensuite le document.' },
     ],
   },
@@ -228,18 +228,18 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Alternative Khosmos',
     h1: <>Une alternative simple pour gérer devis, factures, signatures et relances.</>,
     intro:
-      'Photofacto mise sur le terrain : photo, dictée, téléphone, client qui signe et paiements à suivre.',
-    bullets: ['IA terrain', 'Signature mobile', 'Relances visibles', 'Factur-X exportable'],
+      'Photofacto mise sur le terrain : photo, dictée, catalogue qui se construit, client qui signe et paiements à suivre.',
+    bullets: ['IA terrain', 'Catalogue intelligent', 'Signature mobile', 'Relances visibles'],
     sections: [
       { title: 'Démarrage terrain', text: 'Photo ou dictée avant de quitter le chantier.', icon: <Camera className="w-5 h-5" /> },
-      { title: 'Signature intégrée', text: 'Le client signe un lien, sans compte client compliqué.', icon: <Smartphone className="w-5 h-5" /> },
+      { title: 'Catalogue vivant', text: 'Vos anciennes lignes de devis deviennent des prestations réutilisables.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Suivi simple', text: 'Devis, factures, clients et paiements restent visibles.', icon: <Search className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'Outil trop administratif',
       before: ['Trop de champs', 'Terrain oublié', 'Signature ailleurs'],
       afterTitle: 'Photofacto',
-      after: ['Photo + description', 'Devis signé', 'Facture suivie'],
+      after: ['Photo + description', 'Catalogue réutilisé', 'Facture suivie'],
     },
     faq: [
       { q: 'Photofacto est-il une copie de Khosmos ?', a: 'Non. Photofacto se positionne sur un flow plus terrain : IA, signature mobile, facture et relances.' },
@@ -247,28 +247,28 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     ],
   },
   'alternative-abby': {
-    title: 'Alternative Abby pour artisans : devis IA, signature, factures | Photofacto',
+    title: 'Alternative Abby pour artisans : catalogue, devis IA, signature | Photofacto',
     description:
       'Photofacto est une alternative à Abby pensée pour les artisans du terrain : devis avec IA, signature mobile, factures PDF, relances et catalogue.',
     eyebrow: 'Alternative Abby',
     h1: <>Une alternative à Abby pensée d’abord pour les artisans.</>,
     intro:
-      'Abby vise large (freelances, services, e-commerce). Photofacto reste centré sur le tunnel des artisans : photo chantier, devis IA, signature mobile, facture, relance.',
-    bullets: ['Devis IA terrain', 'Signature mobile', 'Factures + Factur-X', 'Relances visibles'],
+      'Abby vise large (freelances, services, e-commerce). Photofacto reste centré sur le tunnel des artisans : photo chantier, catalogue intelligent, devis IA, signature mobile, facture, relance.',
+    bullets: ['Devis IA terrain', 'Catalogue intelligent', 'Signature mobile', 'Relances visibles'],
     sections: [
       { title: 'Pensé pour le chantier', text: 'On part d’une photo ou d’une dictée, pas d’un formulaire générique de freelance.', icon: <Camera className="w-5 h-5" /> },
       { title: 'Signature mobile sans compte', text: 'Votre client signe le devis depuis son téléphone, sans créer de compte client.', icon: <PenLine className="w-5 h-5" /> },
-      { title: 'Catalogue prestations BTP', text: 'Réutilisez vos prestations habituelles, main-d’œuvre, forfaits et déplacements.', icon: <ClipboardList className="w-5 h-5" /> },
+      { title: 'Catalogue intelligent artisan', text: 'Réutilisez vos prestations habituelles, main-d’œuvre, forfaits, déplacements et anciens devis.', icon: <ClipboardList className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'Abby (positionnement large)',
       before: ['Outil pour freelances', 'Pas pensé chantier', 'Signature secondaire', 'Vocabulaire services'],
       afterTitle: 'Photofacto (artisans)',
-      after: ['Devis depuis photo', 'Signature mobile mise en avant', 'Relances suivies', 'Factur-X exportable'],
+      after: ['Devis depuis photo', 'Catalogue chantier', 'Signature mobile', 'Relances suivies'],
     },
     faq: [
       { q: 'Pourquoi quitter Abby pour Photofacto ?', a: 'Pour un outil construit autour des usages artisans : photo terrain, devis IA, signature client mobile et relances.' },
-      { q: 'Puis-je migrer mes clients facilement ?', a: 'Oui. Vous pouvez recréer rapidement vos clients et votre catalogue, et continuer en parallèle le temps de la transition.' },
+      { q: 'Puis-je migrer mes clients facilement ?', a: 'Oui. Vous pouvez recréer rapidement vos clients et votre catalogue à partir de vos habitudes existantes, puis continuer en parallèle le temps de la transition.' },
     ],
   },
   'alternative-obat': {
@@ -278,18 +278,18 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Alternative Obat',
     h1: <>Une alternative à Obat plus simple, sans usine à gaz.</>,
     intro:
-      'Obat est complet mais peut être lourd pour un artisan solo. Photofacto garde l’essentiel du tunnel devis → signature → facture → relance, en restant rapide depuis le téléphone.',
-    bullets: ['Démarrage rapide', 'Signature mobile', 'Relances suivies', 'PDF propre'],
+      'Obat est complet mais peut être lourd pour un artisan solo. Photofacto garde l’essentiel du tunnel catalogue → devis → signature → facture → relance, en restant rapide depuis le téléphone.',
+    bullets: ['Démarrage rapide', 'Catalogue intelligent', 'Signature mobile', 'Relances suivies'],
     sections: [
       { title: 'Léger sur le terrain', text: 'Pas de longue mise en route : un client, un devis, un envoi.', icon: <Smartphone className="w-5 h-5" /> },
-      { title: 'Signature et facture liées', text: 'Une fois le devis signé, vous le transformez en facture et envoyez en quelques secondes.', icon: <Receipt className="w-5 h-5" /> },
+      { title: 'Catalogue sans usine à gaz', text: 'Gardez vos prix, forfaits et prestations propres sans paramétrage interminable.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Suivi des impayés', text: 'Voyez clairement les factures en retard et préparez vos relances.', icon: <Bell className="w-5 h-5" /> },
     ],
     comparison: {
       beforeTitle: 'Obat (complet, parfois lourd)',
       before: ['Beaucoup de modules', 'Mise en route plus longue', 'Trop riche pour un solo'],
       afterTitle: 'Photofacto (simple)',
-      after: ['Tunnel devis → relance', 'Démarrage rapide', 'Pensé téléphone et chantier'],
+      after: ['Catalogue → devis → relance', 'Démarrage rapide', 'Pensé téléphone et chantier'],
     },
     faq: [
       { q: 'Photofacto est-il aussi complet qu’Obat ?', a: 'Non, Photofacto reste volontairement plus simple. L’objectif est d’aller vite sur le tunnel devis-signature-facture-relance, pas de remplacer un ERP métier.' },
@@ -457,7 +457,7 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
             Commencez par un vrai devis.
           </h2>
           <p className="text-sm md:text-[15px] text-white/55 mb-6 md:mb-8">
-            Photo, description, signature, facture et relance : testez le tunnel complet sans vous compliquer la vie.
+            Photo, catalogue, signature, facture et relance : testez le tunnel complet sans vous compliquer la vie.
           </p>
           <button
             onClick={goRegister}
