@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
+import { motion } from 'motion/react';
 import {
   Mic,
   Camera,
@@ -14,6 +15,68 @@ import {
   Download,
   Star,
 } from 'lucide-react';
+import { TestimonialsColumn, type Testimonial } from '../components/TestimonialsColumn';
+
+const testimonials: Testimonial[] = [
+  {
+    text: "Avant je passais 1h à faire mes factures le soir. Maintenant je dicte en 10 secondes depuis la camionnette.",
+    image: 'https://randomuser.me/api/portraits/men/32.jpg',
+    name: 'Karim B.',
+    role: 'Carreleur · Paris',
+  },
+  {
+    text: "Je prends en photo mon devis papier et tout est pré-rempli. Un gain de temps énorme, je recommande.",
+    image: 'https://randomuser.me/api/portraits/women/44.jpg',
+    name: 'Sophie L.',
+    role: 'Électricienne · Lyon',
+  },
+  {
+    text: "Enfin un outil qui comprend notre métier. Les suggestions de prestations sont hyper pratiques.",
+    image: 'https://randomuser.me/api/portraits/men/15.jpg',
+    name: 'Marc D.',
+    role: 'Plombier · Marseille',
+  },
+  {
+    text: "Le calculateur de surfaces m'a fait gagner un temps fou sur mes devis de chantier. Plus de calculs sur un coin de table.",
+    image: 'https://randomuser.me/api/portraits/men/52.jpg',
+    name: 'Julien R.',
+    role: 'Maçon · Bordeaux',
+  },
+  {
+    text: "Mes clients signent les devis directement depuis leur téléphone. Plus besoin d'imprimer ni de relancer.",
+    image: 'https://randomuser.me/api/portraits/women/68.jpg',
+    name: 'Aurélie M.',
+    role: 'Peintre · Toulouse',
+  },
+  {
+    text: "L'export Chorus Pro fonctionne du premier coup. Pour mes chantiers publics c'est exactement ce qu'il me fallait.",
+    image: 'https://randomuser.me/api/portraits/men/76.jpg',
+    name: 'Thomas G.',
+    role: 'Couvreur · Nantes',
+  },
+  {
+    text: "Interface ultra simple, même sur mon vieux téléphone. Mes factures sont conformes 2026 sans que j'aie rien à faire.",
+    image: 'https://randomuser.me/api/portraits/men/41.jpg',
+    name: 'Nicolas P.',
+    role: 'Menuisier · Lille',
+  },
+  {
+    text: "Les photos de chantier dans le PDF, c'est le détail qui change tout. Mes clients comprennent ce qu'ils paient.",
+    image: 'https://randomuser.me/api/portraits/women/22.jpg',
+    name: 'Léa V.',
+    role: 'Plaquiste · Strasbourg',
+  },
+  {
+    text: "Le support a répondu en 10 minutes un dimanche. J'ai jamais vu ça. L'app est pensée pour nous, pas pour des comptables.",
+    image: 'https://randomuser.me/api/portraits/men/83.jpg',
+    name: 'Mehdi A.',
+    role: 'Chauffagiste · Nice',
+  },
+];
+
+const firstColumn = testimonials.slice(0, 3);
+const secondColumn = testimonials.slice(3, 6);
+const thirdColumn = testimonials.slice(6, 9);
 
 interface LandingPageProps {
   profession?:
@@ -467,49 +530,40 @@ export default function LandingPage({ profession }: LandingPageProps) {
       </section>
 
       {/* ── Testimonials ───────────────────────────────────────── */}
-      <section id="testimonials" className="py-10 md:py-12 px-4 md:px-14 bg-white border-y-spark">
+      <section id="testimonials" className="py-10 md:py-14 px-4 md:px-14 bg-white border-y-spark relative">
         <div className="max-w-[1200px] mx-auto">
-          <h2 className="font-headline font-extrabold text-3xl md:text-4xl text-secondary-dim text-center mb-8">
-            Ils nous font confiance
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              {
-                name: 'Karim B.',
-                job: 'Carreleur · Paris',
-                q: 'Avant je passais 1h à faire mes factures le soir. Maintenant je dicte en 10 secondes depuis la camionnette.',
-              },
-              {
-                name: 'Sophie L.',
-                job: 'Électricienne · Lyon',
-                q: "Je prends en photo mon devis papier et tout est pré-rempli. Un gain de temps énorme, je recommande.",
-              },
-              {
-                name: 'Marc D.',
-                job: 'Plombier · Marseille',
-                q: "Enfin un outil qui comprend notre métier. Les suggestions de prestations sont hyper pratiques.",
-              },
-            ].map(({ name, job, q }) => (
-              <div key={name} className="border-spark rounded-2xl p-5 shadow-spark-sm">
-                <div className="flex gap-0.5 mb-2.5">
-                  {[0, 1, 2, 3, 4].map(i => (
-                    <Star key={i} className="w-3.5 h-3.5 text-primary fill-primary" />
-                  ))}
-                </div>
-                <p className="text-[13px] text-on-surface-variant leading-relaxed mb-4 italic">
-                  "{q}"
-                </p>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                    {name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-on-surface">{name}</div>
-                    <div className="text-[10px] text-on-surface-variant">{job}</div>
-                  </div>
-                </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center justify-center max-w-[540px] mx-auto"
+          >
+            <div className="flex justify-center">
+              <div className="border-spark rounded-lg py-1 px-4 text-xs font-bold uppercase tracking-wider text-primary">
+                Témoignages
               </div>
-            ))}
+            </div>
+            <h2 className="font-headline font-extrabold text-3xl md:text-4xl lg:text-5xl text-secondary-dim text-center mt-5 tracking-tight">
+              Ils nous font confiance
+            </h2>
+            <p className="text-center mt-4 text-[15px] text-on-surface-variant">
+              Des artisans dans toute la France utilisent Photofacto au quotidien.
+            </p>
+          </motion.div>
+
+          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[740px] overflow-hidden">
+            <TestimonialsColumn testimonials={firstColumn} duration={15} />
+            <TestimonialsColumn
+              testimonials={secondColumn}
+              className="hidden md:block"
+              duration={19}
+            />
+            <TestimonialsColumn
+              testimonials={thirdColumn}
+              className="hidden lg:block"
+              duration={17}
+            />
           </div>
         </div>
       </section>
