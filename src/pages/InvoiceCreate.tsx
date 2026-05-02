@@ -1340,50 +1340,32 @@ export default function InvoiceCreate() {
   const handleSendEmail = async () => {
     const client = clients.find(c => c.id === formData.clientId);
     const email = client?.email || '';
-    const artisanEmail = company?.email || user?.email || '';
     
     if (!email) {
       showError('Email manquant', "Le client n'a pas d'adresse e-mail renseignée.");
       return;
     }
+    if (!id) {
+      showError('Document non enregistré', "Enregistrez d'abord le document avant de l'envoyer par e-mail.");
+      return;
+    }
+    if (!user) {
+      showError('Connexion requise', "Reconnectez-vous avant d'envoyer ce document.");
+      return;
+    }
 
     setIsSendingEmail(true);
     try {
-      // 1. Generate PDF in memory
-      let doc;
-      try {
-        doc = await generatePDF(false);
-      } catch (pdfErr: any) {
-        console.error('PDF generation error:', pdfErr);
-        showError('Erreur PDF', 'Impossible de générer le PDF. Vérifiez vos images/papier en-tête.');
-        setIsSendingEmail(false);
-        return;
-      }
-      const pdfBase64 = doc.output('datauristring').split(',')[1];
       const docName = formData.type === 'quote' ? 'Devis' : 'Facture';
+      const token = await user.getIdToken();
 
-      // 2. Call our Resend API
       const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          invoiceId: id,
           to: email,
-          fromName: company?.name || user?.displayName || 'Votre artisan',
-          fromEmail: artisanEmail,
-          subject: `${docName} ${formData.number} - ${company?.name || 'Photofacto'}`,
-          html: `
-            <p>Bonjour,</p>
-            <p>Veuillez trouver ci-joint votre <strong>${docName.toLowerCase()} ${formData.number}</strong>.</p>
-            <p>Vous pouvez également le consulter, le télécharger et le signer en ligne en cliquant sur le lien ci-dessous :</p>
-            <p><a href="${window.location.origin}/s/${id || ''}" style="display:inline-block;background:#0d9488;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Voir mon document en ligne</a></p>
-            <p>Cordialement,<br/><strong>${company?.name || 'Photofacto'}</strong></p>
-          `,
-          attachments: [
-            {
-              filename: `${docName}_${formData.number}.pdf`,
-              content: pdfBase64
-            }
-          ]
+          message: `Voici votre ${docName.toLowerCase()} ${formData.number}. Vérifiez le récapitulatif ci-dessous.`,
         })
       });
 
@@ -1809,7 +1791,7 @@ export default function InvoiceCreate() {
     }
 
     if (formData.type !== 'quote' && formData.type !== 'credit') {
-      footerLines.push("Conforme aux exigences de la réforme de facturation électronique 2026.");
+      footerLines.push("Préparé pour les formats structurés de facturation électronique, sous réserve de validation.");
     }
 
     const footerParts = [company?.name, company?.address, company?.siret ? `SIRET: ${company.siret}` : ''].filter(Boolean);
@@ -2504,8 +2486,8 @@ export default function InvoiceCreate() {
                 <Shield className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-bold text-sm text-on-surface">Conforme facture électronique 2026</p>
-                <p className="text-xs text-on-surface-variant">Téléchargez votre facture au format officiel Factur-X</p>
+                <p className="font-bold text-sm text-on-surface">Export Factur-X en préparation</p>
+                <p className="text-xs text-on-surface-variant">Téléchargez une facture structurée à vérifier avant dépôt officiel</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -3305,7 +3287,7 @@ export default function InvoiceCreate() {
                      <Shield className="w-3.5 h-3.5" /> Sécurité Factur-X
                    </p>
                    <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed">
-                     Votre facture est protégée avec le standard européen PDF/A-3. Elle est prête pour le contrôle fiscal.
+                     Export structuré généré par Photofacto. Vérifiez les informations avant tout dépôt officiel.
                    </p>
                 </div>
               </div>

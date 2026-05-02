@@ -31,14 +31,13 @@ export default function Contact() {
     setSending(true);
 
     try {
-      const res = await fetch('/api/send-email', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'contact@photofacto.fr',
-          fromName: name,
-          fromEmail: email,
-          subject: `[Photofacto] ${SUBJECT_OPTIONS.find((o) => o.value === subject)?.label}`,
+          name,
+          email,
+          subject: SUBJECT_OPTIONS.find((o) => o.value === subject)?.label || 'Contact',
           message,
         }),
       });

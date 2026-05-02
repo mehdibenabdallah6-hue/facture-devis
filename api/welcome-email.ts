@@ -1,142 +1,85 @@
-/**
- * Welcome email endpoint — sends a warm onboarding email via Resend
- * POST /api/welcome-email
- * Body: { email: string, name?: string }
- */
+import { verifyAuth } from './_lib/auth.js';
+import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import {
+  applyCors,
+  badRequest,
+  methodNotAllowed,
+  ok,
+  parseJsonBody,
+  serverError,
+  tooManyRequests,
+  unauthorized,
+} from './_lib/http.js';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import { sendResendEmail } from './_lib/email.js';
+import { escapeHtml, isEmail, sanitizeText } from './_lib/validators.js';
+
+const RESEND_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return methodNotAllowed(res);
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY) return res.status(500).json({ error: 'RESEND_API_KEY manquant' });
+  let authCtx;
+  try {
+    authCtx = await verifyAuth(req);
+  } catch (error: any) {
+    return unauthorized(res, error?.message || 'Authentification requise.');
+  }
 
-  const { email, name } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email requis' });
-
-  const firstName = name ? name.split(' ')[0] : 'Artisan';
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="margin:0;padding:0;background-color:#F5F5F5;font-family:Arial,sans-serif;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F5F5;padding:40px 20px;">
-        <tr>
-          <td align="center">
-            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
-              <!-- Header -->
-              <tr>
-                <td style="background:linear-gradient(135deg,#0d9488,#0f766e);padding:40px 32px;text-align:center;">
-                  <h1 style="color:#FFFFFF;font-size:32px;font-weight:800;margin:0 0 8px;">Photofacto</h1>
-                  <p style="color:#ccfbf1;font-size:16px;margin:0;">Photo + description rapide = facture prête à valider</p>
-                </td>
-              </tr>
-              
-              <!-- Content -->
-              <tr>
-                <td style="padding:40px 32px;">
-                  <h2 style="color:#1c1917;font-size:24px;font-weight:700;margin:0 0 16px;">
-                    Bienvenue sur Photofacto, ${firstName} ! 🎉
-                  </h2>
-                  <p style="color:#44403c;font-size:16px;line-height:1.6;margin:0 0 24px;">
-                    Votre compte est activé. Vous avez <strong>14 jours d'essai gratuit</strong> pour découvrir toutes les fonctionnalités. Voici comment démarrer :
-                  </p>
-                  
-                  <!-- Steps -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
-                    <tr>
-                      <td style="padding:16px 0;border-bottom:1px solid #e7e5e4;">
-                        <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;background-color:#0d9488;color:#FFFFFF;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px;">1</span>
-                        <strong style="color:#1c1917;">Complétez votre profil entreprise</strong>
-                        <p style="color:#44403c;font-size:14px;margin:4px 0 0 44px;">Nom, SIRET, adresse — pour des factures conformes.</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding:16px 0;border-bottom:1px solid #e7e5e4;">
-                        <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;background-color:#0d9488;color:#FFFFFF;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px;">2</span>
-                        <strong style="color:#1c1917;">Ajoutez une photo et une description</strong>
-                        <p style="color:#44403c;font-size:14px;margin:4px 0 0 44px;">L'IA prépare une proposition de facture à vérifier.</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding:16px 0;">
-                        <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;background-color:#0d9488;color:#FFFFFF;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px;">3</span>
-                        <strong style="color:#1c1917;">Ou dictez votre facture à voix haute</strong>
-                        <p style="color:#44403c;font-size:14px;margin:4px 0 0 44px;">Parlez, l'IA remplit le formulaire pour vous.</p>
-                      </td>
-                    </tr>
-                  </table>
-                  
-                  <!-- CTA Button -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td align="center" style="padding:16px 0 32px;">
-                        <a href="https://photofacto.fr/app/invoices/new" style="display:inline-block;background-color:#0d9488;color:#FFFFFF;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;">
-                          Créer ma première facture →
-                        </a>
-                      </td>
-                    </tr>
-                  </table>
-                  
-                  <!-- Help section -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f4;border-radius:12px;">
-                    <tr>
-                      <td style="padding:20px 24px;">
-                        <p style="color:#1c1917;font-size:14px;font-weight:600;margin:0 0 4px;">💬 Besoin d'aide ?</p>
-                        <p style="color:#44403c;font-size:14px;margin:0;">
-                          Contactez-nous à <a href="mailto:contact@photofacto.fr" style="color:#0d9488;text-decoration:underline;">contact@photofacto.fr</a>
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              
-              <!-- Footer -->
-              <tr>
-                <td style="background-color:#f5f5f4;padding:24px 32px;text-align:center;border-top:1px solid #e7e5e4;">
-                  <p style="color:#78716c;font-size:12px;margin:0 0 8px;">
-                    Photofacto — Facturation intelligente pour artisans
-                  </p>
-                  <p style="color:#78716c;font-size:11px;margin:0;">
-                    <a href="https://photofacto.fr/confidentialite" style="color:#78716c;text-decoration:underline;">Politique de confidentialité</a>
-                    &nbsp;·&nbsp;
-                    <a href="https://photofacto.fr/mentions-legales" style="color:#78716c;text-decoration:underline;">Mentions légales</a>
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
+  if (!isEmail(authCtx.email)) return badRequest(res, 'Email utilisateur introuvable.');
 
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`
-      },
-      body: JSON.stringify({
-        from: 'Photofacto <contact@photofacto.fr>',
-        to: [email],
-        subject: `Bienvenue sur Photofacto, ${firstName} ! 🎉`,
-        html
-      })
-    });
+    const limited = await checkRateLimit(`uid:welcome-email:${authCtx.uid}`, 3, 24 * 60 * 60 * 1000);
+    if (!limited.ok) return tooManyRequests(res, 'Email de bienvenue déjà demandé récemment.');
 
-    if (!response.ok) {
-      const err = await response.json();
-      return res.status(response.status).json({ error: err });
+    const body = parseJsonBody(req);
+    const requestedName = sanitizeText(body.name, 100);
+    const { db } = ensureFirebaseAdmin();
+    const companyRef = db.collection('companies').doc(authCtx.uid);
+    const companySnap = await companyRef.get();
+    const company = companySnap.exists ? (companySnap.data() as any) : {};
+
+    const lastSentAt = Date.parse(company.welcomeEmailSentAt || '');
+    if (Number.isFinite(lastSentAt) && Date.now() - lastSentAt < RESEND_COOLDOWN_MS) {
+      return ok(res, { success: true, skipped: true });
     }
 
-    return res.status(200).json({ success: true });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    const name = requestedName || company.name || authCtx.email.split('@')[0] || 'Artisan';
+    const firstName = sanitizeText(String(name).split(' ')[0], 60) || 'Artisan';
+
+    await sendResendEmail({
+      to: [authCtx.email],
+      subject: `Bienvenue sur Photofacto, ${firstName}`,
+      fromName: 'Photofacto',
+      html: buildWelcomeHtml(firstName),
+    });
+
+    await companyRef.set({
+      ownerId: authCtx.uid,
+      welcomeEmailSentAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    return ok(res, { success: true });
+  } catch (error) {
+    return serverError(res, error);
   }
+}
+
+function buildWelcomeHtml(firstName: string) {
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#1f2937;max-width:620px">
+      <h1 style="margin:0 0 12px;color:#0f766e">Bienvenue sur Photofacto, ${escapeHtml(firstName)}</h1>
+      <p>Votre compte est activé. Photofacto vous aide à préparer des devis et factures plus vite, avec une validation finale toujours entre vos mains.</p>
+      <ol>
+        <li>Complétez vos informations entreprise.</li>
+        <li>Ajoutez vos clients et vos tarifs habituels.</li>
+        <li>Créez votre premier document et vérifiez les lignes avant validation.</li>
+      </ol>
+      <p><a href="${escapeHtml(process.env.APP_URL || 'https://photofacto.fr')}/app/invoices/new" style="display:inline-block;background:#0f766e;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">Créer mon premier document</a></p>
+      <p style="font-size:13px;color:#6b7280">Besoin d’aide ? Répondez simplement à cet email.</p>
+    </div>
+  `;
 }

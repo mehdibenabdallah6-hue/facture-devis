@@ -124,7 +124,7 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
             "Factures & devis illimités",
             "50 Extractions IA / mois",
             "Catalogue intelligent",
-            "Conforme Réforme 2026"
+            "Préparé pour la réforme 2026"
           ].map((feature, idx) => (
              <li key={idx} className="flex items-start gap-4">
                <div className="bg-primary/10 p-1 rounded-full text-primary mt-0.5">

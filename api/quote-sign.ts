@@ -1,4 +1,20 @@
-import { ensureFirebaseAdmin } from './_firebase-admin.js';
+import * as crypto from 'crypto';
+import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import {
+  applyCors,
+  badRequest,
+  conflict,
+  methodNotAllowed,
+  notFound,
+  ok,
+  parseJsonBody,
+  serverError,
+  tooManyRequests,
+} from './_lib/http.js';
+import { checkRateLimit, getClientIp } from './_lib/rateLimit.js';
+import { sendResendEmail } from './_lib/email.js';
+import { escapeHtml, isEmail, sanitizeText } from './_lib/validators.js';
+import { hashShareToken, safeCompare } from './_lib/quoteShare.js';
 
 export const config = {
   api: {
@@ -9,76 +25,82 @@ export const config = {
 };
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return methodNotAllowed(res);
 
-  let body: any = req.body;
-  if (typeof body === 'string') {
-    try {
-      body = JSON.parse(body);
-    } catch (e: any) {
-      res.status(400).json({ error: 'Invalid JSON body', detail: e.message });
-      return;
+  try {
+    const clientIp = getClientIp(req);
+    const limited = await checkRateLimit(`ip:quote-sign:${clientIp}`, 10, 10 * 60 * 1000);
+    if (!limited.ok) return tooManyRequests(res, 'Trop de tentatives de signature. Réessayez plus tard.');
+
+    const body = parseJsonBody(req);
+    const quoteId = sanitizeText(body.quoteId || body.shareId, 160);
+    const token = sanitizeText(body.token, 500);
+    const signerName = sanitizeText(body.signerName, 120);
+    const signatureDataUrl = typeof body.signatureDataUrl === 'string' ? body.signatureDataUrl : '';
+
+    if (!quoteId || !token || !signerName || !signatureDataUrl) {
+      return badRequest(res, 'Lien, nom du signataire et signature requis.');
     }
-  }
-  body = body || {};
+    if (!signatureDataUrl.startsWith('data:image/png;base64,')) {
+      return badRequest(res, 'Format de signature invalide.');
+    }
+    if (signatureDataUrl.length > 2_500_000) {
+      return res.status(413).json({ error: 'Signature trop lourde.' });
+    }
 
-  const quoteId = typeof body.quoteId === 'string' ? body.quoteId.trim() : '';
-  const signerName = typeof body.signerName === 'string' ? body.signerName.trim().slice(0, 120) : '';
-  const signatureDataUrl = typeof body.signatureDataUrl === 'string' ? body.signatureDataUrl : '';
-
-  if (!quoteId || !signerName || !signatureDataUrl) {
-    res.status(400).json({ error: 'quoteId, signerName and signatureDataUrl are required' });
-    return;
-  }
-  if (!signatureDataUrl.startsWith('data:image/png;base64,')) {
-    res.status(400).json({ error: 'Invalid signature format' });
-    return;
-  }
-  if (signatureDataUrl.length > 2_500_000) {
-    res.status(413).json({ error: 'Signature trop lourde.' });
-    return;
-  }
-
-  let db: ReturnType<typeof ensureFirebaseAdmin>['db'];
-  try {
-    ({ db } = ensureFirebaseAdmin());
-  } catch (e: any) {
-    console.error('quote-sign: Firebase Admin init failed:', e);
-    res.status(500).json({
-      error: 'Firebase Admin not configured on the server.',
-      detail: e?.message,
-    });
-    return;
-  }
-
-  try {
+    const { db } = ensureFirebaseAdmin();
     const nowIso = new Date().toISOString();
     const sharedRef = db.collection('sharedQuotes').doc(quoteId);
+    const ipHash = hashIp(clientIp);
+    const userAgent = sanitizeText(req.headers?.['user-agent'], 300);
 
     const result = await db.runTransaction(async tx => {
       const sharedSnap = await tx.get(sharedRef);
-      if (!sharedSnap.exists) {
-        throw Object.assign(new Error('Quote not found'), { status: 404 });
-      }
+      if (!sharedSnap.exists) throw withStatus(new Error('Ce lien de signature est invalide.'), 404);
 
       const shared = sharedSnap.data() as any;
-      const invoiceId = shared.originalInvoiceId;
-      const ownerId = shared.ownerId;
-      if (!invoiceId || !ownerId) {
-        throw Object.assign(new Error('Shared quote is incomplete'), { status: 400 });
+      if (!shared.tokenHash || !safeCompare(hashShareToken(token), shared.tokenHash)) {
+        throw withStatus(new Error('Ce lien de signature est invalide.'), 404);
+      }
+      const expiresAt = Date.parse(shared.expiresAt || '');
+      if (Number.isFinite(expiresAt) && expiresAt < Date.now()) {
+        throw withStatus(new Error('Ce lien a expiré, demandez un nouveau lien.'), 409);
+      }
+      if (shared.signedAt || shared.status === 'accepted') {
+        throw withStatus(new Error('Ce devis a déjà été signé.'), 409);
+      }
+      if (shared.status !== 'pending_signature') {
+        throw withStatus(new Error('Ce devis ne peut plus être signé.'), 409);
       }
 
+      const invoiceId = shared.originalInvoiceId || shared.quoteId;
+      const ownerId = shared.ownerId;
+      if (!invoiceId || !ownerId) throw withStatus(new Error('Lien de signature incomplet.'), 400);
+
       const invoiceRef = db.collection('invoices').doc(invoiceId);
-      const eventRef = db.collection('invoiceEvents').doc();
+      const invoiceSnap = await tx.get(invoiceRef);
+      if (!invoiceSnap.exists) throw withStatus(new Error('Devis introuvable.'), 404);
+      const invoice = invoiceSnap.data() as any;
+      if (invoice.ownerId !== ownerId || invoice.type !== 'quote') {
+        throw withStatus(new Error('Lien de signature invalide.'), 403);
+      }
+
+      const proof = {
+        signedAt: nowIso,
+        signerName,
+        ipHash,
+        userAgent,
+        consentText: 'Le signataire accepte le devis et autorise l’enregistrement de sa signature.',
+      };
 
       tx.update(sharedRef, {
         signature: signatureDataUrl,
         signedAt: nowIso,
         signedByName: signerName,
         status: 'accepted',
+        proof,
       });
 
       tx.update(invoiceRef, {
@@ -86,30 +108,35 @@ export default async function handler(req: any, res: any) {
         signature: signatureDataUrl,
         signedAt: nowIso,
         signedByName: signerName,
+        signatureProof: proof,
         updatedAt: nowIso,
       });
 
-      tx.set(eventRef, {
+      tx.set(db.collection('invoiceEvents').doc(), {
         invoiceId,
+        companyId: ownerId,
         ownerId,
-        type: 'sign',
         actorId: `public:${quoteId}`,
+        type: 'quote_signed',
+        resourceType: 'invoice',
+        resourceId: invoiceId,
         timestamp: nowIso,
         metadata: {
+          shareId: quoteId,
           signerName,
+          ipHash,
           clientName: shared.clientName || '',
-          source: 'public_signature_page',
         },
       });
 
       return {
         invoiceId,
         ownerId,
-        number: shared.number || '',
-        clientName: shared.clientName || '',
+        number: shared.number || invoice.number || '',
+        clientName: shared.clientName || invoice.clientName || '',
         companyName: shared.companyName || '',
         companyEmail: shared.companyEmail || '',
-        totalTTC: shared.totalTTC || 0,
+        totalTTC: Number(shared.totalTTC || invoice.totalTTC || 0),
       };
     });
 
@@ -122,15 +149,18 @@ export default async function handler(req: any, res: any) {
       totalTTC: result.totalTTC,
     });
 
-    res.status(200).json({
+    return ok(res, {
       ok: true,
       signedAt: nowIso,
       notification,
       invoiceId: result.invoiceId,
     });
-  } catch (e: any) {
-    console.error('quote-sign error:', e);
-    res.status(e.status || 500).json({ error: e.message || 'Server error' });
+  } catch (error: any) {
+    if (error?.status === 400) return badRequest(res, error.message);
+    if (error?.status === 404) return notFound(res, error.message);
+    if (error?.status === 409) return conflict(res, error.message);
+    if (error?.status === 403) return res.status(403).json({ error: error.message });
+    return serverError(res, error);
   }
 }
 
@@ -142,36 +172,19 @@ async function sendSignatureNotification(opts: {
   quoteNumber: string;
   totalTTC: number;
 }) {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY || !opts.to) {
-    return { sent: false, reason: !opts.to ? 'missing_company_email' : 'missing_resend_key' };
-  }
-
-  const verifiedFrom = extractEmailAddress(process.env.RESEND_FROM_EMAIL || 'factures@photofacto.fr');
-  const companyName = opts.companyName || 'Votre entreprise';
-  const subject = `Devis ${opts.quoteNumber || ''} signé par ${opts.signerName}`.trim();
-
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({
-      from: `Photofacto <${verifiedFrom}>`,
+  if (!isEmail(opts.to)) return { sent: false, reason: 'missing_company_email' };
+  try {
+    await sendResendEmail({
+      fromName: 'Photofacto',
       to: [opts.to],
-      subject,
-      html: buildNotificationHtml({ ...opts, companyName }),
-    }),
-  });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    console.error('quote-sign: Resend notification failed', response.status, data);
-    return { sent: false, reason: 'resend_error', status: response.status };
+      subject: `Devis ${opts.quoteNumber || ''} signé par ${opts.signerName}`.trim(),
+      html: buildNotificationHtml(opts),
+    });
+    return { sent: true };
+  } catch (error: any) {
+    console.error('quote-sign: notification failed', error?.message || error);
+    return { sent: false, reason: 'resend_error' };
   }
-
-  return { sent: true };
 }
 
 function buildNotificationHtml(opts: {
@@ -184,7 +197,7 @@ function buildNotificationHtml(opts: {
   const amount = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(opts.totalTTC || 0);
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937;max-width:560px">
-      <p>Bonjour ${escapeHtml(opts.companyName)},</p>
+      <p>Bonjour ${escapeHtml(opts.companyName || 'Votre entreprise')},</p>
       <h2 style="margin:0 0 12px;color:#111827">Votre devis a été signé</h2>
       <p>Le devis <strong>${escapeHtml(opts.quoteNumber || 'sans numéro')}</strong> a été signé par <strong>${escapeHtml(opts.signerName)}</strong>.</p>
       <ul>
@@ -196,17 +209,15 @@ function buildNotificationHtml(opts: {
   `;
 }
 
-function extractEmailAddress(value: string): string {
-  const raw = String(value || '').trim();
-  const match = raw.match(/<([^>]+)>/);
-  return (match?.[1] || raw || 'factures@photofacto.fr').trim();
+function hashIp(ip: string) {
+  return crypto
+    .createHash('sha256')
+    .update(`${process.env.AUDIT_IP_SALT || 'photofacto'}:${ip}`)
+    .digest('hex')
+    .slice(0, 32);
 }
 
-function escapeHtml(value: any): string {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function withStatus(error: Error, status: number) {
+  (error as any).status = status;
+  return error;
 }

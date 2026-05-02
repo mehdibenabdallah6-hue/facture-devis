@@ -59,7 +59,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
       electricien: {
         title: 'Photofacto — Logiciel de facturation pour électriciens | Facture en 10s',
         description:
-          'Facturation simplifiée pour électriciens. Photo, dictée ou description rapide : préparez une proposition modifiable. Conforme réforme 2026.',
+          'Facturation simplifiée pour électriciens. Photo, dictée ou description rapide : préparez une proposition modifiable pour vos chantiers.',
       },
       macon: {
         title: 'Photofacto — Logiciel de facturation pour maçons | Facture en 10s',
@@ -123,8 +123,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
       setMeta(seoData[profession].title, seoData[profession].description);
     } else {
       setMeta(
-        'Photofacto — Facturation BTP + Chorus Pro pour artisans',
-        "Le logiciel de facturation pensé pour les artisans BTP qui veulent créer des devis, factures Factur-X et dossiers prêts pour Chorus Pro. Essai gratuit 14 jours.",
+        'Photofacto — Facturation BTP pour artisans français',
+        "Le logiciel de facturation pensé pour les artisans BTP qui veulent créer des devis, factures structurées et dossiers mieux préparés. Essai gratuit 14 jours.",
       );
     }
   }, [profession]);
@@ -170,7 +170,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
       <br />
       pensé pour les artisans BTP
       <br />
-      <span className="text-primary">et Chorus Pro.</span>
+      <span className="text-primary">et les marchés publics.</span>
     </>
   );
 
@@ -226,7 +226,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           <div className="inline-flex items-center gap-2 bg-primary/[0.07] border border-primary/[0.18] rounded-full px-2.5 md:px-3 py-1.5 mb-4 md:mb-7">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
             <span className="text-[11px] md:text-xs font-semibold text-primary-dim">
-              Artisans BTP · Factur-X · Chorus Pro
+              Artisans BTP · Factur-X · Marchés publics
             </span>
           </div>
           <h1 className="font-headline font-extrabold text-[33px] sm:text-[52px] lg:text-[62px] leading-[1.04] text-secondary-dim mb-4 md:mb-5">
@@ -234,7 +234,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           </h1>
           <p className="text-[15px] md:text-[17px] text-on-surface-variant leading-[1.55] md:leading-[1.7] max-w-[480px] mb-5 md:mb-8">
             Créez vos devis et factures BTP, vérifiez les mentions légales, exportez en{' '}
-            <strong className="text-on-surface">Factur-X</strong> et préparez vos dépôts Chorus Pro
+            <strong className="text-on-surface">Factur-X</strong> et préparez vos dépôts officiels
             sans tableur ni bricolage administratif.
           </p>
           <div className="flex flex-col gap-3">
@@ -247,7 +247,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               <ArrowRight className="w-4 h-4" />
             </button>
             <div className="flex flex-wrap gap-3 sm:gap-5">
-              {['Sans carte bancaire', 'Factur-X', 'Chorus Pro pour marchés publics'].map(t => (
+              {['Sans carte bancaire', 'Export structuré', 'Marchés publics'].map(t => (
                 <div
                   key={t}
                   className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant"
@@ -352,7 +352,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           {[
             ['BTP', 'spécial artisans'],
             ['Chorus', 'marchés publics'],
-            ['Factur-X', 'PDF/A-3 + CII'],
+            ['Factur-X', 'export structuré'],
             ['SIRET', 'mentions vérifiées'],
             ['IA', 'brouillon à valider'],
           ].map(([v, l], i) => (
@@ -395,8 +395,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
               {
                 n: '03',
                 icon: <Check className="w-[22px] h-[22px] text-primary" strokeWidth={3} />,
-                t: 'Factur-X puis Chorus Pro',
-                d: 'Téléchargez le PDF Factur-X et gardez un document propre pour les marchés publics.',
+                t: 'Factur-X puis dépôt officiel',
+                d: 'Préparez un export structuré et gardez un document propre pour vos marchés publics.',
               },
             ].map(({ n, icon, t, d }) => (
               <div
@@ -426,7 +426,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             Pensé pour les factures BTP publiques
           </h2>
           <p className="text-[15px] text-on-surface-variant text-center mb-8 md:mb-10">
-            Pas un logiciel généraliste : les bons garde-fous pour devis, factures, avoirs et Chorus Pro.
+            Pas un logiciel généraliste : les bons garde-fous pour devis, factures, avoirs et marchés publics.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {[
@@ -447,8 +447,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
               },
               {
                 icon: <Send className="w-[18px] h-[18px] text-primary" />,
-                t: 'Factur-X & Chorus Pro',
-                d: "Exportez le PDF Factur-X et préparez vos dépôts pour les marchés publics.",
+                t: 'Factur-X & dépôts officiels',
+                d: "Préparez un export structuré et vos dossiers pour les marchés publics.",
               },
             ].map(({ icon, t, d }) => (
               <div
@@ -563,7 +563,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   'Tout le plan Solo',
                   'IA en illimité',
                   'Photos chantier dans PDF',
-                  'Préparation Chorus Pro',
+                  'Préparation marchés publics',
                 ],
                 cta: 'Passer en Pro',
                 highlight: false,
@@ -660,7 +660,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           Prêt à facturer vos marchés publics plus proprement ?
         </h2>
         <p className="text-sm md:text-[15px] text-white/50 mb-6 md:mb-8">
-          Photofacto aide les artisans BTP à passer de la prestation terrain à une facture claire, vérifiable et prête pour Chorus Pro.
+          Photofacto aide les artisans BTP à passer de la prestation terrain à une facture claire, vérifiable et mieux préparée pour les marchés publics.
         </p>
         <button
           onClick={() => navigate('/inscription?mode=register')}
@@ -695,7 +695,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </span>
               </div>
               <p className="text-xs text-white/30 leading-relaxed">
-                Le logiciel de facturation pensé pour les artisans BTP, Factur-X et Chorus Pro.
+                Le logiciel de facturation pensé pour les artisans BTP et les formats structurés.
               </p>
             </div>
             {[

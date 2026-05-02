@@ -78,10 +78,50 @@ rulesDescribe('firestore.rules', () => {
     }));
   });
 
+  it('empêche un utilisateur de se donner un plan payant', async () => {
+    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+
+    await assertSucceeds(setDoc(doc(aliceDb, 'companies', alice), {
+      ownerId: alice,
+      name: 'Toiture Alice',
+      subscriptionStatus: 'trial',
+    }));
+
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      plan: 'pro',
+      subscriptionStatus: 'active',
+    }));
+  });
+
+  it('empêche un utilisateur de réinitialiser ses quotas', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'companies', alice), {
+        ownerId: alice,
+        name: 'Toiture Alice',
+        monthlyAiUsageCount: 4,
+        monthlyInvoiceCount: 7,
+      });
+    });
+
+    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      monthlyAiUsageCount: 0,
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      monthlyInvoiceCount: 0,
+    }));
+  });
+
   it('empêche de créer directement une facture verrouillée', async () => {
     const aliceDb = testEnv.authenticatedContext(alice).firestore();
 
     await assertFails(setDoc(doc(aliceDb, 'invoices', 'invoice-locked'), invoice({ isLocked: true })));
+    await assertFails(setDoc(doc(aliceDb, 'invoices', 'invoice-validated'), invoice({
+      status: 'validated',
+      isLocked: false,
+      validatedAt: '2026-04-29T10:00:00.000Z',
+    })));
   });
 
   it('verrouille le contenu légal après validation mais autorise le statut', async () => {
@@ -103,6 +143,10 @@ rulesDescribe('firestore.rules', () => {
     await assertFails(updateDoc(doc(aliceDb, 'invoices', 'invoice-1'), {
       totalTTC: 100,
       items: [{ description: 'Montant modifié', quantity: 1, unitPrice: 100, vatRate: 0 }],
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'invoices', 'invoice-1'), {
+      signature: 'data:image/png;base64,abc',
+      signedAt: '2026-04-29T10:00:00.000Z',
     }));
   });
 
@@ -128,5 +172,52 @@ rulesDescribe('firestore.rules', () => {
     const bobDb = testEnv.authenticatedContext(bob).firestore();
 
     await assertFails(getDoc(doc(bobDb, 'invoices', 'private-invoice')));
+  });
+
+  it('interdit toute écriture publique ou client dans sharedQuotes', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'sharedQuotes', 'share-1'), {
+        ownerId: alice,
+        originalInvoiceId: 'invoice-1',
+        tokenHash: 'abc',
+        status: 'pending_signature',
+      });
+    });
+
+    const publicDb = testEnv.unauthenticatedContext().firestore();
+    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+
+    await assertFails(getDoc(doc(publicDb, 'sharedQuotes', 'share-1')));
+    await assertFails(setDoc(doc(publicDb, 'sharedQuotes', 'share-2'), {
+      ownerId: alice,
+      status: 'pending_signature',
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'sharedQuotes', 'share-1'), {
+      signedAt: '2026-04-29T10:00:00.000Z',
+      signedByName: 'Client',
+    }));
+  });
+
+  it('interdit toute lecture/écriture client dans paddleEvents et rateLimits', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'paddleEvents', 'evt_1'), {
+        eventId: 'evt_1',
+        eventType: 'subscription.created',
+      });
+      await setDoc(doc(ctx.firestore(), 'rateLimits', 'ip:test'), {
+        count: 1,
+      });
+    });
+
+    const publicDb = testEnv.unauthenticatedContext().firestore();
+    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+
+    await assertFails(getDoc(doc(publicDb, 'paddleEvents', 'evt_1')));
+    await assertFails(getDoc(doc(aliceDb, 'paddleEvents', 'evt_1')));
+    await assertFails(setDoc(doc(aliceDb, 'paddleEvents', 'evt_2'), { eventId: 'evt_2' }));
+
+    await assertFails(getDoc(doc(publicDb, 'rateLimits', 'ip:test')));
+    await assertFails(getDoc(doc(aliceDb, 'rateLimits', 'ip:test')));
+    await assertFails(setDoc(doc(aliceDb, 'rateLimits', 'uid:test'), { count: 0 }));
   });
 });

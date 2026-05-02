@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/firestore.rules.test.ts\"",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "migrate:company-billing": "tsx scripts/migrate-company-billing-fields.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
@@ -28,7 +29,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.11.0",
-    "firebase-admin": "^12.0.0",
+    "firebase-admin": "^13.8.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "jszip": "^3.10.1",

@@ -92,8 +92,8 @@ export default function Settings() {
           <ShieldCheck className="w-6 h-6 md:w-8 md:h-8 text-primary" />
         </div>
         <div className="text-left min-w-0 flex-1">
-          <h3 className="font-bold text-primary text-base md:text-lg mb-1 font-headline leading-tight">Facturation électronique 2026</h3>
-          <p className="text-sm text-on-surface-variant leading-relaxed">Photofacto génère des factures au format Factur-X (standard officiel 2026). <span className="text-primary font-medium">Connexion directe Chorus Pro / PPF : Bientôt disponible.</span></p>
+          <h3 className="font-bold text-primary text-base md:text-lg mb-1 font-headline leading-tight">Facturation électronique</h3>
+          <p className="text-sm text-on-surface-variant leading-relaxed">Photofacto aide à préparer des exports structurés type Factur-X. <span className="text-primary font-medium">Connexion directe plateforme agréée : bientôt disponible.</span></p>
         </div>
       </div>
 

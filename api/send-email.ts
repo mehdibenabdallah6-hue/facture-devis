@@ -1,3 +1,21 @@
+import { verifyAuth } from './_lib/auth.js';
+import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import {
+  applyCors,
+  badRequest,
+  forbidden,
+  methodNotAllowed,
+  ok,
+  parseJsonBody,
+  serverError,
+  tooManyRequests,
+  unauthorized,
+} from './_lib/http.js';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import { sendResendEmail } from './_lib/email.js';
+import { escapeHtml, isEmail, sanitizeText } from './_lib/validators.js';
+import { writeAuditEvent } from './_lib/audit.js';
+
 export const config = {
   api: {
     bodyParser: {
@@ -7,125 +25,144 @@ export const config = {
 };
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return methodNotAllowed(res);
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-
-  if (!RESEND_API_KEY) {
-    console.error('send-email: RESEND_API_KEY missing on Vercel.');
-    return res.status(500).json({
-      error: 'La clé API Resend est manquante sur Vercel. Demandez au support.',
-    });
+  let authCtx;
+  try {
+    authCtx = await verifyAuth(req);
+  } catch (error: any) {
+    return unauthorized(res, error?.message || 'Authentification requise.');
   }
 
   try {
-    let body: any = req.body;
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (e: any) {
-        return res.status(400).json({ error: 'Corps JSON invalide.', detail: e.message });
-      }
-    }
-    body = body || {};
+    const limited = await checkRateLimit(`uid:invoice-email:${authCtx.uid}`, 20, 60 * 60 * 1000);
+    if (!limited.ok) return tooManyRequests(res, 'Trop d’e-mails envoyés récemment. Réessayez plus tard.');
 
-    const { to, subject, attachments, fromEmail, fromName, message } = body;
-    const recipients = Array.isArray(to) ? to : [to];
-    const cleanRecipients = recipients.filter((email) => typeof email === 'string' && email.trim());
-    if (cleanRecipients.length === 0) {
-      return res.status(400).json({ error: 'Adresse e-mail destinataire manquante.' });
-    }
-    if (!subject || typeof subject !== 'string') {
-      return res.status(400).json({ error: 'Sujet de l’e-mail manquant.' });
+    const body = parseJsonBody(req);
+    const invoiceId = sanitizeText(body.invoiceId, 120);
+    const optionalMessage = sanitizeText(body.message, 900);
+    const sendCopyToMe = body.sendCopyToMe === true;
+    const requestedTo = sanitizeText(body.to, 254).toLowerCase();
+    const attachments = Array.isArray(body.attachments) ? body.attachments : [];
+
+    if (!invoiceId) return badRequest(res, 'Document manquant pour l’envoi.');
+    if (attachments.length > 0) {
+      return badRequest(res, 'Les pièces jointes envoyées depuis le navigateur ne sont pas autorisées.');
     }
 
-    const html = typeof body.html === 'string' && body.html.trim()
-      ? body.html
-      : buildContactHtml({ fromName, fromEmail, message });
-    if (!html) {
-      return res.status(400).json({ error: 'Contenu de l’e-mail manquant.' });
+    const { db } = ensureFirebaseAdmin();
+    const invoiceRef = db.collection('invoices').doc(invoiceId);
+    const invoiceSnap = await invoiceRef.get();
+    if (!invoiceSnap.exists) return badRequest(res, 'Document introuvable.');
+
+    const invoice = invoiceSnap.data() as any;
+    if (invoice.ownerId !== authCtx.uid) return forbidden(res, 'Vous ne pouvez pas envoyer ce document.');
+
+    const companySnap = await db.collection('companies').doc(authCtx.uid).get();
+    const company = companySnap.exists ? (companySnap.data() as any) : {};
+
+    const clientEmail = await resolveClientEmail(db, invoice, authCtx.uid);
+    if (!clientEmail) return badRequest(res, 'Ajoutez un e-mail valide au client avant l’envoi.');
+    if (requestedTo && requestedTo !== clientEmail.toLowerCase()) {
+      return forbidden(res, 'Le destinataire doit être l’e-mail du client lié au document.');
     }
 
-    const verifiedFrom = extractEmailAddress(process.env.RESEND_FROM_EMAIL || 'factures@photofacto.fr');
-    const senderName = sanitizeEmailName(fromName || 'Photofacto');
-    const emailPayload: Record<string, any> = {
-      from: `${senderName}${senderName.toLowerCase().includes('photofacto') ? '' : ' via Photofacto'} <${verifiedFrom}>`,
-      to: cleanRecipients,
-      subject,
-      html,
-    };
-    if (fromEmail && typeof fromEmail === 'string') {
-      emailPayload.reply_to = fromEmail;
-    }
-    if (Array.isArray(attachments) && attachments.length > 0) {
-      emailPayload.attachments = attachments;
-    }
+    const recipients = [clientEmail];
+    if (sendCopyToMe && isEmail(authCtx.email)) recipients.push(authCtx.email);
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify(emailPayload),
+    const kind = invoice.type === 'quote' ? 'devis' : invoice.type === 'credit' ? 'avoir' : 'facture';
+    const subject = buildSubject(kind, invoice);
+    const html = buildInvoiceEmailHtml({
+      kind,
+      invoice,
+      company,
+      message: optionalMessage,
     });
 
-    const data = await response.json().catch(() => null);
+    const resendData = await sendResendEmail({
+      to: recipients,
+      subject,
+      html,
+      fromName: company.name || company.legalName || authCtx.email || 'Photofacto',
+      replyTo: isEmail(company.email) ? company.email : authCtx.email,
+    });
 
-    if (!response.ok) {
-      const detail = data?.message || data?.error?.message || data?.error || JSON.stringify(data);
-      console.error('send-email: Resend error', response.status, detail);
-      return res.status(response.status).json({
-        error: humanResendError(detail),
-        detail,
-      });
+    await invoiceRef.set({
+      emailSentAt: new Date().toISOString(),
+      lastReminderAt: body.kind === 'reminder' ? new Date().toISOString() : invoice.lastReminderAt || null,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    await writeAuditEvent({
+      ownerId: authCtx.uid,
+      actorUid: authCtx.uid,
+      type: body.kind === 'reminder' ? 'reminder_sent' : 'email_sent',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      metadata: {
+        invoiceId,
+        recipientDomain: clientEmail.split('@')[1] || '',
+        hasPdf: false,
+      },
+    });
+
+    return ok(res, { success: true, data: resendData });
+  } catch (error: any) {
+    if (error?.status === 429) return tooManyRequests(res);
+    if (error?.status === 401) return unauthorized(res);
+    if (error?.status === 403) return forbidden(res);
+    if (error?.message?.includes('RESEND_API_KEY')) {
+      return serverError(res, new Error('RESEND_API_KEY missing'));
     }
-
-    return res.status(200).json({ success: true, data });
-  } catch (err: any) {
-    console.error('send-email error:', err);
-    return res.status(500).json({ error: err.message || 'Erreur serveur lors de l’envoi.' });
+    if (error?.message) {
+      return res.status(error.status || 500).json({ error: humanResendError(error.message) });
+    }
+    return serverError(res, error);
   }
 }
 
-function sanitizeEmailName(value: string): string {
-  return String(value || '')
-    .replace(/[<>"\r\n]/g, '')
-    .trim()
-    .slice(0, 80) || 'Photofacto';
+async function resolveClientEmail(db: any, invoice: any, ownerId: string): Promise<string | null> {
+  const clientId = sanitizeText(invoice.clientId, 120);
+  if (clientId) {
+    const clientSnap = await db.collection('clients').doc(clientId).get();
+    if (clientSnap.exists) {
+      const client = clientSnap.data() as any;
+      if (client.ownerId === ownerId && isEmail(client.email)) return client.email;
+    }
+  }
+
+  const invoiceEmail = sanitizeText(invoice.clientEmail, 254);
+  return isEmail(invoiceEmail) ? invoiceEmail : null;
 }
 
-function extractEmailAddress(value: string): string {
-  const raw = String(value || '').trim();
-  const match = raw.match(/<([^>]+)>/);
-  return (match?.[1] || raw || 'factures@photofacto.fr').trim();
+function buildSubject(kind: string, invoice: any) {
+  const number = sanitizeText(invoice.number || invoice.draftNumber || '', 80);
+  const label = kind.charAt(0).toUpperCase() + kind.slice(1);
+  return number ? `${label} ${number}` : `${label} Photofacto`;
 }
 
-function buildContactHtml({ fromName, fromEmail, message }: Record<string, any>): string {
-  if (!message || typeof message !== 'string') return '';
-  const safeName = escapeHtml(fromName || 'Visiteur');
-  const safeEmail = escapeHtml(fromEmail || '');
-  const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>');
+function buildInvoiceEmailHtml(input: { kind: string; invoice: any; company: any; message: string }) {
+  const { kind, invoice, company, message } = input;
+  const companyName = escapeHtml(company.name || company.legalName || 'Votre artisan');
+  const clientName = escapeHtml(invoice.clientName || 'Bonjour');
+  const number = escapeHtml(invoice.number || invoice.draftNumber || 'sans numéro');
+  const amount = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(invoice.totalTTC || 0));
+  const shareUrl = invoice.type === 'quote' && invoice.shareUrl ? sanitizeText(invoice.shareUrl, 1000) : '';
+
   return `
-    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
-      <p><strong>Nouveau message Photofacto</strong></p>
-      <p><strong>Nom :</strong> ${safeName}</p>
-      ${safeEmail ? `<p><strong>Email :</strong> ${safeEmail}</p>` : ''}
-      <p><strong>Message :</strong></p>
-      <p>${safeMessage}</p>
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937;max-width:620px">
+      <p>Bonjour ${clientName},</p>
+      <p>${message ? escapeHtml(message).replace(/\n/g, '<br/>') : `Veuillez trouver votre ${escapeHtml(kind)} ${number}.`}</p>
+      <div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:18px 0;background:#f9fafb">
+        <p style="margin:0 0 8px"><strong>${escapeHtml(kind.toUpperCase())} :</strong> ${number}</p>
+        <p style="margin:0"><strong>Montant :</strong> ${amount}</p>
+      </div>
+      ${shareUrl ? `<p><a href="${escapeHtml(shareUrl)}" style="display:inline-block;background:#0f766e;color:white;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir et signer le devis</a></p>` : ''}
+      <p>Cordialement,<br/>${companyName}</p>
     </div>
   `;
-}
-
-function escapeHtml(value: any): string {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 function humanResendError(detail: string): string {

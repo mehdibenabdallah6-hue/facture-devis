@@ -60,11 +60,11 @@ export default function Onboarding() {
       // Send welcome email (best effort)
       if (user.email) {
         try {
+          const token = await user.getIdToken();
           await fetch('/api/welcome-email', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
-              email: user.email,
               name: user.displayName || companyName.trim(),
             }),
           });

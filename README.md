@@ -72,8 +72,8 @@ photofacto/
 | Avoirs liés à la facture source | Endpoint dédié + transaction | ✅ |
 | Audit trail (`invoiceEvents`) | Server-only writes | ✅ |
 | Mentions obligatoires (293B, autoliq, BTP) | Checklist bloquante | ⚠️ Couvert MVP, à valider par CPA |
-| Factur-X PDF/A-3 + CII | Existant (legacy) | ✅ |
-| Émission via PDP (réforme 2026) | Abstraction + mock | ❌ Vrai provider à brancher |
+| Export Factur-X / CII | Généré, à valider techniquement | ⚠️ |
+| Émission via plateforme agréée | Abstraction + mock | ❌ Vrai provider à brancher |
 | Logiciel certifié 88-VI | Non | ❌ |
 | Archivage 10 ans | Repose sur Firebase | ⚠️ |
 

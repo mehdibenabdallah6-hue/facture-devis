@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { useParams, useSearchParams } from 'react-router-dom';
 import SignatureCanvas from '../components/SignatureCanvas';
 import PhotofactoWordmark from '../components/PhotofactoWordmark';
 import { CheckCircle2, FileText, AlertCircle, ShieldCheck, Building2, PenLine, UserRound } from 'lucide-react';
@@ -41,6 +39,8 @@ type SharedQuote = {
 
 export default function PublicSignature() {
   const { quoteId } = useParams<{ quoteId: string }>();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || '';
   const [quote, setQuote] = useState<SharedQuote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,17 +54,22 @@ export default function PublicSignature() {
 
   useEffect(() => {
     const fetchQuote = async () => {
-      if (!quoteId) return;
+      if (!quoteId || !token) {
+        setError('Ce lien de signature est incomplet.');
+        setLoading(false);
+        return;
+      }
       try {
-        const docSnap = await getDoc(doc(db, 'sharedQuotes', quoteId));
-        if (docSnap.exists()) {
-          const data = docSnap.data() as SharedQuote;
-          setQuote(data);
-          if (data.signature) {
-            setSigned(true);
-          }
-        } else {
-          setError('Ce lien de signature est invalide ou a expiré.');
+        const response = await fetch(`/api/quote-public?shareId=${encodeURIComponent(quoteId)}&token=${encodeURIComponent(token)}`);
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          setError(payload?.error || 'Ce lien de signature est invalide ou a expiré.');
+          return;
+        }
+        const data = payload.quote as SharedQuote;
+        setQuote(data);
+        if (data.signature || data.status === 'accepted') {
+          setSigned(true);
         }
       } catch (err) {
         console.error(err);
@@ -74,10 +79,10 @@ export default function PublicSignature() {
       }
     };
     fetchQuote();
-  }, [quoteId]);
+  }, [quoteId, token]);
 
   const handleSign = async (signatureDataUrl: string) => {
-    if (!quoteId || !quote || !signerName.trim()) return;
+    if (!quoteId || !token || !quote || !signerName.trim()) return;
     setSigning(true);
 
     try {
@@ -86,6 +91,7 @@ export default function PublicSignature() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quoteId,
+          token,
           signerName: signerName.trim(),
           signatureDataUrl,
         }),
@@ -106,37 +112,8 @@ export default function PublicSignature() {
 
       setSigned(true);
     } catch (err) {
-      console.error('quote-sign API failed, falling back to client write:', err);
-      try {
-        const now = new Date().toISOString();
-
-        await updateDoc(doc(db, 'sharedQuotes', quoteId), {
-          signature: signatureDataUrl,
-          signedAt: now,
-          signedByName: signerName.trim(),
-          status: 'accepted',
-        });
-
-        await updateDoc(doc(db, 'invoices', quote.originalInvoiceId), {
-          status: 'accepted',
-          signature: signatureDataUrl,
-          signedAt: now,
-          signedByName: signerName.trim(),
-          updatedAt: now,
-        });
-
-        setQuote(prev => prev ? {
-          ...prev,
-          signature: signatureDataUrl,
-          signedAt: now,
-          signedByName: signerName.trim(),
-          status: 'accepted',
-        } : prev);
-        setSigned(true);
-      } catch (fallbackErr) {
-        console.error(fallbackErr);
-        setError("Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
-      }
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
     } finally {
       setSigning(false);
     }

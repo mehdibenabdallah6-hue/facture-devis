@@ -10,6 +10,15 @@
 import { verifyAuth } from './_verify-auth.js';
 import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import { writeAuditEvent } from './_lib/audit.js';
+import {
+  base64ByteLength,
+  isAllowedImage,
+  MAX_AI_PROMPT_LENGTH,
+  MAX_BASE64_IMAGE_BYTES,
+  sanitizeText,
+} from './_lib/validators.js';
 
 // Stable, generally-available Gemini models. `gemini-3-flash-preview` was a
 // short-lived preview that has since been retired — calling it now returns
@@ -155,12 +164,48 @@ export default async function handler(req: any, res: any) {
     return res.status(e.status || 401).json({ error: e.message || 'Non authentifié' });
   }
 
+  const requestBody = req.body || {};
+  const { mode, base64Image, mimeType, promptText, catalogContext } = requestBody;
+  const textLength = typeof promptText === 'string' ? promptText.length : 0;
+  const catalogLength = typeof catalogContext === 'string' ? catalogContext.length : 0;
+  if (textLength > MAX_AI_PROMPT_LENGTH) {
+    return res.status(413).json({ error: 'Description trop longue pour l’analyse IA.' });
+  }
+  if (catalogLength > 12000) {
+    return res.status(413).json({ error: 'Catalogue trop volumineux pour cette génération IA.' });
+  }
+  if (mode === 'image' && !isAllowedImage(mimeType, base64Image)) {
+    return res.status(400).json({ error: 'Image invalide. Formats acceptés : JPEG, PNG ou WebP, 6 Mo maximum.' });
+  }
+  if (mode === 'document' && base64Image && mimeType) {
+    const allowedDocumentMime = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(String(mimeType));
+    if (!allowedDocumentMime || base64ByteLength(base64Image) > MAX_BASE64_IMAGE_BYTES) {
+      return res.status(400).json({ error: 'Document invalide ou trop lourd.' });
+    }
+  }
+
+  try {
+    const limited = await checkRateLimit(`uid:gemini:${auth.uid}`, 20, 60 * 60 * 1000);
+    if (!limited.ok) return res.status(429).json({ error: 'Trop de demandes IA récemment. Réessayez plus tard.' });
+  } catch (err) {
+    console.error('gemini rate limit failed:', err);
+    return res.status(500).json({ error: 'Erreur de limitation IA. Réessayez.' });
+  }
+
   // 2. Quota reservation — atomic increment so a flood of parallel requests
   //    can't slip past the limit.
   let reserved = false;
   try {
     const quotaResult = await reserveAiQuota(auth.uid);
     if (quotaResult.ok === false) {
+      await writeAuditEvent({
+        ownerId: auth.uid,
+        actorUid: auth.uid,
+        type: 'quota_exceeded',
+        resourceType: 'ai',
+        resourceId: auth.uid,
+        metadata: { mode: sanitizeText(mode, 30) },
+      }).catch(() => undefined);
       return res.status(quotaResult.status).json({ error: quotaResult.reason });
     }
     reserved = true;
@@ -170,8 +215,6 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { mode, base64Image, mimeType, promptText, catalogContext } = req.body;
-
     let parts: any[] = [];
 
     // Ajout d'une antisèche pour l'IA si un catalogue existe
@@ -289,18 +332,34 @@ Règles importantes :
       if (!text) {
         throw new Error('No data extracted from AI response.');
       }
-      return JSON.parse(text);
+      return normalizeAiResponse(JSON.parse(text));
     }
 
     try {
       const primaryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
       const data = await callGemini(GEMINI_MODEL, primaryUrl);
+      await writeAuditEvent({
+        ownerId: auth.uid,
+        actorUid: auth.uid,
+        type: 'gemini_used',
+        resourceType: 'ai',
+        resourceId: auth.uid,
+        metadata: { mode: sanitizeText(mode, 30), fallback: false },
+      }).catch(() => undefined);
       return res.status(200).json(data);
     } catch (primaryError: any) {
       console.warn(`Primary model ${GEMINI_MODEL} failed, trying fallback ${GEMINI_FALLBACK_MODEL}...`);
       try {
         const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FALLBACK_MODEL}:generateContent?key=${apiKey}`;
         const data = await callGemini(GEMINI_FALLBACK_MODEL, fallbackUrl);
+        await writeAuditEvent({
+          ownerId: auth.uid,
+          actorUid: auth.uid,
+          type: 'gemini_used',
+          resourceType: 'ai',
+          resourceId: auth.uid,
+          metadata: { mode: sanitizeText(mode, 30), fallback: true },
+        }).catch(() => undefined);
         return res.status(200).json({ ...data, _fallback: true });
       } catch (fallbackError: any) {
         // Both models failed — refund the quota slot we reserved.
@@ -314,4 +373,29 @@ Règles importantes :
     console.error("Erreur serveur lors de l'extraction IA:", error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
+}
+
+function normalizeAiResponse(data: any) {
+  const items = Array.isArray(data?.items) ? data.items.slice(0, 30).map((item: any) => ({
+    description: sanitizeText(item?.description, 300) || 'Prestation à compléter',
+    quantity: safeNumber(item?.quantity, 1),
+    unitPrice: safeNumber(item?.unitPrice, 0),
+    vatRate: safeNumber(item?.vatRate, 20),
+    needsReview: true,
+    source: item?.unitPrice === 0 ? 'ai_price_missing' : 'ai_suggestion',
+  })) : [];
+
+  return {
+    clientName: sanitizeText(data?.clientName, 120),
+    clientAddress: sanitizeText(data?.clientAddress, 500),
+    date: sanitizeText(data?.date, 50),
+    notes: sanitizeText(data?.notes, 1500),
+    items,
+    needsReview: true,
+  };
+}
+
+function safeNumber(value: any, fallback: number) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }

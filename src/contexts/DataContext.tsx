@@ -953,42 +953,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     const invoice = invoices.find(inv => inv.id === invoiceId);
     if (!invoice) throw new Error('Invoice not found');
+    if (invoice.type !== 'quote') throw new Error('Seuls les devis peuvent être envoyés pour signature.');
 
-    // Create a public shared quote document
-    const sharedData = {
-      originalInvoiceId: invoiceId,
-      ownerId: user.uid,
-      number: invoice.number,
-      clientName: invoice.clientName,
-      clientEmail: invoice.clientEmail || '',
-      date: invoice.date,
-      dueDate: invoice.dueDate,
-      items: invoice.items,
-      totalHT: invoice.totalHT,
-      totalTTC: invoice.totalTTC,
-      totalVAT: invoice.totalVAT,
-      vatRegime: invoice.vatRegime || 'standard',
-      notes: invoice.notes || '',
-      companyName: company.name || '',
-      companyAddress: company.address || '',
-      companyEmail: company.email || user.email || '',
-      companyPhone: company.phone || '',
-      companySiret: company.siret || '',
-      status: 'pending_signature',
-      createdAt: new Date().toISOString(),
-    };
-
-    const docRef = await addDoc(collection(db, 'sharedQuotes'), sharedData);
-    const shareUrl = `${window.location.origin}/sign/${docRef.id}`;
-
-    // Save the share link back to the invoice
-    await updateDoc(doc(db, 'invoices', invoiceId), {
-      shareUrl,
-      sharedQuoteId: docRef.id,
-      updatedAt: new Date().toISOString(),
+    const token = await user.getIdToken();
+    const response = await fetch('/api/quote-share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ invoiceId }),
     });
 
-    return shareUrl;
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.error || 'Impossible de créer le lien de signature.');
+    }
+
+    return data.shareUrl;
   };
 
   return (
