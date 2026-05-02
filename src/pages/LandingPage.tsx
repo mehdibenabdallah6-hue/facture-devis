@@ -173,48 +173,66 @@ const professionCopy: Record<ProfessionKey, ProfessionCopy> = {
 const testimonials: Testimonial[] = [
   {
     quote:
-      "Je fais souvent mes devis le soir après les chantiers. Le fait de pouvoir préparer un devis depuis mes notes et l’envoyer à signer directement, ça me fait gagner du temps.",
-    trade: 'Artisan multiservices',
+      "Je fais souvent mes devis le soir après les chantiers. Pouvoir préparer un devis depuis mes notes et l’envoyer à signer directement, ça me fait gagner du temps.",
+    name: 'Karim B.',
+    role: 'Artisan multiservices · Bordeaux',
+    image: 'https://randomuser.me/api/portraits/men/32.jpg',
   },
   {
     quote:
       "Le lien de signature est super pratique. Le client reçoit le devis, le signe sur son téléphone, et je peux passer à la facture sans relancer trois fois.",
-    trade: 'Électricien',
+    name: 'Julien R.',
+    role: 'Électricien · Lyon',
+    image: 'https://randomuser.me/api/portraits/men/52.jpg',
   },
   {
     quote:
       "Avant je gardais mes prix dans plusieurs fichiers. Là j’ai mes clients, mes prestations et mes factures au même endroit.",
-    trade: 'Peintre',
+    name: 'Stéphane M.',
+    role: 'Peintre · Toulouse',
+    image: 'https://randomuser.me/api/portraits/men/41.jpg',
   },
   {
     quote:
       "La relance des factures en retard, c’est exactement le genre de truc que j’oubliais de faire.",
-    trade: 'Plombier',
+    name: 'Marc D.',
+    role: 'Plombier · Marseille',
+    image: 'https://randomuser.me/api/portraits/men/15.jpg',
   },
   {
     quote:
       "Je dicte la prestation en sortant de chez le client, je corrige plus tard à la maison. C’est plus rapide que de tout taper le soir.",
-    trade: 'Plombier',
+    name: 'Patrick V.',
+    role: 'Plombier · Lille',
+    image: 'https://randomuser.me/api/portraits/men/76.jpg',
   },
   {
     quote:
       "Le PDF est sobre, ça fait sérieux. Mes clients voient tout de suite à quoi correspond chaque ligne.",
-    trade: 'Carreleur',
+    name: 'Sébastien G.',
+    role: 'Carreleur · Paris',
+    image: 'https://randomuser.me/api/portraits/men/83.jpg',
   },
   {
     quote:
       "Les pages de signature sont claires, le client comprend ce qu’il signe sans que j’aie à expliquer au téléphone.",
-    trade: 'Couvreur',
+    name: 'Christophe L.',
+    role: 'Couvreur · Nantes',
+    image: 'https://randomuser.me/api/portraits/men/64.jpg',
   },
   {
     quote:
       "J’avais peur de l’IA pour les devis. Au final ça me sort un brouillon que je modifie en deux minutes, c’est juste plus rapide qu’écrire de zéro.",
-    trade: 'Menuisier',
+    name: 'Olivier T.',
+    role: 'Menuisier · Strasbourg',
+    image: 'https://randomuser.me/api/portraits/men/27.jpg',
   },
   {
     quote:
       "Sur les chantiers, je fais beaucoup de devis qui se ressemblent. Le catalogue qu’on retrouve d’un devis à l’autre m’évite de tout retaper.",
-    trade: 'Maçon',
+    name: 'Thomas P.',
+    role: 'Maçon · Rennes',
+    image: 'https://randomuser.me/api/portraits/men/19.jpg',
   },
 ];
 
