@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
   AlertTriangle,
@@ -28,7 +28,8 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react';
-import { TestimonialsColumn, type Testimonial } from '../components/TestimonialsColumn';
+import { UseCaseColumn, type UseCase } from '../components/UseCaseColumn';
+import { MiniDevisDemo } from '../components/MiniDevisDemo';
 
 type ProfessionKey =
   | 'plombier'
@@ -169,42 +170,42 @@ const professionCopy: Record<ProfessionKey, ProfessionCopy> = {
   },
 };
 
-const useCases: Testimonial[] = [
+const useCases: UseCase[] = [
   {
-    text: "Après une intervention, il prépare le devis depuis ses notes et l'envoie à signer au client avant de quitter le quartier.",
-    name: 'Plombier',
-    role: "Cas d'usage terrain",
-    initials: 'PL',
+    trade: 'Plombier',
+    situation: "Sortie d'intervention, le client demande un devis avant de quitter les lieux.",
+    action: "Dictée vocale en 30s : robinet, raccord, déplacement. Brouillon prêt à corriger.",
+    result: 'Devis envoyé pour signature avant de remonter dans la camionnette.',
   },
   {
-    text: 'Il garde ses prix de préparation, peinture et main-d’œuvre dans le catalogue pour refaire les devis plus vite.',
-    name: 'Peintre',
-    role: 'Catalogue de prestations',
-    initials: 'PE',
+    trade: 'Peintre',
+    situation: 'Devis peinture salon avec préparation, enduit, fournitures et main-d’œuvre.',
+    action: 'Catalogue : on récupère les prix habituels au m² au lieu de tout retaper.',
+    result: 'Devis cohérent en 5 minutes, sans erreur de calcul.',
   },
   {
-    text: 'Il transforme un devis accepté en facture et voit les paiements en retard depuis le tableau de bord.',
-    name: 'Électricien',
-    role: 'Suivi des paiements',
-    initials: 'EL',
+    trade: 'Électricien',
+    situation: 'Trois factures envoyées le mois dernier, deux clients ne répondent plus.',
+    action: 'Tableau de bord : factures en retard visibles, message de relance prêt.',
+    result: 'Rien ne passe à la trappe, la trésorerie reste sous contrôle.',
   },
   {
-    text: 'Il ajoute photo, ragréage, pose, joints et plinthes dans une proposition de devis claire à modifier.',
-    name: 'Carreleur',
-    role: 'Devis préparé par IA',
-    initials: 'CA',
+    trade: 'Carreleur',
+    situation: 'Photo du chantier prise rapidement, mesures notées sur un coin de feuille.',
+    action: 'Photo + dictée : ragréage, pose, plinthes et joints en lignes structurées.',
+    result: 'Devis modifiable à valider, plus aucune note papier qui se perd.',
   },
   {
-    text: 'Il envoie le lien de signature par WhatsApp. Le client signe sur téléphone, sans impression ni scan.',
-    name: 'Menuisier',
-    role: 'Signature mobile',
-    initials: 'ME',
+    trade: 'Menuisier',
+    situation: 'Le client âgé n’ouvre pas ses mails et n’imprime pas.',
+    action: 'Lien de signature envoyé par WhatsApp, signature directe sur téléphone.',
+    result: 'Devis signé le jour même, le chantier peut démarrer.',
   },
   {
-    text: 'Il retrouve client, devis, facture et relance au même endroit au lieu de chercher dans les mails.',
-    name: 'Multiservices',
-    role: 'Historique centralisé',
-    initials: 'MS',
+    trade: 'Multiservices',
+    situation: 'Devis dans Word, factures dans Excel, échanges éparpillés dans WhatsApp.',
+    action: 'Client, devis, facture et historique de relance regroupés au même endroit.',
+    result: 'Recherche instantanée par client ou par chantier, plus besoin de fouiller.',
   },
 ];
 
@@ -354,8 +355,6 @@ export default function LandingPage({ profession }: LandingPageProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [demoInput, setDemoInput] = useState('');
-  const [demoStarted, setDemoStarted] = useState(false);
   const copy = profession ? professionCopy[profession] : null;
 
   useEffect(() => {
@@ -409,11 +408,6 @@ export default function LandingPage({ profession }: LandingPageProps) {
   const heroSubtitle =
     copy?.subtitle ||
     "Photofacto aide les artisans à créer leurs devis avec l'IA, les faire signer en ligne, générer les factures et relancer les clients sans perdre leurs soirées dans l'administratif.";
-
-  const demoText =
-    demoInput.trim() ||
-    copy?.example ||
-    'remplacement robinet cuisine + déplacement + raccordement';
 
   return (
     <div className="min-h-screen bg-background font-body text-on-surface">
@@ -490,7 +484,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-sm active:scale-[0.98] transition-transform"
               >
                 <Zap className="w-[18px] h-[18px] text-primary" />
-                Voir une démo de 45 secondes
+                Essayer avec une prestation
               </button>
             </div>
             <div className="flex flex-wrap gap-3 sm:gap-5 mt-5">
@@ -790,52 +784,13 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
       <section id="demo" className="py-10 md:py-16 px-4 md:px-14 bg-background">
         <div className="max-w-[960px] mx-auto bg-white rounded-[24px] border-spark shadow-spark-lg p-5 md:p-8">
-          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-6 items-center">
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary mb-3">
-                Mini démo
-              </div>
-              <h2 className="font-headline font-extrabold text-3xl md:text-[38px] text-secondary-dim mb-3 leading-tight">
-                Essayez avec une prestation réelle.
-              </h2>
-              <p className="text-sm text-on-surface-variant leading-relaxed">
-                Décrivez votre intervention comme vous le diriez à un collègue. Photofacto vous montre le début du résultat, puis vous créez un compte pour modifier, envoyer et faire signer.
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">
-                Décrivez votre intervention
-              </label>
-              <textarea
-                value={demoInput}
-                onChange={e => setDemoInput(e.target.value)}
-                placeholder={copy?.example || 'Ex : remplacement robinet cuisine + déplacement + raccordement'}
-                className="w-full min-h-[104px] bg-background border-spark rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/20 text-sm resize-none"
-              />
-              <button
-                onClick={() => setDemoStarted(true)}
-                className="mt-3 w-full min-touch bg-primary text-white rounded-xl py-3 text-sm font-bold shadow-spark-cta flex items-center justify-center gap-2"
-              >
-                Préparer un devis
-                <Sparkles className="w-4 h-4" />
-              </button>
-              {demoStarted && (
-                <div className="mt-4 bg-primary/[0.06] border border-primary/[0.15] rounded-2xl p-4">
-                  <div className="text-xs font-bold text-primary mb-1">Brouillon prêt à modifier</div>
-                  <p className="text-sm text-on-surface-variant mb-3">
-                    “{demoText}” peut devenir une proposition de devis avec lignes, prix, signature et relance.
-                  </p>
-                  <button
-                    onClick={goRegister}
-                    className="min-touch inline-flex items-center gap-2 bg-secondary-dim text-white px-4 py-2.5 rounded-xl text-xs font-bold"
-                  >
-                    Créez votre compte gratuit pour modifier le devis
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <MiniDevisDemo
+            examplePlaceholder={
+              copy?.example
+                ? `Ex : ${copy.example}`
+                : 'Ex : remplacement robinet cuisine + déplacement + raccordement'
+            }
+          />
         </div>
       </section>
 
@@ -907,10 +862,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </p>
           </motion.div>
 
-          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[620px] overflow-hidden">
-            <TestimonialsColumn testimonials={firstColumn} duration={16} />
-            <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={20} />
-            <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={18} />
+          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[680px] overflow-hidden">
+            <UseCaseColumn cases={firstColumn} duration={16} />
+            <UseCaseColumn cases={secondColumn} className="hidden md:block" duration={20} />
+            <UseCaseColumn cases={thirdColumn} className="hidden lg:block" duration={18} />
           </div>
         </div>
       </section>
@@ -948,8 +903,15 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 name: 'Pro',
                 price: '29,90€',
                 per: '/ mois',
-                sub: 'ou 249€ / an',
-                features: ['Tout Solo', 'IA illimitée', 'Photos chantier dans PDF', 'Factur-X exportable', 'Préparation e-facturation'],
+                sub: 'ou 249€ / an · pour encaisser plus vite',
+                features: [
+                  'Signatures de devis illimitées',
+                  'Relances automatiques d’impayés',
+                  'Suivi des factures en retard',
+                  'Factur-X exportable',
+                  'Exports comptables (FEC, CSV)',
+                  'IA illimitée + photos chantier dans PDF',
+                ],
                 cta: 'Passer en Pro',
                 highlight: false,
               },
@@ -1099,8 +1061,8 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 links: [
                   { l: 'Alternative Excel', to: '/alternative-excel-devis-artisan' },
                   { l: 'Alternative Khosmos', to: '/alternative-khosmos' },
-                  { l: 'Alternative Abby', to: '/alternative-excel-devis-artisan' },
-                  { l: 'Alternative Obat', to: '/alternative-excel-devis-artisan' },
+                  { l: 'Alternative Abby', to: '/alternative-abby' },
+                  { l: 'Alternative Obat', to: '/alternative-obat' },
                   { l: 'Contact', to: '/contact' },
                 ],
               },

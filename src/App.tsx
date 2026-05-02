@@ -122,6 +122,8 @@ export default function App() {
               <Route path="/logiciel-facture-auto-entrepreneur-batiment" element={<PublicSeoPage variant="logiciel-facture-auto-entrepreneur-batiment" />} />
               <Route path="/alternative-excel-devis-artisan" element={<PublicSeoPage variant="alternative-excel-devis-artisan" />} />
               <Route path="/alternative-khosmos" element={<PublicSeoPage variant="alternative-khosmos" />} />
+              <Route path="/alternative-abby" element={<PublicSeoPage variant="alternative-abby" />} />
+              <Route path="/alternative-obat" element={<PublicSeoPage variant="alternative-obat" />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/cgv" element={<CGV />} />
               <Route path="/confidentialite" element={<PrivacyPolicy />} />

@@ -1,62 +1,70 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <!-- Background gradient -->
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6750A4;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#381E72;stop-opacity:1" />
+      <stop offset="0%" stop-color="#1F2532"/>
+      <stop offset="100%" stop-color="#0E121A"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A2E"/>
+      <stop offset="100%" stop-color="#E8621A"/>
     </linearGradient>
     <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/>
     </filter>
   </defs>
-  
-  <!-- Background -->
+
   <rect width="1200" height="630" fill="url(#bg)"/>
-  
-  <!-- Decorative circles -->
-  <circle cx="1050" cy="80" r="200" fill="#7B61FF" opacity="0.1"/>
-  <circle cx="150" cy="550" r="150" fill="#D0BCFF" opacity="0.08"/>
-  
-  <!-- Phone mockup -->
-  <rect x="800" y="120" width="280" height="420" rx="32" fill="#1C1B1F" filter="url(#shadow)"/>
-  <rect x="812" y="132" width="256" height="396" rx="24" fill="#1C1B1F"/>
-  <rect x="820" y="140" width="240" height="380" rx="20" fill="#2B2930"/>
-  
-  <!-- Phone screen content -->
-  <rect x="840" y="170" width="200" height="8" rx="4" fill="#6750A4"/>
-  <rect x="840" y="190" width="160" height="6" rx="3" fill="#CAC4D0" opacity="0.6"/>
-  <rect x="840" y="210" width="180" height="40" rx="12" fill="#6750A4" opacity="0.8"/>
-  <rect x="840" y="260" width="200" height="30" rx="8" fill="#49454F"/>
-  <rect x="840" y="300" width="200" height="30" rx="8" fill="#49454F"/>
-  <rect x="840" y="340" width="200" height="30" rx="8" fill="#49454F"/>
-  <rect x="840" y="400" width="200" height="50" rx="12" fill="#6750A4"/>
-  
-  <!-- Text content -->
-  <text x="80" y="200" font-family="Arial, sans-serif" font-size="72" font-weight="800" fill="#FFFFFF">
-    Photofacto
-  </text>
-  
-  <text x="80" y="280" font-family="Arial, sans-serif" font-size="32" font-weight="600" fill="#D0BCFF">
-    Devis signé, facture envoyée
-  </text>
-  
-  <text x="80" y="330" font-family="Arial, sans-serif" font-size="32" font-weight="600" fill="#D0BCFF">
-    client relancé
-  </text>
-  
-  <!-- Tagline -->
-  <text x="80" y="400" font-family="Arial, sans-serif" font-size="20" fill="#CAC4D0">
-    L'app devis, factures et signature pour artisans
-  </text>
-  
-  <!-- Badge -->
-  <rect x="80" y="440" width="180" height="40" rx="20" fill="#D0BCFF" opacity="0.2"/>
-  <text x="170" y="465" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#EADDFF" text-anchor="middle">
-    Essai gratuit 14 jours
-  </text>
-  
-  <!-- URL -->
-  <text x="80" y="540" font-family="Arial, sans-serif" font-size="24" fill="#938F99">
-    photofacto.fr
-  </text>
+
+  <!-- decorative blobs -->
+  <circle cx="1080" cy="80" r="220" fill="#E8621A" opacity="0.16"/>
+  <circle cx="120" cy="560" r="180" fill="#E8621A" opacity="0.10"/>
+
+  <!-- accent bar -->
+  <rect x="80" y="92" width="64" height="6" rx="3" fill="url(#orange)"/>
+
+  <!-- wordmark -->
+  <text x="80" y="180" font-family="'Archivo Black','Arial Black',Arial,sans-serif" font-size="78" font-weight="900" fill="#FFFFFF" letter-spacing="-2">PHOTOFACTO</text>
+
+  <!-- main pitch -->
+  <text x="80" y="262" font-family="'Space Grotesk',Arial,sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">Devis, factures, signature</text>
+  <text x="80" y="306" font-family="'Space Grotesk',Arial,sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">et relances pour artisans.</text>
+
+  <!-- subtitle -->
+  <text x="80" y="370" font-family="'DM Sans',Arial,sans-serif" font-size="22" fill="#A8B0BF">Devis IA, signature mobile, facture, relance —</text>
+  <text x="80" y="402" font-family="'DM Sans',Arial,sans-serif" font-size="22" fill="#A8B0BF">tout le tunnel artisan, depuis le téléphone.</text>
+
+  <!-- pill chips -->
+  <g font-family="'Space Grotesk',Arial,sans-serif" font-size="16" font-weight="700" fill="#FFE3CF">
+    <rect x="80" y="450" width="148" height="40" rx="20" fill="#E8621A" opacity="0.18"/>
+    <text x="154" y="476" text-anchor="middle">Devis IA</text>
+    <rect x="240" y="450" width="180" height="40" rx="20" fill="#E8621A" opacity="0.18"/>
+    <text x="330" y="476" text-anchor="middle">Signature mobile</text>
+    <rect x="432" y="450" width="148" height="40" rx="20" fill="#E8621A" opacity="0.18"/>
+    <text x="506" y="476" text-anchor="middle">Factures PDF</text>
+    <rect x="592" y="450" width="148" height="40" rx="20" fill="#E8621A" opacity="0.18"/>
+    <text x="666" y="476" text-anchor="middle">Relances</text>
+  </g>
+
+  <!-- url -->
+  <text x="80" y="560" font-family="'DM Sans',Arial,sans-serif" font-size="22" fill="#5A6478">photofacto.fr</text>
+
+  <!-- phone mockup -->
+  <g filter="url(#shadow)">
+    <rect x="820" y="120" width="280" height="420" rx="36" fill="#0B0F17"/>
+    <rect x="832" y="132" width="256" height="396" rx="28" fill="#15192275"/>
+    <rect x="840" y="140" width="240" height="380" rx="22" fill="#1A1F2C"/>
+  </g>
+  <!-- phone screen content -->
+  <rect x="864" y="172" width="180" height="10" rx="5" fill="url(#orange)"/>
+  <rect x="864" y="194" width="124" height="8" rx="4" fill="#525B6E"/>
+  <rect x="864" y="220" width="192" height="44" rx="14" fill="#252B38"/>
+  <text x="880" y="250" font-family="'Space Grotesk',Arial,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">Devis #2026-014 · signé</text>
+  <rect x="864" y="278" width="192" height="32" rx="10" fill="#252B38"/>
+  <text x="880" y="300" font-family="'DM Sans',Arial,sans-serif" font-size="13" fill="#9AA3B5">Pose carrelage 14 m²</text>
+  <rect x="864" y="318" width="192" height="32" rx="10" fill="#252B38"/>
+  <text x="880" y="340" font-family="'DM Sans',Arial,sans-serif" font-size="13" fill="#9AA3B5">Main-d'œuvre · 6 h</text>
+  <rect x="864" y="358" width="192" height="32" rx="10" fill="#252B38"/>
+  <text x="880" y="380" font-family="'DM Sans',Arial,sans-serif" font-size="13" fill="#9AA3B5">Déplacement</text>
+  <rect x="864" y="408" width="192" height="48" rx="14" fill="url(#orange)"/>
+  <text x="960" y="438" text-anchor="middle" font-family="'Space Grotesk',Arial,sans-serif" font-size="14" font-weight="800" fill="#FFFFFF">Transformer en facture</text>
 </svg>

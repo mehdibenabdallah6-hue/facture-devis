@@ -12,7 +12,7 @@ export default function Onboarding() {
           <Text style={styles.logoText}>📸</Text>
         </View>
         <Text style={styles.title}>Photofacto</Text>
-        <Text style={styles.subtitle}>De la photo à la facture en 10 secondes</Text>
+        <Text style={styles.subtitle}>Devis, factures, signature et relances pour artisans</Text>
       </View>
 
       <View style={styles.buttonContainer}>

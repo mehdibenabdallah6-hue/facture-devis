@@ -19,6 +19,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { MiniDevisDemo } from '../components/MiniDevisDemo';
 
 export type PublicSeoVariant =
   | 'generateur-devis-artisan'
@@ -28,7 +29,9 @@ export type PublicSeoVariant =
   | 'logiciel-devis-facture-btp'
   | 'logiciel-facture-auto-entrepreneur-batiment'
   | 'alternative-excel-devis-artisan'
-  | 'alternative-khosmos';
+  | 'alternative-khosmos'
+  | 'alternative-abby'
+  | 'alternative-obat';
 
 interface SeoPageData {
   title: string;
@@ -243,6 +246,56 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
       { q: 'Puis-je tester avant de changer ?', a: 'Oui. Vous pouvez commencer gratuitement et créer un premier document.' },
     ],
   },
+  'alternative-abby': {
+    title: 'Alternative Abby pour artisans : devis IA, signature, factures | Photofacto',
+    description:
+      'Photofacto est une alternative à Abby pensée pour les artisans du terrain : devis avec IA, signature mobile, factures PDF, relances et catalogue.',
+    eyebrow: 'Alternative Abby',
+    h1: <>Une alternative à Abby pensée d’abord pour les artisans.</>,
+    intro:
+      'Abby vise large (freelances, services, e-commerce). Photofacto reste centré sur le tunnel des artisans : photo chantier, devis IA, signature mobile, facture, relance.',
+    bullets: ['Devis IA terrain', 'Signature mobile', 'Factures + Factur-X', 'Relances visibles'],
+    sections: [
+      { title: 'Pensé pour le chantier', text: 'On part d’une photo ou d’une dictée, pas d’un formulaire générique de freelance.', icon: <Camera className="w-5 h-5" /> },
+      { title: 'Signature mobile sans compte', text: 'Votre client signe le devis depuis son téléphone, sans créer de compte client.', icon: <PenLine className="w-5 h-5" /> },
+      { title: 'Catalogue prestations BTP', text: 'Réutilisez vos prestations habituelles, main-d’œuvre, forfaits et déplacements.', icon: <ClipboardList className="w-5 h-5" /> },
+    ],
+    comparison: {
+      beforeTitle: 'Abby (positionnement large)',
+      before: ['Outil pour freelances', 'Pas pensé chantier', 'Signature secondaire', 'Vocabulaire services'],
+      afterTitle: 'Photofacto (artisans)',
+      after: ['Devis depuis photo', 'Signature mobile mise en avant', 'Relances suivies', 'Factur-X exportable'],
+    },
+    faq: [
+      { q: 'Pourquoi quitter Abby pour Photofacto ?', a: 'Pour un outil construit autour des usages artisans : photo terrain, devis IA, signature client mobile et relances.' },
+      { q: 'Puis-je migrer mes clients facilement ?', a: 'Oui. Vous pouvez recréer rapidement vos clients et votre catalogue, et continuer en parallèle le temps de la transition.' },
+    ],
+  },
+  'alternative-obat': {
+    title: 'Alternative Obat pour artisans : devis IA, signature, relances | Photofacto',
+    description:
+      'Photofacto est une alternative à Obat plus légère pour les artisans solo : devis IA, signature mobile, factures PDF, relances et suivi des impayés.',
+    eyebrow: 'Alternative Obat',
+    h1: <>Une alternative à Obat plus simple, sans usine à gaz.</>,
+    intro:
+      'Obat est complet mais peut être lourd pour un artisan solo. Photofacto garde l’essentiel du tunnel devis → signature → facture → relance, en restant rapide depuis le téléphone.',
+    bullets: ['Démarrage rapide', 'Signature mobile', 'Relances suivies', 'PDF propre'],
+    sections: [
+      { title: 'Léger sur le terrain', text: 'Pas de longue mise en route : un client, un devis, un envoi.', icon: <Smartphone className="w-5 h-5" /> },
+      { title: 'Signature et facture liées', text: 'Une fois le devis signé, vous le transformez en facture et envoyez en quelques secondes.', icon: <Receipt className="w-5 h-5" /> },
+      { title: 'Suivi des impayés', text: 'Voyez clairement les factures en retard et préparez vos relances.', icon: <Bell className="w-5 h-5" /> },
+    ],
+    comparison: {
+      beforeTitle: 'Obat (complet, parfois lourd)',
+      before: ['Beaucoup de modules', 'Mise en route plus longue', 'Trop riche pour un solo'],
+      afterTitle: 'Photofacto (simple)',
+      after: ['Tunnel devis → relance', 'Démarrage rapide', 'Pensé téléphone et chantier'],
+    },
+    faq: [
+      { q: 'Photofacto est-il aussi complet qu’Obat ?', a: 'Non, Photofacto reste volontairement plus simple. L’objectif est d’aller vite sur le tunnel devis-signature-facture-relance, pas de remplacer un ERP métier.' },
+      { q: 'Pour quel profil c’est plus adapté ?', a: 'Photofacto convient surtout aux artisans solo, auto-entrepreneurs et petites équipes qui veulent un outil rapide depuis le téléphone.' },
+    ],
+  },
 };
 
 export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }) {
@@ -334,6 +387,17 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
             </div>
           </div>
         </section>
+
+        {variant === 'generateur-devis-artisan' && (
+          <section className="px-4 md:px-14 py-10 md:py-14 bg-background">
+            <div className="max-w-[960px] mx-auto bg-white rounded-[24px] border-spark shadow-spark-lg p-5 md:p-8">
+              <MiniDevisDemo
+                examplePlaceholder="Ex : pose carrelage salle de bain 8m² + ragréage + plinthes"
+                helper="Tapez ou dictez votre prestation comme à un collègue."
+              />
+            </div>
+          </section>
+        )}
 
         <section className="px-4 md:px-14 py-10 md:py-16 bg-white border-y-spark">
           <div className="max-w-[1120px] mx-auto grid md:grid-cols-3 gap-4">

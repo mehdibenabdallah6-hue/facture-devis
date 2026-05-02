@@ -95,8 +95,8 @@ export function EmptyInvoicesState() {
 
       {/* Description */}
       <p className="mx-auto mb-8 max-w-md leading-relaxed text-on-surface-variant">
-        Vos factures, devis et avoirs apparaîtront ici. Créez votre premier document
-        en 10 secondes grâce à l'IA.
+        Vos factures, devis et avoirs apparaîtront ici. Décrivez ou photographiez
+        votre prestation, l'IA prépare un brouillon à corriger.
       </p>
 
       {/* Actions */}

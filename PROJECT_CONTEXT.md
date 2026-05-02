@@ -9,7 +9,7 @@
 ## 0. RÉPONSE EXPRESS — « De quoi s'occupe cette app ? »
 
 **Photofacto** est un SaaS de facturation pour artisans français (plombiers, électriciens, maçons, peintres, etc.).
-**Killer feature** : l'utilisateur prend une photo d'un brouillon (bloc-note, post-it) ou dicte à l'oral → l'IA Gemini extrait les lignes et génère une facture/devis PDF **Factur-X** conforme 2026 en ~10 secondes.
+**Killer feature** : l'utilisateur prend une photo d'un brouillon (bloc-note, post-it) ou dicte à l'oral → l'IA Gemini extrait les lignes et prépare un brouillon de devis/facture modifiable, exportable en **Factur-X**.
 
 - Owner / dev : **Mehdi Ben Abdallah** (`mehdibenabdallah6@gmail.com`)
 - Repo : https://github.com/mehdibenabdallah6-hue/facture-devis (branche `main`)
