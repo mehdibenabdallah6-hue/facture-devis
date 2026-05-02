@@ -31,10 +31,11 @@ export default function Contact() {
     setSending(true);
 
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch('/api/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'contact',
           name,
           email,
           subject: SUBJECT_OPTIONS.find((o) => o.value === subject)?.label || 'Contact',

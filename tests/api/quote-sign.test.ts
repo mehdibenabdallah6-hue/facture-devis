@@ -11,7 +11,7 @@ vi.mock('../../api/_lib/rateLimit.js', () => ({
   getClientIp: vi.fn(() => '203.0.113.11'),
 }));
 
-import handler from '../../api/quote-sign';
+import handler from '../../api/quote';
 import { ensureFirebaseAdmin } from '../../api/_lib/firebaseAdmin.js';
 import { checkRateLimit } from '../../api/_lib/rateLimit.js';
 
@@ -46,6 +46,7 @@ describe('api/quote-sign', () => {
       method: 'POST',
       headers: {},
       body: {
+        action: 'sign',
         quoteId: 'share_1',
         token: 'bad-token',
         signerName: 'Client',
@@ -65,6 +66,7 @@ describe('api/quote-sign', () => {
       method: 'POST',
       headers: {},
       body: {
+        action: 'sign',
         quoteId: 'share_1',
         token: 'token',
         signerName: 'Client',

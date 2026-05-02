@@ -956,10 +956,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (invoice.type !== 'quote') throw new Error('Seuls les devis peuvent être envoyés pour signature.');
 
     const token = await user.getIdToken();
-    const response = await fetch('/api/quote-share', {
+    const response = await fetch('/api/quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ invoiceId }),
+      body: JSON.stringify({ action: 'share', invoiceId }),
     });
 
     const data = await response.json().catch(() => null);

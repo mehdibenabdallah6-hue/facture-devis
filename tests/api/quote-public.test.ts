@@ -11,7 +11,7 @@ vi.mock('../../api/_lib/rateLimit.js', () => ({
   getClientIp: vi.fn(() => '203.0.113.10'),
 }));
 
-import handler from '../../api/quote-public';
+import handler from '../../api/quote';
 import { ensureFirebaseAdmin } from '../../api/_lib/firebaseAdmin.js';
 import { checkRateLimit } from '../../api/_lib/rateLimit.js';
 
@@ -40,7 +40,7 @@ describe('api/quote-public', () => {
     } as any);
 
     const res = createMockResponse();
-    await handler({ method: 'GET', headers: {}, query: { shareId: 'share_1', token: 'bad-token' } }, res);
+    await handler({ method: 'GET', headers: {}, query: { action: 'public', shareId: 'share_1', token: 'bad-token' } }, res);
 
     expect(res.statusCode).toBe(404);
     expect(res.body.error).toContain('invalide');
@@ -50,7 +50,7 @@ describe('api/quote-public', () => {
     vi.mocked(checkRateLimit).mockResolvedValue({ ok: false, retryAfterMs: 60_000 });
 
     const res = createMockResponse();
-    await handler({ method: 'GET', headers: {}, query: { shareId: 'share_1', token: 'token' } }, res);
+    await handler({ method: 'GET', headers: {}, query: { action: 'public', shareId: 'share_1', token: 'token' } }, res);
 
     expect(res.statusCode).toBe(429);
     expect(res.body.error).toContain('Trop de tentatives');

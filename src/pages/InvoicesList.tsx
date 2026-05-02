@@ -231,10 +231,11 @@ export default function InvoicesList() {
         return;
       }
       const token = await user.getIdToken();
-      const response = await fetch('/api/send-email', {
+      const response = await fetch('/api/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          action: 'send-invoice',
           invoiceId: invoice.id,
           kind: 'reminder',
           to: email,

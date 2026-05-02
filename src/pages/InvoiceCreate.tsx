@@ -1359,10 +1359,11 @@ export default function InvoiceCreate() {
       const docName = formData.type === 'quote' ? 'Devis' : 'Facture';
       const token = await user.getIdToken();
 
-      const response = await fetch('/api/send-email', {
+      const response = await fetch('/api/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          action: 'send-invoice',
           invoiceId: id,
           to: email,
           message: `Voici votre ${docName.toLowerCase()} ${formData.number}. Vérifiez le récapitulatif ci-dessous.`,

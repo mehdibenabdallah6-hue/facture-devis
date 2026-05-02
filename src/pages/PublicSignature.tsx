@@ -60,7 +60,7 @@ export default function PublicSignature() {
         return;
       }
       try {
-        const response = await fetch(`/api/quote-public?shareId=${encodeURIComponent(quoteId)}&token=${encodeURIComponent(token)}`);
+        const response = await fetch(`/api/quote?action=public&shareId=${encodeURIComponent(quoteId)}&token=${encodeURIComponent(token)}`);
         const payload = await response.json().catch(() => null);
         if (!response.ok) {
           setError(payload?.error || 'Ce lien de signature est invalide ou a expiré.');
@@ -86,10 +86,11 @@ export default function PublicSignature() {
     setSigning(true);
 
     try {
-      const response = await fetch('/api/quote-sign', {
+      const response = await fetch('/api/quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'sign',
           quoteId,
           token,
           signerName: signerName.trim(),
