@@ -28,7 +28,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react';
-import { UseCaseColumn, type UseCase } from '../components/UseCaseColumn';
+import { TestimonialColumn, type Testimonial } from '../components/TestimonialColumn';
 import { MiniDevisDemo } from '../components/MiniDevisDemo';
 
 type ProfessionKey =
@@ -170,48 +170,57 @@ const professionCopy: Record<ProfessionKey, ProfessionCopy> = {
   },
 };
 
-const useCases: UseCase[] = [
+const testimonials: Testimonial[] = [
   {
-    trade: 'Plombier',
-    situation: "Sortie d'intervention, le client demande un devis avant de quitter les lieux.",
-    action: "Dictée vocale en 30s : robinet, raccord, déplacement. Brouillon prêt à corriger.",
-    result: 'Devis envoyé pour signature avant de remonter dans la camionnette.',
+    quote:
+      "Je fais souvent mes devis le soir après les chantiers. Le fait de pouvoir préparer un devis depuis mes notes et l’envoyer à signer directement, ça me fait gagner du temps.",
+    trade: 'Artisan multiservices',
   },
   {
-    trade: 'Peintre',
-    situation: 'Devis peinture salon avec préparation, enduit, fournitures et main-d’œuvre.',
-    action: 'Catalogue : on récupère les prix habituels au m² au lieu de tout retaper.',
-    result: 'Devis cohérent en 5 minutes, sans erreur de calcul.',
-  },
-  {
+    quote:
+      "Le lien de signature est super pratique. Le client reçoit le devis, le signe sur son téléphone, et je peux passer à la facture sans relancer trois fois.",
     trade: 'Électricien',
-    situation: 'Trois factures envoyées le mois dernier, deux clients ne répondent plus.',
-    action: 'Tableau de bord : factures en retard visibles, message de relance prêt.',
-    result: 'Rien ne passe à la trappe, la trésorerie reste sous contrôle.',
   },
   {
+    quote:
+      "Avant je gardais mes prix dans plusieurs fichiers. Là j’ai mes clients, mes prestations et mes factures au même endroit.",
+    trade: 'Peintre',
+  },
+  {
+    quote:
+      "La relance des factures en retard, c’est exactement le genre de truc que j’oubliais de faire.",
+    trade: 'Plombier',
+  },
+  {
+    quote:
+      "Je dicte la prestation en sortant de chez le client, je corrige plus tard à la maison. C’est plus rapide que de tout taper le soir.",
+    trade: 'Plombier',
+  },
+  {
+    quote:
+      "Le PDF est sobre, ça fait sérieux. Mes clients voient tout de suite à quoi correspond chaque ligne.",
     trade: 'Carreleur',
-    situation: 'Photo du chantier prise rapidement, mesures notées sur un coin de feuille.',
-    action: 'Photo + dictée : ragréage, pose, plinthes et joints en lignes structurées.',
-    result: 'Devis modifiable à valider, plus aucune note papier qui se perd.',
   },
   {
+    quote:
+      "Les pages de signature sont claires, le client comprend ce qu’il signe sans que j’aie à expliquer au téléphone.",
+    trade: 'Couvreur',
+  },
+  {
+    quote:
+      "J’avais peur de l’IA pour les devis. Au final ça me sort un brouillon que je modifie en deux minutes, c’est juste plus rapide qu’écrire de zéro.",
     trade: 'Menuisier',
-    situation: 'Le client âgé n’ouvre pas ses mails et n’imprime pas.',
-    action: 'Lien de signature envoyé par WhatsApp, signature directe sur téléphone.',
-    result: 'Devis signé le jour même, le chantier peut démarrer.',
   },
   {
-    trade: 'Multiservices',
-    situation: 'Devis dans Word, factures dans Excel, échanges éparpillés dans WhatsApp.',
-    action: 'Client, devis, facture et historique de relance regroupés au même endroit.',
-    result: 'Recherche instantanée par client ou par chantier, plus besoin de fouiller.',
+    quote:
+      "Sur les chantiers, je fais beaucoup de devis qui se ressemblent. Le catalogue qu’on retrouve d’un devis à l’autre m’évite de tout retaper.",
+    trade: 'Maçon',
   },
 ];
 
-const firstColumn = useCases.slice(0, 2);
-const secondColumn = useCases.slice(2, 4);
-const thirdColumn = useCases.slice(4, 6);
+const firstColumn = testimonials.slice(0, 3);
+const secondColumn = testimonials.slice(3, 6);
+const thirdColumn = testimonials.slice(6, 9);
 
 const stats = [
   ['IA', 'devis depuis photo ou dictée'],
@@ -409,6 +418,16 @@ export default function LandingPage({ profession }: LandingPageProps) {
     copy?.subtitle ||
     "Photofacto aide les artisans à créer leurs devis avec l'IA, les faire signer en ligne, générer les factures et relancer les clients sans perdre leurs soirées dans l'administratif.";
 
+  // Common reveal-on-scroll motion props for section intros. Centralised so
+  // we keep the same easing/timing across the page and don't accidentally
+  // drift into a noisier feel.
+  const fadeInUp = {
+    initial: { opacity: 0, y: 24 },
+    whileInView: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
+    viewport: { once: true, amount: 0.2 },
+  };
+
   return (
     <div className="min-h-screen bg-background font-body text-on-surface">
       <div className="accent-bar-spark" />
@@ -447,7 +466,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           </button>
           <button
             onClick={goRegister}
-            className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-3.5 sm:px-5 py-2 rounded-[10px] text-xs sm:text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform whitespace-nowrap"
+            className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-3.5 sm:px-5 py-2 rounded-[10px] text-xs sm:text-[13px] font-bold shadow-spark-cta hover:shadow-spark-cta-lg active:scale-95 transition-all duration-200 ease-out cursor-pointer whitespace-nowrap"
           >
             Créer un devis
           </button>
@@ -473,7 +492,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={goRegister}
-                className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white border-none px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform"
+                className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white border-none px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
               >
                 <FileText className="w-[18px] h-[18px]" />
                 Créer mon premier devis
@@ -481,7 +500,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               </button>
               <button
                 onClick={() => scrollTo('demo')}
-                className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-sm active:scale-[0.98] transition-transform"
+                className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-sm hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
               >
                 <Zap className="w-[18px] h-[18px] text-primary" />
                 Essayer avec une prestation
@@ -506,7 +525,16 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </div>
           </div>
 
-          <div className="w-full max-w-[390px] md:max-w-[440px] mx-auto md:mx-0 bg-white rounded-[24px] shadow-spark-lg border-spark overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: [0, -6, 0], scale: 1 }}
+            transition={{
+              opacity: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+              scale: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+              y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            className="w-full max-w-[390px] md:max-w-[440px] mx-auto md:mx-0 bg-white rounded-[24px] shadow-spark-lg border-spark overflow-hidden"
+          >
             <div className="bg-secondary-dim px-4 md:px-5 py-3.5 flex items-center gap-2.5">
               <Sparkles className="w-4 h-4 text-primary fill-primary" />
               <div className="flex-1">
@@ -564,7 +592,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -620,19 +648,23 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
       <section id="how-it-works" className="py-10 md:py-16 px-4 md:px-14 bg-white border-y-spark">
         <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-8 md:mb-11">
+          <motion.div {...fadeInUp} className="text-center mb-8 md:mb-11">
             <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
               Du chantier au paiement, en 5 étapes.
             </h2>
             <p className="text-[15px] text-on-surface-variant max-w-2xl mx-auto">
               Photofacto ne s’arrête pas au devis : vous créez, envoyez, faites signer, facturez et relancez depuis le même outil.
             </p>
-          </div>
+          </motion.div>
           <div className="grid md:grid-cols-5 gap-4">
-            {workflowSteps.map(({ n, icon, t, d }) => (
-              <div
+            {workflowSteps.map(({ n, icon, t, d }, i) => (
+              <motion.div
                 key={n}
-                className="bg-background rounded-[18px] p-5 border-spark shadow-spark-sm relative overflow-hidden"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-background rounded-[18px] p-5 border-spark shadow-spark-sm relative overflow-hidden hover:-translate-y-1 hover:shadow-spark-md hover:border-primary/30 transition-all duration-200 ease-out"
               >
                 <div className="absolute top-3 right-4 font-headline font-extrabold text-[42px] text-primary/[0.06] leading-none">
                   {n}
@@ -642,7 +674,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </div>
                 <div className="font-headline font-bold text-sm text-secondary-dim mb-2">{t}</div>
                 <div className="text-[12px] text-on-surface-variant leading-relaxed">{d}</div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -658,7 +690,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {features.map(({ icon, t, d }) => (
-              <div key={t} className="bg-white rounded-2xl p-5 shadow-spark-sm border-spark">
+              <div key={t} className="bg-white rounded-2xl p-5 shadow-spark-sm border-spark hover:-translate-y-1 hover:shadow-spark-md hover:border-primary/30 transition-all duration-200 ease-out">
                 <div className="w-10 h-10 bg-primary/[0.08] rounded-[10px] flex items-center justify-center mb-3">
                   {icon}
                 </div>
@@ -692,7 +724,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </div>
             <button
               onClick={goRegister}
-              className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-cta-lg active:scale-[0.98] transition-transform"
+              className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
             >
               Tester la signature en ligne
               <ArrowRight className="w-4 h-4" />
@@ -773,7 +805,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             </div>
             <button
               onClick={goRegister}
-              className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-cta-lg active:scale-[0.98] transition-transform"
+              className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
             >
               Voir comment relancer mes clients
               <ArrowRight className="w-4 h-4" />
@@ -796,17 +828,17 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
       <section className="py-10 md:py-16 px-4 md:px-14 bg-white border-y-spark">
         <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-8">
+          <motion.div {...fadeInUp} className="text-center mb-8">
             <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
               Pensé pour les artisans qui veulent passer moins de temps sur l’administratif.
             </h2>
             <p className="text-[15px] text-on-surface-variant">
               BTP, dépannage, petits chantiers ou interventions rapides : le but reste le même, envoyer plus vite et encaisser mieux.
             </p>
-          </div>
+          </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {trades.map(([name, desc]) => (
-              <div key={name} className="bg-background rounded-2xl p-5 border-spark">
+              <div key={name} className="bg-background rounded-2xl p-5 border-spark hover:-translate-y-1 hover:shadow-spark-md hover:border-primary/30 transition-all duration-200 ease-out">
                 <div className="flex items-center gap-2 mb-2">
                   <Wrench className="w-4 h-4 text-primary" />
                   <div className="font-headline font-bold text-secondary-dim">{name}</div>
@@ -851,35 +883,35 @@ export default function LandingPage({ profession }: LandingPageProps) {
           >
             <div className="flex justify-center">
               <div className="border-spark rounded-lg py-1 px-4 text-xs font-bold uppercase tracking-wider text-primary">
-                Cas d’usage artisans
+                Témoignages
               </div>
             </div>
             <h2 className="font-headline font-extrabold text-3xl md:text-4xl lg:text-5xl text-secondary-dim text-center mt-5 tracking-tight">
-              Des situations concrètes, pas des promesses magiques.
+              Ils gagnent du temps avec Photofacto.
             </h2>
             <p className="text-center mt-4 text-[15px] text-on-surface-variant">
-              Ces exemples montrent comment Photofacto peut s’insérer dans une journée d’artisan.
+              Ce que disent les artisans qui l’utilisent au quotidien, sans tournures marketing.
             </p>
           </motion.div>
 
           <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[680px] overflow-hidden">
-            <UseCaseColumn cases={firstColumn} duration={16} />
-            <UseCaseColumn cases={secondColumn} className="hidden md:block" duration={20} />
-            <UseCaseColumn cases={thirdColumn} className="hidden lg:block" duration={18} />
+            <TestimonialColumn testimonials={firstColumn} duration={26} />
+            <TestimonialColumn testimonials={secondColumn} className="hidden md:block" duration={32} />
+            <TestimonialColumn testimonials={thirdColumn} className="hidden lg:block" duration={29} />
           </div>
         </div>
       </section>
 
       <section id="pricing" className="py-10 md:py-14 px-4 md:px-14 bg-background border-b-spark">
         <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-8 md:mb-11">
+          <motion.div {...fadeInUp} className="text-center mb-8 md:mb-11">
             <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
               Démarrez gratuitement
             </h2>
             <p className="text-[15px] text-on-surface-variant">
               Testez le tunnel complet, puis passez sur un plan plus confortable quand vous en avez besoin.
             </p>
-          </div>
+          </motion.div>
           <div className="grid md:grid-cols-3 gap-4 md:gap-5 max-w-[960px] mx-auto">
             {[
               {
@@ -918,8 +950,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
             ].map(({ name, price, per, sub, features: planFeatures, cta, highlight }) => (
               <div
                 key={name}
-                className={`rounded-[18px] md:rounded-[20px] p-4 md:p-7 relative overflow-hidden ${
-                  highlight ? 'bg-primary text-white shadow-spark-cta-xl' : 'bg-white border-spark shadow-spark-md'
+                className={`rounded-[18px] md:rounded-[20px] p-4 md:p-7 relative overflow-hidden transition-all duration-200 ease-out hover:-translate-y-1 ${
+                  highlight
+                    ? 'bg-primary text-white shadow-spark-cta-xl hover:shadow-[0_24px_64px_-12px_rgba(232,98,26,0.45)]'
+                    : 'bg-white border-spark shadow-spark-md hover:shadow-spark-lg hover:border-primary/30'
                 }`}
               >
                 {highlight && (
@@ -968,17 +1002,17 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
       <section className="py-10 md:py-16 px-4 md:px-14 bg-white">
         <div className="max-w-[920px] mx-auto">
-          <div className="text-center mb-8">
+          <motion.div {...fadeInUp} className="text-center mb-8">
             <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
               Questions fréquentes
             </h2>
             <p className="text-[15px] text-on-surface-variant">
               Des réponses simples, sans jargon.
             </p>
-          </div>
+          </motion.div>
           <div className="grid gap-3">
             {faq.map(({ q, a }) => (
-              <div key={q} className="bg-background rounded-2xl border-spark p-5">
+              <div key={q} className="bg-background rounded-2xl border-spark p-5 hover:shadow-spark-sm hover:border-primary/25 transition-all duration-200 ease-out">
                 <h3 className="font-headline font-bold text-secondary-dim mb-2">{q}</h3>
                 <p className="text-sm text-on-surface-variant leading-relaxed">{a}</p>
               </div>
@@ -996,7 +1030,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
         </p>
         <button
           onClick={goRegister}
-          className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-5 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform w-full sm:w-auto"
+          className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-5 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer w-full sm:w-auto"
         >
           <FileText className="w-[18px] h-[18px]" />
           Créer mon compte gratuitement
