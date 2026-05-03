@@ -161,36 +161,27 @@ export default function Dashboard() {
   }
 
   // ---- Quick-start checklist (4 steps, hides itself when all done) ----
-  // Lives above KPIs so artisans always see the next concrete action.
-  // Step ordering follows the natural funnel: catalog → create → send,
-  // with "design" tucked between create and send (logo upload is the most
-  // concrete signal that the design has been touched). The Design entry
-  // also serves as the mobile target for the "tour-design" tutorial step
-  // since the desktop sidebar entry is display:none on phones.
+  // Keep the first value loop visible: catalogue → devis → signature → facture.
   const hasPrice = (articles?.length || 0) > 0;
-  const hasInvoice = invoices.length > 0;
-  const hasSent = invoices.some(inv => inv.status === 'sent' || inv.status === 'paid');
-  // "Design step done" was previously gated on `logoUrl` — but most artisans
-  // tweak the colour or template without ever uploading a logo, then complain
-  // that the step won't tick. We now consider the design step satisfied as
-  // soon as ANY of: a logo is uploaded, the accent colour was moved off the
-  // default '#E8621A', or a non-default template is chosen.
-  const DEFAULT_ACCENT = '#E8621A';
-  const hasDesign = !!(
-    company?.logoUrl ||
-    company?.letterheadUrl ||
-    company?.pdfFooterText ||
-    company?.hideCompanyInfo ||
-    (company?.pdfAccentColor &&
-      company.pdfAccentColor.toLowerCase() !== DEFAULT_ACCENT.toLowerCase()) ||
-    (company?.pdfTemplate && company.pdfTemplate !== 'moderne')
+  const hasQuote = invoices.some(inv => inv.type === 'quote') || invoices.length > 0;
+  const hasSignatureStep = invoices.some(inv =>
+    inv.type === 'quote' &&
+    Boolean(
+      inv.sharedQuoteId ||
+      inv.shareUrl ||
+      inv.signature ||
+      inv.signedAt ||
+      inv.status === 'accepted' ||
+      inv.status === 'converted',
+    ),
   );
-  const onboardingDone = hasPrice && hasInvoice && hasDesign && hasSent;
+  const hasInvoice = invoices.some(inv => inv.type === 'invoice' || inv.status === 'converted');
+  const onboardingDone = hasPrice && hasQuote && hasSignatureStep && hasInvoice;
   const onboardingSteps: { key: string; label: string; done: boolean; to: string; tourId?: string }[] = [
-    { key: 'catalog', label: 'Ajouter un prix', done: hasPrice, to: '/app/catalog' },
-    { key: 'create', label: 'Créer une facture', done: hasInvoice, to: '/app/invoices/new' },
-    { key: 'design', label: 'Personnaliser le design', done: hasDesign, to: '/app/design', tourId: 'tour-design-mobile' },
-    { key: 'send', label: 'Envoyer', done: hasSent, to: '/app/invoices' },
+    { key: 'catalog', label: 'Importer mes anciens prix', done: hasPrice, to: '/app/catalog' },
+    { key: 'create', label: 'Créer un devis', done: hasQuote, to: '/app/invoices/new' },
+    { key: 'signature', label: 'Envoyer pour signature', done: hasSignatureStep, to: '/app/invoices' },
+    { key: 'invoice', label: 'Transformer en facture', done: hasInvoice, to: '/app/invoices' },
   ];
 
   return (

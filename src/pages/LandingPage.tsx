@@ -174,64 +174,64 @@ const testimonials: Testimonial[] = [
   {
     quote:
       "Je fais souvent mes devis le soir après les chantiers. Pouvoir préparer un devis depuis mes notes et l’envoyer à signer directement, ça me fait gagner du temps.",
-    name: 'Karim B.',
-    role: 'Artisan multiservices · Bordeaux',
+    name: 'Artisan multiservices',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/32.jpg',
   },
   {
     quote:
       "Le lien de signature est super pratique. Le client reçoit le devis, le signe sur son téléphone, et je peux passer à la facture sans relancer trois fois.",
-    name: 'Julien R.',
-    role: 'Électricien · Lyon',
+    name: 'Électricien',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/52.jpg',
   },
   {
     quote:
       "Avant je gardais mes prix dans plusieurs fichiers. Là j’ai mes clients, mes prestations et mes factures au même endroit.",
-    name: 'Stéphane M.',
-    role: 'Peintre · Toulouse',
+    name: 'Peintre',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/41.jpg',
   },
   {
     quote:
       "La relance des factures en retard, c’est exactement le genre de truc que j’oubliais de faire.",
-    name: 'Marc D.',
-    role: 'Plombier · Marseille',
+    name: 'Plombier',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/15.jpg',
   },
   {
     quote:
       "Je dicte la prestation en sortant de chez le client, je corrige plus tard à la maison. C’est plus rapide que de tout taper le soir.",
-    name: 'Patrick V.',
-    role: 'Plombier · Lille',
+    name: 'Plombier dépannage',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/76.jpg',
   },
   {
     quote:
       "Le PDF est sobre, ça fait sérieux. Mes clients voient tout de suite à quoi correspond chaque ligne.",
-    name: 'Sébastien G.',
-    role: 'Carreleur · Paris',
+    name: 'Carreleur',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/83.jpg',
   },
   {
     quote:
       "Les pages de signature sont claires, le client comprend ce qu’il signe sans que j’aie à expliquer au téléphone.",
-    name: 'Christophe L.',
-    role: 'Couvreur · Nantes',
+    name: 'Couvreur',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/64.jpg',
   },
   {
     quote:
       "J’avais peur de l’IA pour les devis. Au final ça me sort un brouillon que je modifie en deux minutes, c’est juste plus rapide qu’écrire de zéro.",
-    name: 'Olivier T.',
-    role: 'Menuisier · Strasbourg',
+    name: 'Menuisier',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/27.jpg',
   },
   {
     quote:
       "Sur les chantiers, je fais beaucoup de devis qui se ressemblent. Le catalogue qu’on retrouve d’un devis à l’autre m’évite de tout retaper.",
-    name: 'Thomas P.',
-    role: 'Maçon · Rennes',
+    name: 'Maçon',
+    role: 'Retour bêta anonymisé',
     image: 'https://randomuser.me/api/portraits/men/19.jpg',
   },
 ];
@@ -343,13 +343,15 @@ const trades = [
   ['Paysagiste', 'Tonte, taille, élagage, entretien, aménagement.'],
 ];
 
-const catalogSources = ['Excel', 'Carnet', 'Anciens devis', 'Photos chantier', 'Notes WhatsApp'];
+const catalogSources = ['Excel', 'Carnet papier', 'Ancien devis', 'Photo de notes', 'Notes WhatsApp'];
 
 const catalogRows = [
-  { name: 'Pose carrelage sol', unit: 'm²', price: '45 €', tag: 'prix réutilisable' },
-  { name: 'Déplacement', unit: 'forfait', price: '35 €', tag: 'forfait clair' },
-  { name: 'Main-d’œuvre', unit: 'heure', price: '55 €', tag: 'marge maîtrisée' },
-  { name: 'Fournitures plomberie', unit: 'ligne', price: 'à vérifier', tag: 'à compléter' },
+  { name: 'Déplacement', unit: 'forfait', price: '45 €', tag: 'forfait clair' },
+  { name: 'Main-d’œuvre', unit: 'heure', price: '55 €', tag: 'prix réutilisable' },
+  { name: 'Remplacement robinet', unit: 'unité', price: '120 €', tag: 'prestation propre' },
+  { name: 'Pose prise électrique', unit: 'unité', price: '85 €', tag: 'catalogue chantier' },
+  { name: 'Peinture mur', unit: 'm²', price: '22 €', tag: 'unité détectée' },
+  { name: 'Fournitures', unit: 'ligne', price: 'à vérifier', tag: 'à compléter' },
 ];
 
 const catalogBenefits = [
@@ -627,13 +629,13 @@ export default function LandingPage({ profession }: LandingPageProps) {
               <div className="grid grid-cols-2 gap-2 mt-4">
                 <button
                   onClick={goRegister}
-                  className="min-touch bg-primary text-white rounded-[10px] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="min-touch bg-primary text-white rounded-[10px] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 shadow-spark-cta hover:-translate-y-0.5 hover:shadow-spark-cta-lg active:scale-[0.98] transition-all cursor-pointer"
                 >
                   <Send className="w-3 h-3" /> Envoyer pour signature
                 </button>
                 <button
                   onClick={goRegister}
-                  className="min-touch bg-background border-spark text-on-surface rounded-[10px] py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5"
+                  className="min-touch bg-background border-spark text-on-surface rounded-[10px] py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 hover:-translate-y-0.5 hover:shadow-spark-sm active:scale-[0.98] transition-all cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" /> Transformer en facture
                 </button>
@@ -803,10 +805,10 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-[0.78fr_1.22fr] gap-3">
+              <div className="grid lg:grid-cols-[0.86fr_0.72fr_1.15fr] gap-3">
                 <div className="rounded-2xl bg-white/8 border border-white/10 p-4">
                   <div className="text-[11px] font-bold uppercase tracking-wide text-white/45 mb-3">
-                    Importer l’existant
+                    Ancien bazar
                   </div>
                   {catalogSources.slice(0, 4).map((source, index) => (
                     <div key={source} className="flex items-center gap-2 py-2 text-sm text-white/75">
@@ -818,11 +820,26 @@ export default function LandingPage({ profession }: LandingPageProps) {
                   ))}
                 </div>
 
+                <div className="rounded-2xl bg-primary/[0.14] border border-primary/30 p-4 flex flex-col justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center mb-3 shadow-spark-cta">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-3">
+                    Analyse Photofacto
+                  </div>
+                  {['Extraction des prestations', 'Prix détectés', 'Unités proposées', 'À vérifier avant import'].map(item => (
+                    <div key={item} className="flex items-center gap-2 py-1.5 text-xs font-semibold text-white/75">
+                      <Check className="w-3.5 h-3.5 text-primary" strokeWidth={3} />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+
                 <div className="rounded-2xl bg-white text-on-surface p-3 shadow-spark-md">
                   <div className="flex items-center justify-between px-2 py-2 mb-1">
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
-                        Prestations propres
+                        Catalogue propre
                       </div>
                       <div className="font-headline font-bold text-secondary-dim">Prêtes à réutiliser</div>
                     </div>
@@ -854,7 +871,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
                 </div>
                 <button
                   onClick={goRegister}
-                  className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-spark-cta"
+                  className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-spark-cta hover:-translate-y-0.5 hover:shadow-spark-cta-lg active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Créer mon catalogue
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1046,14 +1063,14 @@ export default function LandingPage({ profession }: LandingPageProps) {
           >
             <div className="flex justify-center">
               <div className="border-spark rounded-lg py-1 px-4 text-xs font-bold uppercase tracking-wider text-primary">
-                Témoignages
+                Cas d’usage artisans
               </div>
             </div>
             <h2 className="font-headline font-extrabold text-3xl md:text-4xl lg:text-5xl text-secondary-dim text-center mt-5 tracking-tight">
-              Ils gagnent du temps avec Photofacto.
+              Retours terrain, sans promesse magique.
             </h2>
             <p className="text-center mt-4 text-[15px] text-on-surface-variant">
-              Ce que disent les artisans qui l’utilisent au quotidien, sans tournures marketing.
+              Des exemples anonymisés de situations où le catalogue, la signature et les relances font gagner du temps.
             </p>
           </motion.div>
 

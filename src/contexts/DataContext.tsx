@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { startOfMonth } from 'date-fns';
 import { AppPlan, AppSubscriptionStatus, BillingCycle } from '../lib/billing';
 import { track } from '../services/analytics';
+import { articleIdFromDescription } from '../lib/catalogImport';
 
 // Referral tracking + discount rewards — called after user completes onboarding
 // Rewards: both referrer & referred get -50% on monthly plan or -15% on annual plan
@@ -290,6 +291,11 @@ export interface Article {
   description: string;
   unitPrice: number;
   vatRate: number;
+  unit?: string;
+  category?: string;
+  notes?: string;
+  source?: 'ai_import' | 'spreadsheet_import' | 'manual';
+  importedAt?: string;
   usageCount: number;
   updatedAt: string;
 }
@@ -579,7 +585,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (!item.description || item.description.trim() === '') continue;
       
       // Slugify/Sanitize description for use as ID
-      const articleId = item.description.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const articleId = articleIdFromDescription(item.description);
       const articleRef = doc(db, 'companies', user.uid, 'articles', articleId);
       
       try {
@@ -599,7 +605,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addArticle = async (data: Omit<Article, 'id' | 'usageCount' | 'updatedAt'>) => {
     if (!user) throw new Error('Non authentifié');
     try {
-      const articleId = data.description.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const articleId = articleIdFromDescription(data.description);
       const articleRef = doc(db, 'companies', user.uid, 'articles', articleId);
       
       await setDoc(articleRef, {
@@ -640,11 +646,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const importCatalog = async (items: any[]) => {
     if (!user) return;
     const now = new Date().toISOString();
+    const errors: unknown[] = [];
     
     for (const item of items) {
+      if (item.selected === false) continue;
       if (!item.description || item.description.trim() === '') continue;
       
-      const articleId = item.description.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const articleId = item.duplicateOfId || articleIdFromDescription(item.description);
       const articleRef = doc(db, 'companies', user.uid, 'articles', articleId);
       
       try {
@@ -653,12 +661,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           description: item.description.trim(),
           unitPrice: parseFloat(item.unitPrice) || 0,
           vatRate: Number.isFinite(vatRate) ? vatRate : 20,
+          unit: item.unit || 'unité',
+          category: item.category || '',
+          notes: item.notes || '',
+          source: item.source || 'spreadsheet_import',
+          importedAt: item.importedAt || now,
           usageCount: increment(1),
           updatedAt: now
         }, { merge: true });
       } catch (error) {
         console.error('Error importing article:', error);
+        errors.push(error);
       }
+    }
+
+    if (errors.length > 0) {
+      throw new Error("Certaines prestations n'ont pas pu être importées. Réessayez.");
     }
   };
 

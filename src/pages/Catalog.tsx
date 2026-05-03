@@ -1,12 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import {
   Package,
   Sparkles,
-  FileSpreadsheet,
   Upload,
   CheckCircle2,
-  AlertCircle,
   Plus,
   Edit2,
   Trash2,
@@ -15,14 +13,7 @@ import {
   Search,
   Lightbulb,
 } from 'lucide-react';
-// xlsx is heavy (~330KB) and only needed when the user imports a .xlsx
-// catalog. Loaded on-demand to keep it out of the initial bundle.
-type XLSXModule = typeof import('xlsx');
-let xlsxPromise: Promise<XLSXModule> | null = null;
-const loadXlsx = async (): Promise<XLSXModule> => {
-  if (!xlsxPromise) xlsxPromise = import('xlsx');
-  return xlsxPromise;
-};
+import { ImportCatalogModal } from '../components/ImportCatalogModal';
 
 /**
  * Catalogue page — top-level (was previously a section inside Settings).
@@ -32,16 +23,15 @@ const loadXlsx = async (): Promise<XLSXModule> => {
  *
  *  1. Hero + value prop      → why this exists
  *  2. Quick add (3 fields)   → fastest path, no Excel needed
- *  3. Excel/CSV import       → for migrating an existing price list
+ *  3. Import preview         → Excel/CSV, photo, PDF, old quote
  *
  * Table below = full CRUD on what's already saved.
  */
 export default function Catalog() {
   const { articles, addArticle, updateArticle, deleteArticle, importCatalog } = useData();
 
-  const catalogRef = useRef<HTMLInputElement>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ success?: string; error?: string } | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
 
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [editArticleData, setEditArticleData] = useState<Partial<any>>({});
@@ -51,70 +41,6 @@ export default function Catalog() {
   const [quickAddOk, setQuickAddOk] = useState(false);
 
   const [search, setSearch] = useState('');
-
-  const handleCatalogImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsImporting(true);
-    setImportResult(null);
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const XLSX = await loadXlsx();
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const json = XLSX.utils.sheet_to_json<any>(worksheet);
-
-        const validItems: { description: string; unitPrice: number; vatRate: number }[] = [];
-        for (const row of json) {
-          const keys = Object.keys(row);
-          const descKey = keys.find(
-            k =>
-              k.toLowerCase().includes('desc') ||
-              k.toLowerCase().includes('nom') ||
-              k.toLowerCase().includes('art') ||
-              k.toLowerCase().includes('prod'),
-          );
-          const priceKey = keys.find(
-            k =>
-              k.toLowerCase().includes('prix') ||
-              k.toLowerCase().includes('tarif') ||
-              k.toLowerCase().includes('ht') ||
-              k.toLowerCase().includes('amount'),
-          );
-          const vatKey = keys.find(
-            k => k.toLowerCase().includes('tva') || k.toLowerCase().includes('tax'),
-          );
-
-          if (descKey && row[descKey]) {
-            validItems.push({
-              description: String(row[descKey]),
-              unitPrice: priceKey ? parseFloat(String(row[priceKey]).replace(',', '.')) || 0 : 0,
-              vatRate: vatKey ? parseFloat(String(row[vatKey]).replace(',', '.')) || 20 : 20,
-            });
-          }
-        }
-
-        if (validItems.length > 0) {
-          await importCatalog(validItems);
-          setImportResult({ success: `${validItems.length} articles importés avec succès !` });
-        } else {
-          setImportResult({
-            error: 'Aucun article trouvé. Vérifiez les colonnes (Description, Prix).',
-          });
-        }
-      } catch (err) {
-        setImportResult({ error: 'Erreur lors de la lecture du fichier.' });
-      } finally {
-        setIsImporting(false);
-        if (catalogRef.current) catalogRef.current.value = '';
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +74,9 @@ export default function Catalog() {
       description: article.description,
       unitPrice: article.unitPrice,
       vatRate: article.vatRate,
+      unit: article.unit,
+      category: article.category,
+      notes: article.notes,
     });
   };
 
@@ -174,11 +103,10 @@ export default function Catalog() {
           </span>
         </div>
         <h1 className="font-headline text-[26px] md:text-4xl font-extrabold text-on-surface tracking-tight mb-2 leading-tight">
-          Ajoutez vos prix pour que l'IA génère automatiquement vos factures.
+          Structurez vos anciens prix pour créer vos prochains devis plus vite.
         </h1>
         <p className="text-on-surface-variant font-medium text-sm md:text-lg leading-snug max-w-3xl">
-          Quand vous dictez ou photographiez un chantier, Photofacto retrouve vos tarifs
-          exacts dans votre catalogue — plus besoin de retaper les prix.
+          Importez Excel, CSV, photo de carnet ou ancien devis PDF. Photofacto prépare une preview modifiable, puis vos prix deviennent réutilisables dans les devis, factures et relances.
         </p>
       </header>
 
@@ -191,8 +119,7 @@ export default function Catalog() {
               Votre catalogue est vide.
             </p>
             <p className="text-amber-800 text-sm">
-              Ajoutez 5 ou 10 prix pour démarrer — l'IA pourra ensuite reconnaître vos
-              prestations dès que vous dictez "Pose chauffe-eau" ou "20 m² de carrelage".
+              Importez vos anciens prix ou ajoutez 5 prestations pour démarrer. Plus votre catalogue se remplit, plus vos futurs devis deviennent rapides et cohérents.
             </p>
           </div>
         </div>
@@ -211,7 +138,7 @@ export default function Catalog() {
                 Ajout rapide
               </h2>
               <p className="text-xs md:text-sm text-on-surface-variant font-medium">
-                Description + prix + TVA. C'est tout.
+                Une prestation, un prix, une TVA. C'est tout.
               </p>
             </div>
           </div>
@@ -287,58 +214,51 @@ export default function Catalog() {
         </div>
 
         {/* Import */}
-        <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-5 md:p-7 shadow-sm">
+        <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-5 md:p-7 shadow-sm hover:-translate-y-1 hover:shadow-spark-md hover:border-primary/25 transition-all">
           <div className="flex items-center gap-3 mb-1.5">
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
-              <FileSpreadsheet className="w-5 h-5" strokeWidth={2.5} />
+              <Upload className="w-5 h-5" strokeWidth={2.5} />
             </div>
             <div className="min-w-0">
               <h2 className="text-base md:text-lg font-extrabold font-headline text-on-surface leading-tight">
-                Importez votre ancien catalogue en 1 clic
+                Importer mes anciens prix
               </h2>
               <p className="text-xs md:text-sm text-on-surface-variant font-medium">
-                Excel ou CSV — colonnes "Description" et "Prix" suffisent.
+                Excel, CSV, photo de carnet ou ancien devis PDF/image.
               </p>
             </div>
           </div>
 
-          <input
-            type="file"
-            accept=".xlsx, .xls, .csv"
-            className="hidden"
-            ref={catalogRef}
-            onChange={handleCatalogImport}
-          />
+          <div className="mt-4 grid gap-2">
+            {['Excel / CSV', 'Photo de carnet ou liste de prix', 'Ancien devis PDF / image'].map(option => (
+              <div key={option} className="flex items-center gap-2 rounded-xl bg-surface-container-high px-3 py-2 text-sm font-semibold text-on-surface-variant">
+                <CheckCircle2 className="w-4 h-4 text-tertiary" />
+                {option}
+              </div>
+            ))}
+          </div>
+
           <button
             type="button"
-            disabled={isImporting}
-            onClick={() => catalogRef.current?.click()}
-            className="mt-4 min-touch w-full border-2 border-dashed border-secondary/30 hover:border-secondary bg-secondary/5 hover:bg-secondary/10 rounded-2xl p-5 md:p-6 flex flex-col items-center justify-center gap-2 transition-colors text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => {
+              setImportSuccess(null);
+              setIsImportModalOpen(true);
+            }}
+            className="mt-4 min-touch w-full bg-secondary text-white rounded-xl px-5 py-3 font-bold text-sm shadow-spark-cta hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            <Upload className="w-7 h-7" />
-            <div className="text-center">
-              <p className="font-bold text-sm">
-                {isImporting ? 'Importation en cours...' : 'Choisir un fichier'}
-              </p>
-              <p className="text-xs opacity-80 font-medium">.xlsx, .xls, .csv</p>
-            </div>
+            <Upload className="w-4 h-4" />
+            Importer mon catalogue
           </button>
 
-          {importResult?.success && (
+          {importSuccess && (
             <div className="mt-3 p-3 bg-tertiary/10 text-tertiary rounded-xl text-sm font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 shrink-0" />
-              {importResult.success}
-            </div>
-          )}
-          {importResult?.error && (
-            <div className="mt-3 p-3 bg-error/10 text-error rounded-xl text-sm font-bold flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              {importResult.error}
+              {importSuccess}
             </div>
           )}
 
           <p className="mt-3 text-[11px] text-on-surface-variant">
-            <strong>Bientôt :</strong> import direct depuis un PDF de tarif.
+            Rien n’est ajouté sans votre validation : vous corrigez les lignes avant import.
           </p>
         </div>
       </section>
@@ -383,10 +303,12 @@ export default function Catalog() {
         </div>
 
         <div className="bg-surface-container-low rounded-2xl border border-outline-variant/10 overflow-x-auto">
-          <table className="w-full min-w-[620px] text-left text-sm">
+          <table className="w-full min-w-[780px] text-left text-sm">
             <thead className="bg-surface-container border-b border-outline-variant/10 text-on-surface-variant font-medium text-xs uppercase tracking-wider">
               <tr>
                 <th className="p-4">Description</th>
+                <th className="p-4 w-28">Unité</th>
+                <th className="p-4 w-36">Catégorie</th>
                 <th className="p-4 w-28">Prix HT (€)</th>
                 <th className="p-4 w-24">TVA (%)</th>
                 <th className="p-4 w-24 text-right">Actions</th>
@@ -395,7 +317,7 @@ export default function Catalog() {
             <tbody className="divide-y divide-outline-variant/5">
               {filteredArticles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-6 md:p-10 text-center text-on-surface-variant text-sm">
+                  <td colSpan={6} className="p-6 md:p-10 text-center text-on-surface-variant text-sm">
                     {isEmpty
                       ? 'Aucun article. Utilisez "Ajout rapide" ou "Importer" ci-dessus.'
                       : 'Aucun résultat pour cette recherche.'}
@@ -406,19 +328,82 @@ export default function Catalog() {
                   <tr key={article.id} className="hover:bg-surface-container/50 transition-colors">
                     <td className="p-3">
                       {editingArticleId === article.id ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editArticleData.description ?? ''}
+                            onChange={e =>
+                              setEditArticleData({
+                                ...editArticleData,
+                                description: e.target.value,
+                              })
+                            }
+                            className="w-full bg-surface-container-high rounded-lg px-3 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary"
+                          />
+                          <input
+                            type="text"
+                            value={editArticleData.notes ?? ''}
+                            onChange={e =>
+                              setEditArticleData({
+                                ...editArticleData,
+                                notes: e.target.value,
+                              })
+                            }
+                            placeholder="Notes internes"
+                            className="w-full bg-surface-container-high rounded-lg px-3 py-1.5 text-xs border-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-medium text-on-surface">{article.description}</span>
+                          {article.notes && (
+                            <p className="mt-1 text-xs text-on-surface-variant line-clamp-2">
+                              {article.notes}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {editingArticleId === article.id ? (
                         <input
                           type="text"
-                          value={editArticleData.description ?? ''}
+                          value={editArticleData.unit ?? ''}
                           onChange={e =>
                             setEditArticleData({
                               ...editArticleData,
-                              description: e.target.value,
+                              unit: e.target.value,
                             })
                           }
-                          className="w-full bg-surface-container-high rounded-lg px-3 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary"
+                          placeholder="forfait"
+                          className="w-full bg-surface-container-high rounded-lg px-2 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary"
                         />
                       ) : (
-                        <span className="font-medium text-on-surface">{article.description}</span>
+                        <span className="text-on-surface-variant">
+                          {article.unit || 'forfait'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {editingArticleId === article.id ? (
+                        <input
+                          type="text"
+                          value={editArticleData.category ?? ''}
+                          onChange={e =>
+                            setEditArticleData({
+                              ...editArticleData,
+                              category: e.target.value,
+                            })
+                          }
+                          placeholder="Catégorie"
+                          className="w-full bg-surface-container-high rounded-lg px-2 py-1.5 text-sm border-none focus:ring-1 focus:ring-primary"
+                        />
+                      ) : article.category ? (
+                        <span className="inline-flex rounded-full bg-surface-container-high px-2.5 py-1 text-xs font-bold text-on-surface-variant">
+                          {article.category}
+                        </span>
+                      ) : (
+                        <span className="text-on-surface-variant">-</span>
                       )}
                     </td>
                     <td className="p-3 text-right">
@@ -505,6 +490,14 @@ export default function Catalog() {
           </table>
         </div>
       </section>
+
+      <ImportCatalogModal
+        isOpen={isImportModalOpen}
+        articles={articles}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={importCatalog}
+        onSuccess={setImportSuccess}
+      />
     </div>
   );
 }

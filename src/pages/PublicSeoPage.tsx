@@ -228,7 +228,7 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Alternative Khosmos',
     h1: <>Une alternative simple pour gérer devis, factures, signatures et relances.</>,
     intro:
-      'Photofacto mise sur le terrain : photo, dictée, catalogue qui se construit, client qui signe et paiements à suivre.',
+      'Khosmos est orienté devis/factures pour artisans. Photofacto se différencie par son workflow complet autour de l’IA, du catalogue intelligent, de la signature en ligne et des relances.',
     bullets: ['IA terrain', 'Catalogue intelligent', 'Signature mobile', 'Relances visibles'],
     sections: [
       { title: 'Démarrage terrain', text: 'Photo ou dictée avant de quitter le chantier.', icon: <Camera className="w-5 h-5" /> },
@@ -236,8 +236,8 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
       { title: 'Suivi simple', text: 'Devis, factures, clients et paiements restent visibles.', icon: <Search className="w-5 h-5" /> },
     ],
     comparison: {
-      beforeTitle: 'Outil trop administratif',
-      before: ['Trop de champs', 'Terrain oublié', 'Signature ailleurs'],
+      beforeTitle: 'Approche devis/facture',
+      before: ['Document central', 'Catalogue à structurer', 'Suivi séparé'],
       afterTitle: 'Photofacto',
       after: ['Photo + description', 'Catalogue réutilisé', 'Facture suivie'],
     },
@@ -253,7 +253,7 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Alternative Abby',
     h1: <>Une alternative à Abby pensée d’abord pour les artisans.</>,
     intro:
-      'Abby vise large (freelances, services, e-commerce). Photofacto reste centré sur le tunnel des artisans : photo chantier, catalogue intelligent, devis IA, signature mobile, facture, relance.',
+      'Abby couvre beaucoup de profils indépendants. Photofacto se concentre davantage sur les usages terrain des artisans : catalogue, devis, signature mobile, facture et relance.',
     bullets: ['Devis IA terrain', 'Catalogue intelligent', 'Signature mobile', 'Relances visibles'],
     sections: [
       { title: 'Pensé pour le chantier', text: 'On part d’une photo ou d’une dictée, pas d’un formulaire générique de freelance.', icon: <Camera className="w-5 h-5" /> },
@@ -262,7 +262,7 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     ],
     comparison: {
       beforeTitle: 'Abby (positionnement large)',
-      before: ['Outil pour freelances', 'Pas pensé chantier', 'Signature secondaire', 'Vocabulaire services'],
+      before: ['Indépendants variés', 'Usage chantier moins central', 'Signature parmi d’autres besoins', 'Vocabulaire plus généraliste'],
       afterTitle: 'Photofacto (artisans)',
       after: ['Devis depuis photo', 'Catalogue chantier', 'Signature mobile', 'Relances suivies'],
     },
@@ -274,20 +274,20 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
   'alternative-obat': {
     title: 'Alternative Obat pour artisans : devis IA, signature, relances | Photofacto',
     description:
-      'Photofacto est une alternative à Obat plus légère pour les artisans solo : devis IA, signature mobile, factures PDF, relances et suivi des impayés.',
+      'Photofacto est une alternative orientée terrain pour les artisans solo : devis IA, signature mobile, factures PDF, relances et suivi des impayés.',
     eyebrow: 'Alternative Obat',
-    h1: <>Une alternative à Obat plus simple, sans usine à gaz.</>,
+    h1: <>Une alternative à Obat orientée terrain et téléphone.</>,
     intro:
-      'Obat est complet mais peut être lourd pour un artisan solo. Photofacto garde l’essentiel du tunnel catalogue → devis → signature → facture → relance, en restant rapide depuis le téléphone.',
+      'Obat est une solution complète, adaptée à des besoins plus structurés. Photofacto privilégie une approche plus légère, pensée pour les artisans qui veulent créer, faire signer, facturer et relancer rapidement depuis leur téléphone.',
     bullets: ['Démarrage rapide', 'Catalogue intelligent', 'Signature mobile', 'Relances suivies'],
     sections: [
       { title: 'Léger sur le terrain', text: 'Pas de longue mise en route : un client, un devis, un envoi.', icon: <Smartphone className="w-5 h-5" /> },
-      { title: 'Catalogue sans usine à gaz', text: 'Gardez vos prix, forfaits et prestations propres sans paramétrage interminable.', icon: <ClipboardList className="w-5 h-5" /> },
+      { title: 'Catalogue direct', text: 'Gardez vos prix, forfaits et prestations propres sans longue mise en place.', icon: <ClipboardList className="w-5 h-5" /> },
       { title: 'Suivi des impayés', text: 'Voyez clairement les factures en retard et préparez vos relances.', icon: <Bell className="w-5 h-5" /> },
     ],
     comparison: {
-      beforeTitle: 'Obat (complet, parfois lourd)',
-      before: ['Beaucoup de modules', 'Mise en route plus longue', 'Trop riche pour un solo'],
+      beforeTitle: 'Obat (solution complète)',
+      before: ['Besoins structurés', 'Mise en route plus progressive', 'Couverture large'],
       afterTitle: 'Photofacto (simple)',
       after: ['Catalogue → devis → relance', 'Démarrage rapide', 'Pensé téléphone et chantier'],
     },
@@ -336,7 +336,7 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
         </a>
         <button
           onClick={goRegister}
-          className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-3.5 sm:px-5 py-2 rounded-[10px] text-xs sm:text-[13px] font-bold shadow-spark-cta active:scale-95 transition-transform whitespace-nowrap"
+          className="inline-flex min-touch items-center gap-1.5 bg-primary text-white px-3.5 sm:px-5 py-2 rounded-[10px] text-xs sm:text-[13px] font-bold shadow-spark-cta hover:-translate-y-0.5 hover:shadow-spark-cta-lg active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
         >
           Créer mon premier devis
         </button>
@@ -360,14 +360,14 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={goRegister}
-                  className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-cta-lg"
+                  className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Créer mon premier devis
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
                   href="/"
-                  className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-sm"
+                  className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-6 py-3.5 rounded-xl font-bold text-sm shadow-spark-sm hover:-translate-y-0.5 hover:shadow-spark-md active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Voir Photofacto
                 </a>
@@ -402,7 +402,7 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
         <section className="px-4 md:px-14 py-10 md:py-16 bg-white border-y-spark">
           <div className="max-w-[1120px] mx-auto grid md:grid-cols-3 gap-4">
             {page.sections.map(section => (
-              <div key={section.title} className="bg-background rounded-2xl border-spark p-5 shadow-spark-sm">
+              <div key={section.title} className="bg-background rounded-2xl border-spark p-5 shadow-spark-sm hover:-translate-y-1 hover:shadow-spark-md hover:border-primary/30 transition-all duration-200 ease-out">
                 <div className="w-10 h-10 bg-primary/[0.08] text-primary rounded-xl flex items-center justify-center mb-3">
                   {section.icon}
                 </div>
@@ -461,7 +461,7 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
           </p>
           <button
             onClick={goRegister}
-            className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-5 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg active:scale-[0.98] transition-transform w-full sm:w-auto"
+            className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-5 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all cursor-pointer w-full sm:w-auto"
           >
             Créer mon compte gratuitement
             <ArrowRight className="w-4 h-4" />

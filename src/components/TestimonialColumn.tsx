@@ -7,7 +7,7 @@ export interface Testimonial {
   name: string;
   /** Profession + ville, ex: "Plombier · Marseille" */
   role: string;
-  /** Portrait URL (randomuser.me works well as placeholder). */
+  /** Portrait URL displayed in the animated case-study card. */
   image: string;
 }
 

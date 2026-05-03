@@ -42,7 +42,7 @@ const steps: Step[] = [
     id: '#tour-settings',
     title: 'Vos infos légales',
     description:
-      "À remplir une fois pour toutes : SIRET, adresse, RIB. Vos PDF seront conformes à la loi (mentions obligatoires) sans que vous y pensiez.",
+      "À remplir une fois pour toutes : SIRET, adresse, RIB. Vos PDF reprendront les mentions obligatoires sans que vous les retapiez.",
     placement: 'right',
   },
   // ── Nouvelles étapes ajoutées à la fin du guide ──────────────────
