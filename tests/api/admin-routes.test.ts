@@ -10,10 +10,7 @@ vi.mock('../../api/_firebase-admin.js', () => ({
   ensureFirebaseAdmin: vi.fn(),
 }));
 
-import summaryHandler from '../../api/admin-summary';
-import usersHandler from '../../api/admin-users';
-import eventsHandler from '../../api/admin-events';
-import errorsHandler from '../../api/admin-errors';
+import adminHandler from '../../api/admin';
 import { requireAdmin } from '../../api/_lib/adminAuth.js';
 import { ensureFirebaseAdmin } from '../../api/_firebase-admin.js';
 
@@ -38,7 +35,7 @@ describe('admin API routes V2', () => {
     vi.mocked(requireAdmin).mockRejectedValue(Object.assign(new Error('Non authentifié'), { status: 401 }));
 
     const res = createMockResponse();
-    await summaryHandler(getReq('/api/admin-summary'), res);
+    await adminHandler(getReq('/api/admin-summary', { adminResource: 'summary' }), res);
 
     expect(res.statusCode).toBe(401);
   });
@@ -47,14 +44,14 @@ describe('admin API routes V2', () => {
     vi.mocked(requireAdmin).mockRejectedValue(Object.assign(new Error('Accès admin requis'), { status: 403 }));
 
     const res = createMockResponse();
-    await summaryHandler(getReq('/api/admin-summary'), res);
+    await adminHandler(getReq('/api/admin-summary', { adminResource: 'summary' }), res);
 
     expect(res.statusCode).toBe(403);
   });
 
   it('admin-summary renvoie un cockpit agrégé sans données sensibles', async () => {
     const res = createMockResponse();
-    await summaryHandler(getReq('/api/admin-summary'), res);
+    await adminHandler(getReq('/api/admin-summary', { adminResource: 'summary' }), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.acquisition.totalUsers).toBe(3);
@@ -74,7 +71,7 @@ describe('admin API routes V2', () => {
 
   it('admin-users masque les emails et ne renvoie pas les champs sensibles', async () => {
     const res = createMockResponse();
-    await usersHandler(getReq('/api/admin-users'), res);
+    await adminHandler(getReq('/api/admin-users', { adminResource: 'users' }), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.users[0]).toMatchObject({
@@ -92,7 +89,7 @@ describe('admin API routes V2', () => {
 
   it('admin-events retourne un fallback vide si PostHog serveur est absent', async () => {
     const res = createMockResponse();
-    await eventsHandler(getReq('/api/admin-events', { period: '7d' }), res);
+    await adminHandler(getReq('/api/admin-events', { adminResource: 'events', period: '7d' }), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.configured).toBe(false);
@@ -103,7 +100,7 @@ describe('admin API routes V2', () => {
 
   it('admin-errors agrège les erreurs sans stack trace ni données brutes', async () => {
     const res = createMockResponse();
-    await errorsHandler(getReq('/api/admin-errors'), res);
+    await adminHandler(getReq('/api/admin-errors', { adminResource: 'errors' }), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.byType.email_failed).toBe(1);
