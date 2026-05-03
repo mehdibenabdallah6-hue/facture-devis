@@ -10,10 +10,7 @@ vi.mock('../../api/_firebase-admin.js', () => ({
   ensureFirebaseAdmin: vi.fn(),
 }));
 
-import summaryHandler from '../../api/admin-summary';
-import usersHandler from '../../api/admin-users';
-import eventsHandler from '../../api/admin-events';
-import errorsHandler from '../../api/admin-errors';
+import adminHandler from '../../api/admin';
 import { requireAdmin } from '../../api/_lib/adminAuth.js';
 import { ensureFirebaseAdmin } from '../../api/_firebase-admin.js';
 
@@ -38,14 +35,14 @@ describe('admin API routes', () => {
     vi.mocked(requireAdmin).mockRejectedValue(Object.assign(new Error('Accès admin requis'), { status: 403 }));
 
     const res = createMockResponse();
-    await summaryHandler(getReq(), res);
+    await adminHandler(getReq('/api/admin-summary'), res);
 
     expect(res.statusCode).toBe(403);
   });
 
   it('renvoie un résumé agrégé sans données sensibles', async () => {
     const res = createMockResponse();
-    await summaryHandler(getReq(), res);
+    await adminHandler(getReq('/api/admin-summary'), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.users.total).toBe(2);
@@ -56,7 +53,7 @@ describe('admin API routes', () => {
 
   it('anonymise la liste utilisateurs', async () => {
     const res = createMockResponse();
-    await usersHandler(getReq(), res);
+    await adminHandler(getReq('/api/admin-users'), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.users[0]).toMatchObject({
@@ -70,7 +67,7 @@ describe('admin API routes', () => {
 
   it('admin-events retourne un fallback vide si PostHog serveur est absent', async () => {
     const res = createMockResponse();
-    await eventsHandler(getReq(), res);
+    await adminHandler(getReq('/api/admin-events'), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.configured).toBe(false);
@@ -80,7 +77,7 @@ describe('admin API routes', () => {
 
   it('admin-errors agrège seulement les types techniques', async () => {
     const res = createMockResponse();
-    await errorsHandler(getReq(), res);
+    await adminHandler(getReq('/api/admin-errors'), res);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.errors).toEqual([{ type: 'email_failed', count: 1 }]);
@@ -88,8 +85,8 @@ describe('admin API routes', () => {
   });
 });
 
-function getReq() {
-  return { method: 'GET', headers: { authorization: 'Bearer token' } };
+function getReq(url: string) {
+  return { method: 'GET', url, headers: { authorization: 'Bearer token' } };
 }
 
 function restoreEnv(name: string, value: string | undefined) {
