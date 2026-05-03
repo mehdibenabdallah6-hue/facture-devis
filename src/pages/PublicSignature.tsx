@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import SignatureCanvas from '../components/SignatureCanvas';
 import PhotofactoWordmark from '../components/PhotofactoWordmark';
 import { CheckCircle2, FileText, AlertCircle, ShieldCheck, Building2, PenLine, UserRound } from 'lucide-react';
+import { track } from '../services/analytics';
 
 type SharedQuote = {
   // Original invoice data
@@ -112,6 +113,7 @@ export default function PublicSignature() {
       } : prev);
 
       setSigned(true);
+      track('quote_signed', { source: 'public_signature' });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");

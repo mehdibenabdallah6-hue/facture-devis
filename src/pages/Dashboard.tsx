@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus } from '../components/InvoiceStatusBadge';
 import { UpsellBanner } from '../components/UpsellBanner';
+import { track } from '../services/analytics';
 
 type KpiProps = {
   label: string;
@@ -231,7 +232,12 @@ export default function Dashboard() {
                 key={s.key}
                 id={s.tourId}
                 type="button"
-                onClick={() => navigate(s.to)}
+                onClick={() => {
+                  if (s.key === 'create') {
+                    track('clicked_create_quote', { surface: 'dashboard' });
+                  }
+                  navigate(s.to);
+                }}
                 className={`group flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all text-left ${
                   s.done
                     ? 'bg-tertiary/10 border border-tertiary/20'
@@ -274,7 +280,10 @@ export default function Dashboard() {
           </h1>
         </div>
         <button
-          onClick={() => navigate('/app/invoices/new')}
+          onClick={() => {
+            track('clicked_create_invoice', { surface: 'dashboard' });
+            navigate('/app/invoices/new');
+          }}
           className="btn-glow hidden sm:flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-spark-cta-lg active:scale-95 transition-transform w-fit"
         >
           <Plus className="w-[15px] h-[15px]" strokeWidth={2.5} />
@@ -493,14 +502,20 @@ export default function Dashboard() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => navigate('/app/invoices/new')}
+                onClick={() => {
+                  track('clicked_ai_photo_upload', { surface: 'dashboard', source: 'quickstart' });
+                  navigate('/app/invoices/new');
+                }}
                   className="btn-glow flex items-center justify-center gap-2 bg-primary text-white font-bold px-5 md:px-7 py-3 md:py-3.5 rounded-xl shadow-spark-cta-lg active:scale-95 transition-transform"
               >
                 <Camera className="w-5 h-5" />
                 Importer une photo
               </button>
               <button
-                onClick={() => navigate('/app/invoices/new')}
+                onClick={() => {
+                  track('clicked_create_invoice', { surface: 'dashboard' });
+                  navigate('/app/invoices/new');
+                }}
                   className="flex items-center justify-center gap-2 bg-background border-spark text-on-surface font-bold px-5 md:px-7 py-3 md:py-3.5 rounded-xl active:scale-95 transition-transform"
               >
                 <FileText className="w-5 h-5" />

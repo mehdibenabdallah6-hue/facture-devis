@@ -502,13 +502,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const companyRef = doc(db, 'companies', user.uid);
     const now = new Date().toISOString();
+    const isCreation = !company;
     try {
       await setDoc(companyRef, {
         ...data,
         ownerId: user.uid,
         updatedAt: now,
-        ...(company ? {} : { createdAt: now })
+        ...(isCreation ? { createdAt: now } : {})
       }, { merge: true });
+      if (isCreation) {
+        track('company_created', { source: 'onboarding' });
+      }
     } catch (error) {
       // handleFirestoreError surfaces a toast for the user but historically
       // swallowed the throw — which made the Design page show "Sauvegardé"
@@ -549,6 +553,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         createdAt: now,
         updatedAt: now
       });
+      track('client_created', { source: 'manual' });
       return docRef.id;
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'clients');
@@ -715,13 +720,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Auto-learn articles from this invoice
       syncArticlesFromItems(data.items);
 
-      // Funnel signal — fired client-side. We track creation count, type and
-      // total TTC bucket so PostHog can show conversion-from-first-doc rates.
-      track('invoice_created', {
-        type: data.type || 'invoice',
-        total_ttc: Math.round(data.totalTTC || 0),
+      // Funnel signal — fired client-side with only safe buckets / enums.
+      track(data.type === 'quote' ? 'quote_created' : 'invoice_created', {
+        document_type: data.type || 'invoice',
+        totalTTC: Math.round(data.totalTTC || 0),
         item_count: Array.isArray(data.items) ? data.items.length : 0,
         plan: companyData.plan || 'free',
+        has_catalog: articles.length > 0,
         is_first: (companyData.monthlyInvoiceCount || 0) === 0 && !companyData.lifetimeInvoiceCount,
       });
 
@@ -867,10 +872,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     invoiceId: string,
     draft?: Partial<Invoice>
   ): Promise<{ number: string; alreadyValidated: boolean }> => {
-    return callApi<{ ok: true; number: string; alreadyValidated: boolean }>(
+    const result = await callApi<{ ok: true; number: string; alreadyValidated: boolean }>(
       '/api/invoice-validate',
       { invoiceId, ...(draft ? { draft } : {}) }
     ).then(r => ({ number: r.number, alreadyValidated: r.alreadyValidated }));
+    const existing = invoices.find(inv => inv.id === invoiceId);
+    track('invoice_validated', {
+      document_type: existing?.type || draft?.type || 'invoice',
+      plan: company?.plan || 'free',
+    });
+    return result;
   };
 
   const updateInvoiceLegalMentions = async (id: string, notes: string): Promise<void> => {
@@ -985,6 +996,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data?.error || 'Impossible de créer le lien de signature.');
     }
 
+    track('quote_sent', { source: 'signature_link' });
     return data.shareUrl;
   };
 

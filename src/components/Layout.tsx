@@ -8,6 +8,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { OnboardingTutorial } from './OnboardingTutorial';
 import { motion, AnimatePresence } from 'motion/react';
+import { track } from '../services/analytics';
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -119,7 +120,10 @@ export default function Layout() {
         {/* New doc CTA */}
         <button
           id="tour-new-doc"
-          onClick={() => navigate('/app/invoices/new')}
+          onClick={() => {
+            track('clicked_create_invoice', { surface: 'sidebar' });
+            navigate('/app/invoices/new');
+          }}
           className="btn-glow flex items-center justify-center gap-2 w-full bg-primary text-on-primary font-bold py-2.5 rounded-[10px] text-[13px] shadow-spark-cta mb-2.5 active:scale-[0.98] transition-transform"
         >
           <Plus className="w-[15px] h-[15px]" strokeWidth={2.5} />
@@ -205,7 +209,10 @@ export default function Layout() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               id="tour-new-doc-mobile"
-              onClick={() => navigate('/app/invoices/new')}
+              onClick={() => {
+                track('clicked_create_invoice', { surface: 'mobile_header' });
+                navigate('/app/invoices/new');
+              }}
               className="min-touch flex md:hidden items-center gap-1.5 bg-primary text-on-primary font-bold px-3 py-1.5 rounded-[10px] text-xs shadow-spark-cta active:scale-95 transition-transform"
             >
               <Plus className="w-4 h-4" strokeWidth={2.5} />

@@ -43,6 +43,9 @@ Règle principale : les secrets serveur ne doivent jamais commencer par `VITE_`.
 - `CHORUS_PISTE_SECRET`
 - `USE_CHORUS_SANDBOX`
 - `PENNYLANE_API_KEY`
+- `POSTHOG_PROJECT_ID` optionnel, seulement pour lire des agrégats dans `/admin/events`
+- `POSTHOG_PERSONAL_API_KEY` optionnel, seulement pour lire des agrégats dans `/admin/events`
+- `POSTHOG_HOST` optionnel, par défaut `https://eu.posthog.com`
 
 `NODE_ENV` est fourni par Node/Vercel selon l’environnement d’exécution. Il ne doit généralement pas être configuré manuellement.
 

@@ -56,6 +56,10 @@ export default function Upgrade() {
                 pendingCheckoutRef.current.planId,
                 pendingCheckoutRef.current.billingCycle,
               );
+              track('subscription_started', {
+                plan: pendingCheckoutRef.current.planId,
+                billing_cycle: pendingCheckoutRef.current.billingCycle,
+              });
               navigate('/app/abonnement');
             }
           }
@@ -98,11 +102,9 @@ export default function Upgrade() {
 
     // Funnel signal: free → checkout. Fired before opening so we capture it
     // even if Paddle fails to render (network blocked, ad-blocker, etc.).
-    track('checkout_opened', {
+    track('checkout_started', {
       plan: planId,
-      billing: billingCycle,
-      has_discount: !!activeDiscount,
-      discount_code: activeDiscount?.code,
+      billing_cycle: billingCycle,
     });
 
     paddle.Checkout.open({

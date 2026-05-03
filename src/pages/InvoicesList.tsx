@@ -13,6 +13,7 @@ import { UpsellBanner } from '../components/UpsellBanner';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus, getInvoiceStatusLabel } from '../components/InvoiceStatusBadge';
 import { CreditNoteButton } from '../components/CreditNoteButton';
 import JSZip from 'jszip';
+import { track } from '../services/analytics';
 // jsPDF + jspdf-autotable are heavy (~960KB combined) and only needed when
 // the user clicks "Export ZIP". We import them on demand inside the
 // handler so they're code-split out of the initial bundle.
@@ -217,6 +218,10 @@ export default function InvoicesList() {
 
   const handleEmailReminder = async (invoice: Invoice, e: React.MouseEvent) => {
     e.stopPropagation();
+    track('clicked_send_email', {
+      surface: 'invoices_list',
+      document_type: invoice.type || 'invoice',
+    });
     const client = clients.find(c => c.id === invoice.clientId);
     const email = client?.email || invoice.clientEmail;
     if (!email) {
@@ -248,8 +253,17 @@ export default function InvoicesList() {
       }
       await logInvoiceEvent(invoice.id, 'send', { channel: 'email_reminder', to: email });
       success('Relance envoyée', `Email envoyé à ${email}.`);
+      track('email_sent', {
+        source: 'email_reminder',
+        document_type: invoice.type || 'invoice',
+      });
     } catch (err: any) {
       console.error(err);
+      track('email_failed', {
+        source: 'email_reminder',
+        document_type: invoice.type || 'invoice',
+        error_type: 'send_email_failed',
+      });
       showError('Relance impossible', err?.message || "L'email de relance n'a pas pu être envoyé.");
     } finally {
       setIsSendingReminder(null);
@@ -301,6 +315,11 @@ export default function InvoicesList() {
 
   const handleEmailSignatureLink = async (invoice: Invoice, e: React.MouseEvent) => {
     e.stopPropagation();
+    track('clicked_send_email', {
+      surface: 'invoices_list',
+      document_type: 'quote',
+      source: 'signature_link',
+    });
     const client = clients.find(c => c.id === invoice.clientId);
     const clientEmail = client?.email || invoice.clientEmail || '';
 
