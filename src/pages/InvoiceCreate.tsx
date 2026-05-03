@@ -515,10 +515,23 @@ export default function InvoiceCreate() {
     }
   };
 
-  const isPlaceholderClientName = (value?: string) =>
-    (value || '').trim().toLowerCase() === 'client à compléter';
+  const normalizeClientPlaceholder = (value?: string) =>
+    (value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+
+  const isPlaceholderClientName = (value?: string) => {
+    const normalized = normalizeClientPlaceholder(value);
+    return normalized === 'client' || normalized === 'client a completer';
+  };
 
   const effectiveClientSearch = isPlaceholderClientName(clientSearch) ? '' : clientSearch;
+  const displayedClientValue = isPlaceholderClientName(clientSearch || formData.clientName)
+    ? ''
+    : (clientSearch || formData.clientName || '');
 
   const handleClientFocus = () => {
     if (isPlaceholderClientName(clientSearch || formData.clientName)) {
@@ -545,6 +558,10 @@ export default function InvoiceCreate() {
 
   // Sync clientSearch when formData.clientName changes from external sources (AI extraction)
   useEffect(() => {
+    if (isPlaceholderClientName(formData.clientName)) {
+      if (clientSearch) setClientSearch('');
+      return;
+    }
     if (formData.clientName && !clientSearch) {
       setClientSearch(formData.clientName);
     }
@@ -1137,8 +1154,11 @@ export default function InvoiceCreate() {
         newData.date = extractedData.date;
       }
       if (extractedData.clientName) {
-        newData.clientName = extractedData.clientName;
-        const matchedClient = clients.find(c => c.name.toLowerCase().includes(extractedData.clientName.toLowerCase()));
+        const extractedClientName = String(extractedData.clientName || '').trim();
+        if (!isPlaceholderClientName(extractedClientName)) {
+          newData.clientName = extractedClientName;
+        }
+        const matchedClient = clients.find(c => c.name.toLowerCase().includes(extractedClientName.toLowerCase()));
         if (matchedClient) newData.clientId = matchedClient.id;
       }
       if (extractedData.items && extractedData.items.length > 0) {
@@ -2665,7 +2685,7 @@ export default function InvoiceCreate() {
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    value={clientSearch || formData.clientName || ''}
+                    value={displayedClientValue}
                     onChange={e => handleClientSearchChange(e.target.value)}
                     onFocus={handleClientFocus}
                     placeholder="Rechercher ou saisir un client..."
@@ -2733,7 +2753,7 @@ export default function InvoiceCreate() {
                 </div>
               )}
 
-              {formData.clientName && !formData.clientId && (
+              {formData.clientName && !formData.clientId && !isPlaceholderClientName(formData.clientName) && (
                 <div className="bg-secondary-container/50 text-secondary border border-secondary/20 p-4 rounded-2xl text-sm mt-3 flex flex-col md:flex-row md:items-center gap-4 shadow-sm">
                   <div className="flex items-start gap-3 flex-1">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
