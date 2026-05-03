@@ -18,7 +18,7 @@ export function AdminShell({ title, subtitle, children }: { title: string; subti
             <img src="/icons/icon-192.png" alt="" className="h-10 w-10 rounded-xl object-contain shadow-sm" />
             <div>
               <PhotofactoWordmark className="text-lg" />
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Admin V1 read-only</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Admin V2 read-only</p>
             </div>
           </div>
           <nav className="flex flex-wrap gap-2">

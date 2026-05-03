@@ -28,10 +28,34 @@ export const ADMIN_ALLOWED_EVENTS = [
 const PLAN_VALUES = new Set(['free', 'starter', 'pro']);
 const SUBSCRIPTION_VALUES = new Set(['none', 'inactive', 'active', 'trialing', 'past_due', 'cancelled', 'pending_activation']);
 const STATUS_VALUES = new Set(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'validated', 'accepted', 'converted']);
+const ACTIVATION_VALUES = new Set([
+  'new',
+  'onboarding_started',
+  'company_created',
+  'activated',
+  'power_user',
+  'blocked',
+  'paying',
+]);
 
 export function anonymizeId(value: unknown): string {
   const input = String(value || 'unknown');
   return `usr_${crypto.createHash('sha256').update(input).digest('hex').slice(0, 12)}`;
+}
+
+export function truncateUid(value: unknown): string {
+  const uid = String(value || '');
+  if (!uid) return 'unknown';
+  return uid.length <= 10 ? `${uid.slice(0, 4)}…` : `${uid.slice(0, 6)}…${uid.slice(-4)}`;
+}
+
+export function maskEmail(value: unknown): string {
+  const email = String(value || '').trim().toLowerCase();
+  const match = email.match(/^([^@\s]+)@([^@\s]+\.[^@\s]+)$/);
+  if (!match) return '';
+  const [, local, domain] = match;
+  const first = local[0] || 'u';
+  return `${first}***@${domain}`;
 }
 
 export function safePlan(value: unknown): string {
@@ -47,6 +71,11 @@ export function safeSubscriptionStatus(value: unknown): string {
 export function safeDocumentStatus(value: unknown): string {
   const status = String(value || 'unknown').toLowerCase();
   return STATUS_VALUES.has(status) ? status : 'unknown';
+}
+
+export function safeActivationStatus(value: unknown): string {
+  const status = String(value || 'new').toLowerCase();
+  return ACTIVATION_VALUES.has(status) ? status : 'new';
 }
 
 export function monthBucket(value: unknown): string {
@@ -69,6 +98,11 @@ export function incrementCounter(counter: Record<string, number>, key: string) {
   counter[key] = (counter[key] || 0) + 1;
 }
 
+export function percent(part: number, total: number): number {
+  if (!total || total <= 0) return 0;
+  return Math.round((part / total) * 1000) / 10;
+}
+
 export function safeProfession(value: unknown): string {
   return String(value || 'non_renseigne')
     .toLowerCase()
@@ -83,6 +117,51 @@ export function sanitizeErrorType(value: unknown): string {
     .toLowerCase()
     .replace(/[^a-z0-9_-]/g, '_')
     .slice(0, 60) || 'unknown';
+}
+
+export function sanitizeRoute(value: unknown): string {
+  const raw = String(value || '').trim();
+  if (!raw) return 'unknown';
+  const noQuery = raw.split('?')[0] || '';
+  const apiMatch = noQuery.match(/^\/api\/([a-z0-9_-]+)/i);
+  if (apiMatch) return `/api/${apiMatch[1].toLowerCase()}`;
+  if (/^https?:\/\//i.test(noQuery)) return 'external';
+  if (noQuery.startsWith('/')) {
+    const first = noQuery.split('/').filter(Boolean)[0];
+    return first ? `/${first.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}` : '/';
+  }
+  return sanitizeErrorType(noQuery).slice(0, 40) || 'unknown';
+}
+
+export function classifySeverity(type: unknown): 'critical' | 'warning' | 'info' {
+  const normalized = sanitizeErrorType(type);
+  if (/(paddle|webhook|invoice_validate|credit_note|permission|forbidden|unauthorized|500|server)/.test(normalized)) {
+    return 'critical';
+  }
+  if (/(failed|error|quota|gemini|email|timeout|rate_limit)/.test(normalized)) {
+    return 'warning';
+  }
+  return 'info';
+}
+
+export function isErrorLikeType(type: unknown): boolean {
+  return /(failed|error|quota|invalid|unauthorized|forbidden|permission|timeout|rate_limit)/i.test(String(type || ''));
+}
+
+export function safeIsoDate(value: unknown): string {
+  const date = toDate(value);
+  return date ? date.toISOString() : '';
+}
+
+export function toDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === 'object' && value && typeof (value as any).toDate === 'function') {
+    const converted = (value as any).toDate();
+    return converted instanceof Date && !Number.isNaN(converted.getTime()) ? converted : null;
+  }
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function parseNumber(value: unknown): number {
