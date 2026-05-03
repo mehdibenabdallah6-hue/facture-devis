@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // We call this on every auth-change tick; identifyUser is idempotent
       // and lazy-loads PostHog so this is fire-and-forget.
       if (firebaseUser?.uid) {
-        identifyUser(firebaseUser.uid, firebaseUser.email || undefined);
+        identifyUser(firebaseUser.uid);
       }
     });
 
@@ -60,32 +60,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? new Date(result.user.metadata.lastSignInTime).getTime()
       : 0;
     const isNewUser = Math.abs(creation - lastSignIn) < 5000;
-    track(isNewUser ? 'signup_completed' : 'login_completed', {
-      provider: 'google',
-      uid: result.user.uid,
-    });
+    if (isNewUser) {
+      track('user_signed_up', { provider: 'google' });
+    }
   };
 
   const loginWithEmail = async (email: string, password: string) => {
     await setPersistence(auth, browserLocalPersistence);
-    const result = await signInWithEmailAndPassword(auth, email.trim(), password);
-    track('login_completed', {
-      provider: 'password',
-      uid: result.user.uid,
-    });
+    await signInWithEmailAndPassword(auth, email.trim(), password);
   };
 
   const registerWithEmail = async (email: string, password: string) => {
     await setPersistence(auth, browserLocalPersistence);
-    const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
-    track('signup_completed', {
-      provider: 'password',
-      uid: result.user.uid,
-    });
+    await createUserWithEmailAndPassword(auth, email.trim(), password);
+    track('user_signed_up', { provider: 'password' });
   };
 
   const logout = async () => {
-    track('logout');
     await signOut(auth);
   };
 

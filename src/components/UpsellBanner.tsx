@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Zap, AlertTriangle, ArrowRight } from 'lucide-react';
 import { usePlan } from '../hooks/usePlan';
@@ -12,8 +12,6 @@ import { track } from '../services/analytics';
      - 80 % → urgent, primary-toned, explicit numbers
      - 100 % → hard CTA, only path forward is /upgrade
    Both the invoice quota and the AI quota are surfaced.
-   The banner self-fires a `upsell_banner_shown` analytics event
-   the first time it renders for a given (resource, threshold).
    ────────────────────────────────────────────────────────────── */
 
 type Resource = 'invoice' | 'ai' | 'auto';
@@ -49,6 +47,7 @@ function pickThreshold(ratio: number): 60 | 80 | 100 | null {
 
 export function UpsellBanner({ resource = 'auto', surface, className = '' }: UpsellBannerProps) {
   const plan = usePlan();
+  const quotaReachedKeyRef = useRef<string | null>(null);
 
   const state: BannerState | null = useMemo(() => {
     // Paid users → never show
@@ -107,13 +106,15 @@ export function UpsellBanner({ resource = 'auto', surface, className = '' }: Ups
     resource,
   ]);
 
-  // Fire analytics event once per (surface, resource, threshold) combination
+  // Fire only the product-critical quota event, never a generic impression.
   useEffect(() => {
-    if (!state) return;
-    track('upsell_banner_shown', {
+    if (!state || state.threshold !== 100) return;
+    const key = `${surface}:${state.resource}:${state.used}:${state.limit}`;
+    if (quotaReachedKeyRef.current === key) return;
+    quotaReachedKeyRef.current = key;
+    track('quota_limit_reached', {
       surface,
-      resource: state.resource,
-      threshold: state.threshold,
+      quota_resource: state.resource,
       used: state.used,
       limit: state.limit,
     });
@@ -176,10 +177,11 @@ export function UpsellBanner({ resource = 'auto', surface, className = '' }: Ups
   }
 
   const handleCtaClick = () => {
-    track('upsell_banner_click', {
+    track('clicked_upgrade_plan', {
       surface,
-      resource: state.resource,
-      threshold: state.threshold,
+      quota_resource: state.resource,
+      used: state.used,
+      limit: state.limit,
     });
   };
 

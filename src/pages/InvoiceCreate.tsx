@@ -43,6 +43,7 @@ const loadXlsx = async (): Promise<XLSXModule> => {
 import { extractInvoiceData, extractDataFromText, extractFromDocument } from '../services/ai';
 import { generateFacturXPDF, generateFacturXXML } from '../services/facturx';
 import PDFPreview from '../components/PDFPreview';
+import { track } from '../services/analytics';
 
 /**
  * Returns the most frequently used items from previous invoices for a specific client.
@@ -613,6 +614,13 @@ export default function InvoiceCreate() {
    */
   const tryUseAi = (): boolean => {
     if (checkAiLimit()) return true;
+    track('quota_limit_reached', {
+      surface: 'invoice_create',
+      quota_resource: 'ai',
+      used: aiUsed,
+      limit: limits.monthlyAiUsageLimit,
+      plan: company?.plan || 'free',
+    });
     const cap = limits.monthlyAiUsageLimit;
     if (isFree) {
       setShowUpsellModal(
@@ -789,6 +797,11 @@ export default function InvoiceCreate() {
 
   const processDictation = async (text: string) => {
     try {
+      track('ai_extraction_started', {
+        ai_source: 'dictation',
+        surface: 'invoice_create',
+        has_catalog: articles.length > 0,
+      });
       setStep('analyzing');
       const data = await extractDataFromText(text, getCatalogContext());
       if (data) {
@@ -814,6 +827,12 @@ export default function InvoiceCreate() {
         } else {
           setStep('edit');
         }
+        track('ai_extraction_succeeded', {
+          ai_source: 'dictation',
+          surface: 'invoice_create',
+          line_count: Array.isArray(data.items) ? data.items.length : 0,
+          has_catalog: articles.length > 0,
+        });
       }
     } catch (err: any) {
       console.error(err);
@@ -825,6 +844,11 @@ export default function InvoiceCreate() {
           : "L'IA n'a pas pu traiter votre dictée. Veuillez formuler plus clairement ou saisir manuellement.";
       setError(errorMsg);
       setStep('upload');
+      track('ai_extraction_failed', {
+        ai_source: 'dictation',
+        surface: 'invoice_create',
+        error_type: msg.includes('quota') || msg.includes('limite') ? 'quota' : 'dictation_failed',
+      });
     }
   };
 
@@ -917,6 +941,7 @@ export default function InvoiceCreate() {
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    track('clicked_ai_photo_upload', { surface: 'invoice_create', source: 'photo' });
     setError(null);
     setShowPhotoSourcePicker(false);
 
@@ -975,6 +1000,11 @@ export default function InvoiceCreate() {
 
     setError(null);
     setStep('analyzing');
+    track('ai_extraction_started', {
+      ai_source: 'photo',
+      surface: 'invoice_create',
+      has_catalog: articles.length > 0,
+    });
     try {
       const fullDescription = [
         photoDescription.trim(),
@@ -986,14 +1016,14 @@ export default function InvoiceCreate() {
         getCatalogContext(),
         fullDescription
       );
-      applyExtractedData(extractedData);
+      applyExtractedData(extractedData, 'photo');
       if (extraInstruction.trim()) {
         setPhotoDescription(fullDescription);
         setRegenerateInstruction('');
         setShowRegenerateBox(false);
       }
     } catch (err: any) {
-      handleExtractionError(err);
+      handleExtractionError(err, 'photo');
     }
   };
 
@@ -1026,6 +1056,12 @@ export default function InvoiceCreate() {
     // Set a placeholder preview for documents
     setPreviewUrl(null);
     setStep('analyzing');
+    track('ai_extraction_started', {
+      ai_source: 'document',
+      surface: 'invoice_create',
+      source: isPDF ? 'pdf' : 'spreadsheet',
+      has_catalog: articles.length > 0,
+    });
 
     try {
       if (isPDF) {
@@ -1035,9 +1071,9 @@ export default function InvoiceCreate() {
           const base64Data = (reader.result as string).split(',')[1];
           try {
             const extractedData = await extractFromDocument(base64Data, 'application/pdf', undefined, getCatalogContext());
-            applyExtractedData(extractedData);
+            applyExtractedData(extractedData, 'document');
           } catch (err: any) {
-            handleExtractionError(err);
+            handleExtractionError(err, 'document');
           }
         };
         reader.readAsDataURL(file);
@@ -1074,22 +1110,22 @@ export default function InvoiceCreate() {
             const truncatedText = textContent.slice(0, 10000);
 
             const extractedData = await extractFromDocument(null, file.type, truncatedText, getCatalogContext());
-            applyExtractedData(extractedData);
+            applyExtractedData(extractedData, 'document');
           } catch (err: any) {
-            handleExtractionError(err);
+            handleExtractionError(err, 'document');
           }
         };
         reader.readAsArrayBuffer(file);
       }
     } catch (err: any) {
-      handleExtractionError(err);
+      handleExtractionError(err, 'document');
     }
 
     // Reset input so the same file can be re-uploaded
     if (docInputRef.current) docInputRef.current.value = '';
   };
 
-  const applyExtractedData = (extractedData: any) => {
+  const applyExtractedData = (extractedData: any, aiSource: 'photo' | 'document' = 'document') => {
     // Quota incremented server-side; Firestore listener will refresh aiUsed.
     const extractedItemsCount = Array.isArray(extractedData.items) ? extractedData.items.length : 0;
     setAiSuggestedLineCount(extractedItemsCount);
@@ -1126,6 +1162,12 @@ export default function InvoiceCreate() {
       setStep('edit');
       success('Proposition prête', 'Vérifiez les lignes avant validation.');
     }
+    track('ai_extraction_succeeded', {
+      ai_source: aiSource,
+      surface: 'invoice_create',
+      line_count: extractedItemsCount,
+      has_catalog: articles.length > 0,
+    });
   };
 
   useEffect(() => {
@@ -1134,7 +1176,7 @@ export default function InvoiceCreate() {
     }
   }, [hasPaidAccess, step]);
 
-  const handleExtractionError = (err: any) => {
+  const handleExtractionError = (err: any, aiSource: 'photo' | 'document' | 'dictation' = 'document') => {
     console.error(err);
     const msg = err?.message || String(err);
     let errorMsg = "L'IA n'a pas réussi à lire ce document. Vérifiez le fichier ou saisissez manuellement.";
@@ -1154,6 +1196,20 @@ export default function InvoiceCreate() {
     setError(errorMsg);
     showError('Extraction IA échouée', errorMsg);
     setStep('upload');
+    track('ai_extraction_failed', {
+      ai_source: aiSource,
+      surface: 'invoice_create',
+      error_type: msg.includes('quota') || msg.includes('limite') || msg.includes('429') ? 'quota' : 'extraction_failed',
+    });
+    if (msg.includes('quota') || msg.includes('limite') || msg.includes('429')) {
+      track('quota_limit_reached', {
+        surface: 'invoice_create',
+        quota_resource: 'ai',
+        used: aiUsed,
+        limit: limits.monthlyAiUsageLimit,
+        plan: company?.plan || 'free',
+      });
+    }
   };
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
@@ -1338,6 +1394,10 @@ export default function InvoiceCreate() {
   };
 
   const handleSendEmail = async () => {
+    track('clicked_send_email', {
+      surface: 'invoice_create',
+      document_type: formData.type || 'invoice',
+    });
     const client = clients.find(c => c.id === formData.clientId);
     const email = client?.email || '';
     
@@ -1381,6 +1441,10 @@ export default function InvoiceCreate() {
       }
 
       success('Email envoyé !', 'Le document a été envoyé avec succès au client.');
+      track('email_sent', {
+        source: 'document_email',
+        document_type: formData.type || 'invoice',
+      });
       if (id && currentInvoice?.isLocked) {
         await updateInvoice(id, { status: 'sent' });
         setFormData(prev => ({ ...prev, status: 'sent' }));
@@ -1389,6 +1453,11 @@ export default function InvoiceCreate() {
       }
     } catch (error: any) {
       console.error(error);
+      track('email_failed', {
+        source: 'document_email',
+        document_type: formData.type || 'invoice',
+        error_type: 'send_email_failed',
+      });
       showError('Envoi impossible', error?.message || "L'e-mail n'a pas pu être envoyé.");
     } finally {
       setIsSendingEmail(false);

@@ -19,6 +19,7 @@ import CGV from './pages/CGV';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
 import PublicSignature from './pages/PublicSignature';
+import { AdminRoute } from './components/AdminRoute';
 import { initPostHog, initSentry, identifyUser } from './services/analytics';
 import { lazyWithRetry, clearChunkReloadFlag } from './lib/lazyWithRetry';
 
@@ -45,6 +46,10 @@ const Contact = lazyWithRetry(() => import('./pages/Contact'));
 const Changelog = lazyWithRetry(() => import('./pages/Changelog'));
 const ReferralPage = lazyWithRetry(() => import('./pages/ReferralPage'));
 const AuthPage = lazyWithRetry(() => import('./pages/AuthPage'));
+const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazyWithRetry(() => import('./pages/admin/AdminUsers'));
+const AdminEvents = lazyWithRetry(() => import('./pages/admin/AdminEvents'));
+const AdminErrors = lazyWithRetry(() => import('./pages/admin/AdminErrors'));
 
 // Loading fallback for lazy routes
 const PageLoader = () => (
@@ -64,7 +69,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Identify user in analytics
   useEffect(() => {
     if (user) {
-      identifyUser(user.uid, user.email || undefined);
+      identifyUser(user.uid);
     }
   }, [user]);
   
@@ -132,6 +137,10 @@ export default function App() {
               <Route path="/connexion" element={<Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
               <Route path="/inscription" element={<Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
               <Route path="/sign/:quoteId" element={<PublicSignature />} />
+              <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminRoute>} />
+              <Route path="/admin/events" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminEvents /></Suspense></AdminRoute>} />
+              <Route path="/admin/errors" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminErrors /></Suspense></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
               <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />

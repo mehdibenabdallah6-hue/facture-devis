@@ -11,6 +11,7 @@ import {
   type RawCatalogImportItem,
 } from '../lib/catalogImport';
 import { CatalogImportPreview } from './CatalogImportPreview';
+import { track } from '../services/analytics';
 
 type XLSXModule = typeof import('xlsx');
 let xlsxPromise: Promise<XLSXModule> | null = null;
@@ -113,11 +114,39 @@ export function ImportCatalogModal({ isOpen, articles, onClose, onImport, onSucc
         const parsedItems = await parseSpreadsheet(file, articles);
         setItems(parsedItems);
       } else {
+        track('ai_extraction_started', {
+          surface: 'catalog',
+          ai_source: 'catalog_import',
+          source: selectedOption.key,
+          has_catalog: articles.length > 0,
+        });
         const parsedItems = await analyzeWithAI(file, selectedOption);
         setItems(parsedItems.items);
         setWarnings(parsedItems.warnings);
+        track('ai_extraction_succeeded', {
+          surface: 'catalog',
+          ai_source: 'catalog_import',
+          source: selectedOption.key,
+          line_count: parsedItems.items.length,
+          has_catalog: articles.length > 0,
+        });
       }
     } catch (err: any) {
+      if (selectedOption.key !== 'spreadsheet') {
+        const message = String(err?.message || '');
+        track('ai_extraction_failed', {
+          surface: 'catalog',
+          ai_source: 'catalog_import',
+          source: selectedOption.key,
+          error_type: message.includes('quota') || message.includes('429') ? 'quota' : 'catalog_import_failed',
+        });
+        if (message.includes('quota') || message.includes('429')) {
+          track('quota_limit_reached', {
+            surface: 'catalog',
+            quota_resource: 'ai',
+          });
+        }
+      }
       setError(err.message || 'Impossible d’analyser ce fichier. Réessayez avec un document plus lisible.');
     } finally {
       setIsAnalyzing(false);

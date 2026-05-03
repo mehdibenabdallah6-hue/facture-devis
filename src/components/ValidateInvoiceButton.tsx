@@ -15,6 +15,7 @@ import { useData } from '../contexts/DataContext';
 import type { Invoice } from '../contexts/DataContext';
 import { checkInvoiceCompliance } from '../lib/compliance';
 import { ComplianceChecklist } from './ComplianceChecklist';
+import { track } from '../services/analytics';
 
 /**
  * Build the canonical FR mandatory-mention block that satisfies the
@@ -159,7 +160,13 @@ export function ValidateInvoiceButton({
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          track('clicked_validate_invoice', {
+            surface: 'invoice_create',
+            document_type: invoice.type || 'invoice',
+          });
+          setIsOpen(true);
+        }}
         className={`inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-sm hover:shadow transition disabled:opacity-50 ${className}`}
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

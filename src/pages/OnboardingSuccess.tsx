@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { track } from '../services/analytics';
 
 export default function OnboardingSuccess() {
   const { company } = useData();
@@ -100,7 +101,10 @@ export default function OnboardingSuccess() {
         {/* CTA */}
         <div className="animate-fade-in-up animation-delay-400 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
           <button
-            onClick={() => navigate('/app/invoices/new')}
+            onClick={() => {
+              track('clicked_create_quote', { surface: 'onboarding_success' });
+              navigate('/app/invoices/new');
+            }}
             className="btn-glow w-full bg-primary text-on-primary px-8 py-4 rounded-xl font-bold text-lg hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-spark-cta cursor-pointer"
           >
             Créer mon premier devis
