@@ -2,19 +2,19 @@
   "rewrites": [
     {
       "source": "/api/admin-summary",
-      "destination": "/api/admin?adminResource=summary"
+      "destination": "/api/cron-reminders?adminResource=summary"
     },
     {
       "source": "/api/admin-users",
-      "destination": "/api/admin?adminResource=users"
+      "destination": "/api/cron-reminders?adminResource=users"
     },
     {
       "source": "/api/admin-events",
-      "destination": "/api/admin?adminResource=events"
+      "destination": "/api/cron-reminders?adminResource=events"
     },
     {
       "source": "/api/admin-errors",
-      "destination": "/api/admin?adminResource=errors"
+      "destination": "/api/cron-reminders?adminResource=errors"
     },
     {
       "source": "/((?!api/).*)",

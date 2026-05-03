@@ -10,7 +10,7 @@ vi.mock('../../api/_firebase-admin.js', () => ({
   ensureFirebaseAdmin: vi.fn(),
 }));
 
-import adminHandler from '../../api/admin';
+import adminHandler from '../../api/cron-reminders';
 import { requireAdmin } from '../../api/_lib/adminAuth.js';
 import { ensureFirebaseAdmin } from '../../api/_firebase-admin.js';
 
