@@ -12,7 +12,7 @@ import {
   normalizeCatalogImportItems,
   type ExistingCatalogArticle,
   type RawCatalogImportItem,
-} from '../src/lib/catalogImport.ts';
+} from './_lib/catalogImport.js';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
