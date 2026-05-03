@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { collection, doc, onSnapshot, query, where, setDoc, addDoc, updateDoc, deleteDoc, increment, getDoc } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from './AuthContext';
-import { startOfMonth } from 'date-fns';
 import { AppPlan, AppSubscriptionStatus, BillingCycle } from '../lib/billing';
 import { track } from '../services/analytics';
 import { articleIdFromDescription } from '../lib/catalogImport';
@@ -689,29 +688,41 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!user) throw new Error('Not authenticated');
     const now = new Date().toISOString();
     try {
-      // Check if we need to reset monthly counters
+      // Draft creation stays client-side, but validation/quota/legal counters
+      // are server-only. Do not write monthly counters here: Firestore rules
+      // intentionally block those fields to prevent quota tampering.
       const companyRef = doc(db, 'companies', user.uid);
       const companySnap = await getDoc(companyRef);
       const companyData = companySnap.exists() ? companySnap.data() : {};
-      const currentMonthStart = startOfMonth(new Date()).toISOString();
-      const lastReset = companyData.monthlyResetAt;
 
-      const needsReset = !lastReset || new Date(lastReset).getMonth() !== new Date().getMonth();
+      const {
+        id: _id,
+        ownerId: _ownerId,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        validatedAt: _validatedAt,
+        validatedBy: _validatedBy,
+        legalSequence: _legalSequence,
+        auditHash: _auditHash,
+        creditedBy: _creditedBy,
+        creditedAt: _creditedAt,
+        creditNoteFor: _creditNoteFor,
+        signature: _signature,
+        signedAt: _signedAt,
+        signedByName: _signedByName,
+        signatureProof: _signatureProof,
+        shareUrl: _shareUrl,
+        sharedQuoteId: _sharedQuoteId,
+        isLocked: _isLocked,
+        ...clientCreateData
+      } = data as Partial<Invoice> & Record<string, unknown>;
 
-      if (needsReset) {
-        await setDoc(companyRef, {
-          monthlyInvoiceCount: 1,
-          monthlyAiUsageCount: 0,
-          monthlyResetAt: currentMonthStart,
-        }, { merge: true });
-      } else {
-        await setDoc(companyRef, {
-          monthlyInvoiceCount: increment(1),
-        }, { merge: true });
-      }
+      const createStatus: Invoice['status'] = clientCreateData.status === 'sent' ? 'sent' : 'draft';
 
       const docRef = await addDoc(collection(db, 'invoices'), {
-        ...data,
+        ...clientCreateData,
+        status: createStatus,
+        isLocked: false,
         ownerId: user.uid,
         createdAt: now,
         updatedAt: now
