@@ -28,6 +28,9 @@ export const ALLOWED_ANALYTICS_EVENTS = [
   'clicked_send_email',
   'clicked_validate_invoice',
   'clicked_upgrade_plan',
+  'demo_viewed',
+  'demo_mode_selected',
+  'demo_cta_clicked',
 ] as const;
 
 export type AnalyticsEvent = typeof ALLOWED_ANALYTICS_EVENTS[number];
@@ -45,6 +48,9 @@ const SAFE_STRING_PROPS = new Set([
   'error_type',
   'quota_resource',
   'status',
+  'mode',
+  'page',
+  'cta',
 ]);
 const SAFE_BOOLEAN_PROPS = new Set(['has_catalog', 'is_first', 'used_catalog']);
 const SAFE_BUCKET_PROPS = new Set([
@@ -206,6 +212,7 @@ function isKnownBucket(value: unknown): boolean {
 
 // ─── Sentry ───────────────────────────────────────────────
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
+const IS_PRODUCTION = Boolean(import.meta.env.PROD);
 
 export function initSentry() {
   if (!SENTRY_DSN) return;
@@ -213,8 +220,8 @@ export function initSentry() {
   import('@sentry/react').then((Sentry) => {
     Sentry.init({
       dsn: SENTRY_DSN,
-      environment: import.meta.env.PROD ? 'production' : 'development',
-      tracesSampleRate: import.meta.env.PROD ? 0.5 : 1.0,
+      environment: IS_PRODUCTION ? 'production' : 'development',
+      tracesSampleRate: IS_PRODUCTION ? 0.5 : 1.0,
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,
     });
