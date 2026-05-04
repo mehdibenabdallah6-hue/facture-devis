@@ -391,10 +391,7 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
         {variant === 'generateur-devis-artisan' && (
           <section className="px-4 md:px-14 py-10 md:py-14 bg-background">
             <div className="max-w-[960px] mx-auto bg-white rounded-[24px] border-spark shadow-spark-lg p-5 md:p-8">
-              <MiniDevisDemo
-                examplePlaceholder="Ex : pose carrelage salle de bain 8m² + ragréage + plinthes"
-                helper="Tapez ou dictez votre prestation comme à un collègue."
-              />
+              <MiniDevisDemo page={variant} />
             </div>
           </section>
         )}

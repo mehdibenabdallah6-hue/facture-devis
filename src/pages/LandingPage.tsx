@@ -930,13 +930,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
       <section id="demo" className="py-10 md:py-16 px-4 md:px-14 bg-background">
         <div className="max-w-[960px] mx-auto bg-white rounded-[24px] border-spark shadow-spark-lg p-5 md:p-8">
-          <MiniDevisDemo
-            examplePlaceholder={
-              copy?.example
-                ? `Ex : ${copy.example}`
-                : 'Ex : remplacement robinet cuisine + déplacement + raccordement'
-            }
-          />
+          <MiniDevisDemo page="home" />
         </div>
       </section>
 

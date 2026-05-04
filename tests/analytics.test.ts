@@ -8,6 +8,9 @@ import {
 describe('analytics sanitizer', () => {
   it('n’autorise que les événements V1 explicitement whitelisted', () => {
     expect(isAllowedAnalyticsEvent('invoice_created')).toBe(true);
+    expect(isAllowedAnalyticsEvent('demo_viewed')).toBe(true);
+    expect(isAllowedAnalyticsEvent('demo_mode_selected')).toBe(true);
+    expect(isAllowedAnalyticsEvent('demo_cta_clicked')).toBe(true);
     expect(isAllowedAnalyticsEvent('login_completed')).toBe(false);
     expect(isAllowedAnalyticsEvent('upsell_banner_shown')).toBe(false);
   });
@@ -63,6 +66,25 @@ describe('analytics sanitizer', () => {
       line_count_bucket: '1_2',
       provider: 'password',
       error_type: 'http_500',
+    });
+  });
+
+  it('autorise uniquement les props non sensibles de la mini-démo', () => {
+    const props = sanitizeAnalyticsProps({
+      mode: 'photo',
+      page: 'generateur-devis-artisan',
+      cta: 'create_first_quote',
+      text: 'Chez Mme Dupont, salle de bain privée',
+      prompt: 'dépose lavabo + adresse privée',
+      clientName: 'Mme Dupont',
+      amount: 764.5,
+    });
+
+    expect(props).toEqual({
+      mode: 'photo',
+      page: 'generateur-devis-artisan',
+      cta: 'create_first_quote',
+      total_bucket: '501_2000',
     });
   });
 });
