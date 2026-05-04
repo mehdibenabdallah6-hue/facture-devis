@@ -328,15 +328,6 @@ const trades = [
 
 const catalogSources = ['Excel', 'Carnet papier', 'Ancien devis', 'Photo de notes', 'Notes WhatsApp'];
 
-const catalogRows = [
-  { name: 'Déplacement', unit: 'forfait', price: '45 €', tag: 'forfait clair' },
-  { name: 'Main-d’œuvre', unit: 'heure', price: '55 €', tag: 'prix réutilisable' },
-  { name: 'Remplacement robinet', unit: 'unité', price: '120 €', tag: 'prestation propre' },
-  { name: 'Pose prise électrique', unit: 'unité', price: '85 €', tag: 'catalogue chantier' },
-  { name: 'Peinture mur', unit: 'm²', price: '22 €', tag: 'unité détectée' },
-  { name: 'Fournitures', unit: 'ligne', price: 'à vérifier', tag: 'à compléter' },
-];
-
 const catalogBenefits = [
   {
     t: 'Vous ne repartez plus de zéro',
@@ -745,92 +736,13 @@ export default function LandingPage({ profession }: LandingPageProps) {
             transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
             className="relative"
           >
-            <div className="absolute -inset-6 bg-[radial-gradient(circle_at_30%_20%,rgba(232,98,26,0.14),transparent_38%),radial-gradient(circle_at_80%_80%,rgba(46,52,64,0.10),transparent_34%)] rounded-[32px]" />
-            <div className="relative bg-secondary-dim rounded-[26px] p-4 md:p-5 shadow-spark-lg text-white overflow-hidden">
-              <div className="flex items-center justify-between gap-3 mb-5">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
-                    Espace commercial
-                  </div>
-                  <div className="font-headline font-extrabold text-2xl">Catalogue chantier</div>
-                </div>
-                <div className="w-11 h-11 rounded-2xl bg-primary/20 text-primary flex items-center justify-center">
-                  <Package className="w-6 h-6" />
-                </div>
-              </div>
-
-              <div className="grid lg:grid-cols-[0.86fr_0.72fr_1.15fr] gap-3">
-                <div className="rounded-2xl bg-white/8 border border-white/10 p-4">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-white/45 mb-3">
-                    Ancien bazar
-                  </div>
-                  {catalogSources.slice(0, 4).map((source, index) => (
-                    <div key={source} className="flex items-center gap-2 py-2 text-sm text-white/75">
-                      <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {index + 1}
-                      </span>
-                      {source}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-2xl bg-primary/[0.14] border border-primary/30 p-4 flex flex-col justify-center">
-                  <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center mb-3 shadow-spark-cta">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-3">
-                    Analyse Photofacto
-                  </div>
-                  {['Extraction des prestations', 'Prix détectés', 'Unités proposées', 'À vérifier avant import'].map(item => (
-                    <div key={item} className="flex items-center gap-2 py-1.5 text-xs font-semibold text-white/75">
-                      <Check className="w-3.5 h-3.5 text-primary" strokeWidth={3} />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-2xl bg-white text-on-surface p-3 shadow-spark-md">
-                  <div className="flex items-center justify-between px-2 py-2 mb-1">
-                    <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
-                        Catalogue propre
-                      </div>
-                      <div className="font-headline font-bold text-secondary-dim">Prêtes à réutiliser</div>
-                    </div>
-                    <Sparkles className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="grid gap-2">
-                    {catalogRows.map(row => (
-                      <div
-                        key={row.name}
-                        className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-background border border-outline-variant/35 px-3 py-2.5"
-                      >
-                        <div>
-                          <div className="text-sm font-bold text-secondary-dim">{row.name}</div>
-                          <div className="text-[11px] text-on-surface-variant">{row.unit} · {row.tag}</div>
-                        </div>
-                        <div className="text-sm font-extrabold text-primary self-center">{row.price}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl bg-primary/[0.14] border border-primary/25 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex-1">
-                  <div className="text-sm font-bold text-white">Résultat : des devis plus rapides et mieux rangés.</div>
-                  <div className="text-xs text-white/55 mt-1">
-                    Chaque prestation validée peut servir de base au prochain chantier.
-                  </div>
-                </div>
-                <button
-                  onClick={goRegister}
-                  className="min-touch inline-flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-spark-cta hover:-translate-y-0.5 hover:shadow-spark-cta-lg active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  Créer mon catalogue
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            <div className="relative mx-auto w-full max-w-[680px] rounded-[28px] border border-outline-variant/10 bg-white p-2.5 shadow-spark-lg md:p-3">
+              <img
+                src="/catalogue-intelligent-visual.png"
+                alt="Schéma du catalogue intelligent Photofacto : sources existantes, organisation par Photofacto puis catalogue réutilisable"
+                loading="lazy"
+                className="block h-auto w-full rounded-[22px] object-contain"
+              />
             </div>
           </motion.div>
         </div>
