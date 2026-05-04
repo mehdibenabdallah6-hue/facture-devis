@@ -561,7 +561,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
               scale: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
               y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
             }}
-            className="relative w-full max-w-[460px] md:max-w-none mx-auto md:mx-0"
+            className="relative w-full max-w-[500px] md:max-w-[660px] lg:max-w-[720px] mx-auto md:mx-0 md:scale-[1.04] lg:scale-[1.08] transition-transform duration-300"
           >
             <div className="absolute -inset-6 -z-10 bg-[radial-gradient(circle_at_30%_20%,rgba(232,98,26,0.16),transparent_42%),radial-gradient(circle_at_75%_75%,rgba(46,52,64,0.10),transparent_38%)] rounded-[36px]" />
             <img
@@ -736,7 +736,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
             transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
             className="relative"
           >
-            <div className="relative mx-auto w-full max-w-[680px] rounded-[28px] border border-outline-variant/10 bg-white p-2.5 shadow-spark-lg md:p-3">
+            <div className="relative mx-auto w-full max-w-[760px] rounded-[28px] border border-outline-variant/10 bg-white p-2.5 shadow-spark-lg md:p-3">
               <img
                 src="/catalogue-intelligent-visual.png"
                 alt="Schéma du catalogue intelligent Photofacto : sources existantes, organisation par Photofacto puis catalogue réutilisable"

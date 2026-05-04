@@ -13,10 +13,10 @@ export default function VerifyEmail() {
   const [message, setMessage] = useState("Nous avons envoyé un email de vérification. Cliquez sur le lien reçu pour continuer.");
   const [error, setError] = useState('');
   const [resendAvailableAt, setResendAvailableAt] = useState(() => Date.now() + RESEND_COOLDOWN_SECONDS * 1000);
-  const [, setNowTick] = useState(Date.now());
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNowTick(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -27,8 +27,8 @@ export default function VerifyEmail() {
   }, [loading, navigate, user]);
 
   const cooldown = useMemo(
-    () => Math.max(0, Math.ceil((resendAvailableAt - Date.now()) / 1000)),
-    [resendAvailableAt],
+    () => Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)),
+    [now, resendAvailableAt],
   );
 
   if (loading) {

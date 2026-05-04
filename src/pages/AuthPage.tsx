@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { requiresEmailVerification } from '../lib/authVerification';
 
@@ -84,33 +84,9 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-[#fbf7f2] text-on-surface flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-[1040px] grid lg:grid-cols-[1fr_440px] gap-6 items-stretch">
-        <section className="hidden lg:flex rounded-[2rem] bg-[#25221f] text-white p-10 flex-col justify-between overflow-hidden relative">
-          <div className="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-primary/30 blur-3xl" />
-          <div>
-            <Link to="/" className="inline-flex items-center gap-3 font-headline font-black tracking-tight text-2xl">
-              PHOTO<span className="text-primary">FACTO</span>
-            </Link>
-            <p className="mt-8 text-4xl font-headline font-black leading-tight max-w-md">
-              Vos factures artisan, prêtes plus vite et mieux rangées.
-            </p>
-            <p className="mt-5 text-white/70 text-lg leading-relaxed max-w-md">
-              Créez, envoyez et suivez vos documents depuis le chantier, sans perdre la session à chaque fermeture.
-            </p>
-          </div>
-          <div className="rounded-3xl bg-white/10 border border-white/10 p-5 backdrop-blur">
-            <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest">
-              <Sparkles className="w-4 h-4" />
-              Session mémorisée
-            </div>
-            <p className="mt-2 text-sm text-white/70">
-              Sur votre ordinateur ou téléphone, Photofacto vous garde connecté tant que vous ne vous déconnectez pas.
-            </p>
-          </div>
-        </section>
-
+      <div className="w-full max-w-[460px]">
         <main className="bg-white rounded-[2rem] shadow-2xl shadow-black/10 border border-black/5 p-6 sm:p-8">
-          <Link to="/" className="lg:hidden inline-flex items-center gap-2 font-headline font-black text-xl mb-6">
+          <Link to="/" className="inline-flex items-center gap-2 font-headline font-black text-xl mb-6">
             PHOTO<span className="text-primary">FACTO</span>
           </Link>
           <div className="mb-7">
