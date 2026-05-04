@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { requiresEmailVerification } from '../lib/authVerification';
 
 function getAuthMessage(code?: string) {
   switch (code) {
@@ -33,7 +34,8 @@ export default function AuthPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user) navigate('/app', { replace: true });
+    if (!user) return;
+    navigate(requiresEmailVerification(user) ? '/verify-email' : '/app', { replace: true });
   }, [navigate, user]);
 
   const title = mode === 'register' ? 'Créer votre compte' : 'Se connecter';
@@ -43,7 +45,7 @@ export default function AuthPage() {
   const helper = useMemo(
     () =>
       mode === 'register'
-        ? 'Email, mot de passe, puis vous restez connecté sur cet appareil.'
+        ? 'Email, mot de passe, puis vérification de votre adresse avant accès à l’app.'
         : 'Connectez-vous avec votre email ou Google. La session est mémorisée.',
     [mode]
   );
@@ -55,10 +57,11 @@ export default function AuthPage() {
     try {
       if (mode === 'register') {
         await registerWithEmail(email, password);
+        navigate('/verify-email', { replace: true });
       } else {
-        await loginWithEmail(email, password);
+        const signedInUser = await loginWithEmail(email, password);
+        navigate(requiresEmailVerification(signedInUser) ? '/verify-email' : '/app', { replace: true });
       }
-      navigate('/app', { replace: true });
     } catch (err: any) {
       setError(getAuthMessage(err?.code));
     } finally {

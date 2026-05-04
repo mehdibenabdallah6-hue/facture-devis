@@ -21,12 +21,23 @@ export async function verifyAuth(req: any): Promise<{ uid: string; email?: strin
     throw err;
   }
   const { auth } = ensureFirebaseAdmin();
+  let decoded: any;
   try {
-    const decoded = await auth.verifyIdToken(token);
-    return { uid: decoded.uid, email: decoded.email };
+    decoded = await auth.verifyIdToken(token);
   } catch (e: any) {
     const err = new Error('Invalid or expired ID token');
     (err as any).status = 401;
+    throw err;
+  }
+  assertVerifiedPasswordAccount(decoded);
+  return { uid: decoded.uid, email: decoded.email };
+}
+
+function assertVerifiedPasswordAccount(decoded: any) {
+  const provider = decoded?.firebase?.sign_in_provider;
+  if (provider === 'password' && decoded?.email && decoded?.email_verified !== true) {
+    const err = new Error('Email non vérifié. Vérifiez votre adresse email pour continuer.');
+    (err as any).status = 403;
     throw err;
   }
 }

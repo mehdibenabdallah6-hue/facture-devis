@@ -8,17 +8,21 @@ import {
   browserLocalPersistence,
   setPersistence,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  sendEmailVerification
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { track, identifyUser } from '../services/analytics';
+import { requiresEmailVerification } from '../lib/authVerification';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: () => Promise<void>;
-  loginWithEmail: (email: string, password: string) => Promise<void>;
-  registerWithEmail: (email: string, password: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<User>;
+  registerWithEmail: (email: string, password: string) => Promise<User>;
+  resendVerificationEmail: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
 }
 
@@ -29,6 +33,7 @@ const provider = new GoogleAuthProvider();
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [, setAuthRefreshTick] = useState(0);
 
   useEffect(() => {
     setPersistence(auth, browserLocalPersistence).catch(console.error);
@@ -67,13 +72,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmail = async (email: string, password: string) => {
     await setPersistence(auth, browserLocalPersistence);
-    await signInWithEmailAndPassword(auth, email.trim(), password);
+    const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+    return result.user;
   };
 
   const registerWithEmail = async (email: string, password: string) => {
     await setPersistence(auth, browserLocalPersistence);
-    await createUserWithEmailAndPassword(auth, email.trim(), password);
+    const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    await sendEmailVerification(result.user);
     track('user_signed_up', { provider: 'password' });
+    return result.user;
+  };
+
+  const resendVerificationEmail = async () => {
+    const current = auth.currentUser;
+    if (!current) throw new Error('Session expirée. Reconnectez-vous.');
+    if (!requiresEmailVerification(current)) return;
+    await sendEmailVerification(current);
+  };
+
+  const refreshUser = async () => {
+    const current = auth.currentUser;
+    if (!current) return null;
+    await current.reload();
+    await current.getIdToken(true).catch(() => undefined);
+    setUser(auth.currentUser);
+    setAuthRefreshTick(tick => tick + 1);
+    return auth.currentUser;
   };
 
   const logout = async () => {
@@ -81,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, resendVerificationEmail, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

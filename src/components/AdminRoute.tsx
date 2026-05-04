@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { requiresEmailVerification } from '../lib/authVerification';
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -43,6 +44,10 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/connexion" replace />;
+  }
+
+  if (requiresEmailVerification(user)) {
+    return <Navigate to="/verify-email" replace />;
   }
 
   if (!isAdmin) {

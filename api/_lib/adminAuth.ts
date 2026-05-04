@@ -26,6 +26,10 @@ export async function requireAdmin(req: any): Promise<AdminUser> {
   if (decoded?.admin !== true) {
     throw httpError(403, 'Accès admin requis');
   }
+  const provider = decoded?.firebase?.sign_in_provider;
+  if (provider === 'password' && decoded?.email && decoded?.email_verified !== true) {
+    throw httpError(403, 'Email non vérifié. Vérifiez votre adresse email pour continuer.');
+  }
 
   return { uid: decoded.uid };
 }

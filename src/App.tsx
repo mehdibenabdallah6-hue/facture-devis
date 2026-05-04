@@ -19,9 +19,11 @@ import CGV from './pages/CGV';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import NotFound from './pages/NotFound';
 import PublicSignature from './pages/PublicSignature';
+import VerifyEmail from './pages/VerifyEmail';
 import { AdminRoute } from './components/AdminRoute';
 import { initPostHog, initSentry, identifyUser } from './services/analytics';
 import { lazyWithRetry, clearChunkReloadFlag } from './lib/lazyWithRetry';
+import { requiresEmailVerification } from './lib/authVerification';
 
 // Initialize analytics (no-op if env vars not set)
 initPostHog();
@@ -81,6 +83,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/" replace />;
   }
 
+  if (requiresEmailVerification(user)) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
   // Check if onboarding is needed
   const needsOnboarding = !company || !company.profession || !company.name || company.name === 'Mon Entreprise';
   const isOnboardingRoute = location.pathname === '/app/onboarding' || location.pathname === '/app/onboarding-success';
@@ -136,6 +142,7 @@ export default function App() {
               <Route path="/nouveautes" element={<Changelog />} />
               <Route path="/connexion" element={<Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
               <Route path="/inscription" element={<Suspense fallback={<PageLoader />}><AuthPage /></Suspense>} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/sign/:quoteId" element={<PublicSignature />} />
               <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense></AdminRoute>} />
               <Route path="/admin/users" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminUsers /></Suspense></AdminRoute>} />

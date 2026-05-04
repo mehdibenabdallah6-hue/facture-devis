@@ -31,6 +31,22 @@ describe('api/_lib/adminAuth', () => {
 
     await expect(requireAdmin(req())).resolves.toEqual({ uid: 'admin_1' });
   });
+
+  it('retourne 403 si admin password non vérifié', async () => {
+    vi.mocked(ensureFirebaseAdmin).mockReturnValue({
+      auth: {
+        verifyIdToken: vi.fn().mockResolvedValue({
+          uid: 'admin_1',
+          admin: true,
+          email: 'admin@example.fr',
+          email_verified: false,
+          firebase: { sign_in_provider: 'password' },
+        }),
+      },
+    } as any);
+
+    await expect(requireAdmin(req())).rejects.toMatchObject({ status: 403 });
+  });
 });
 
 function req() {

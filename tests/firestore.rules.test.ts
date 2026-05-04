@@ -33,6 +33,27 @@ function invoice(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function verifiedDb(uid: string) {
+  return testEnv.authenticatedContext(uid, {
+    email_verified: true,
+    firebase: { sign_in_provider: 'password' },
+  }).firestore();
+}
+
+function unverifiedPasswordDb(uid: string) {
+  return testEnv.authenticatedContext(uid, {
+    email_verified: false,
+    firebase: { sign_in_provider: 'password' },
+  }).firestore();
+}
+
+function googleDb(uid: string) {
+  return testEnv.authenticatedContext(uid, {
+    email_verified: false,
+    firebase: { sign_in_provider: 'google.com' },
+  }).firestore();
+}
+
 rulesDescribe('firestore.rules', () => {
   beforeAll(async () => {
     testEnv = await initializeTestEnvironment({
@@ -51,9 +72,33 @@ rulesDescribe('firestore.rules', () => {
     await testEnv.cleanup();
   });
 
+  it('bloque un compte email/password non vérifié', async () => {
+    const aliceDb = unverifiedPasswordDb(alice);
+
+    await assertFails(setDoc(doc(aliceDb, 'companies', alice), {
+      ownerId: alice,
+      name: 'Toiture Alice',
+      address: '12 rue des Lilas, 75013 Paris',
+      siret: '12345678900011',
+      vatRegime: 'franchise',
+    }));
+  });
+
+  it('autorise Google même si le claim email_verified est absent ou faux', async () => {
+    const aliceDb = googleDb(alice);
+
+    await assertSucceeds(setDoc(doc(aliceDb, 'companies', alice), {
+      ownerId: alice,
+      name: 'Toiture Alice',
+      address: '12 rue des Lilas, 75013 Paris',
+      siret: '12345678900011',
+      vatRegime: 'franchise',
+    }));
+  });
+
   it('isole les entreprises par ownerId', async () => {
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
-    const bobDb = testEnv.authenticatedContext(bob).firestore();
+    const aliceDb = verifiedDb(alice);
+    const bobDb = verifiedDb(bob);
 
     await assertSucceeds(setDoc(doc(aliceDb, 'companies', alice), {
       ownerId: alice,
@@ -71,7 +116,7 @@ rulesDescribe('firestore.rules', () => {
   });
 
   it('refuse les écritures client sur les compteurs légaux', async () => {
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertFails(setDoc(doc(aliceDb, 'companies', alice, 'counters', 'invoice-2026'), {
       next: 12,
@@ -79,7 +124,7 @@ rulesDescribe('firestore.rules', () => {
   });
 
   it('empêche un utilisateur de se donner un plan payant', async () => {
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertSucceeds(setDoc(doc(aliceDb, 'companies', alice), {
       ownerId: alice,
@@ -103,7 +148,7 @@ rulesDescribe('firestore.rules', () => {
       });
     });
 
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
       monthlyAiUsageCount: 0,
@@ -114,7 +159,7 @@ rulesDescribe('firestore.rules', () => {
   });
 
   it('empêche de créer directement une facture verrouillée', async () => {
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertFails(setDoc(doc(aliceDb, 'invoices', 'invoice-locked'), invoice({ isLocked: true })));
     await assertFails(setDoc(doc(aliceDb, 'invoices', 'invoice-validated'), invoice({
@@ -133,7 +178,7 @@ rulesDescribe('firestore.rules', () => {
       }));
     });
 
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertSucceeds(updateDoc(doc(aliceDb, 'invoices', 'invoice-1'), {
       status: 'paid',
@@ -159,7 +204,7 @@ rulesDescribe('firestore.rules', () => {
       }));
     });
 
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertFails(deleteDoc(doc(aliceDb, 'invoices', 'invoice-2')));
   });
@@ -169,7 +214,7 @@ rulesDescribe('firestore.rules', () => {
       await setDoc(doc(ctx.firestore(), 'invoices', 'private-invoice'), invoice());
     });
 
-    const bobDb = testEnv.authenticatedContext(bob).firestore();
+    const bobDb = verifiedDb(bob);
 
     await assertFails(getDoc(doc(bobDb, 'invoices', 'private-invoice')));
   });
@@ -185,7 +230,7 @@ rulesDescribe('firestore.rules', () => {
     });
 
     const publicDb = testEnv.unauthenticatedContext().firestore();
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertFails(getDoc(doc(publicDb, 'sharedQuotes', 'share-1')));
     await assertFails(setDoc(doc(publicDb, 'sharedQuotes', 'share-2'), {
@@ -210,7 +255,7 @@ rulesDescribe('firestore.rules', () => {
     });
 
     const publicDb = testEnv.unauthenticatedContext().firestore();
-    const aliceDb = testEnv.authenticatedContext(alice).firestore();
+    const aliceDb = verifiedDb(alice);
 
     await assertFails(getDoc(doc(publicDb, 'paddleEvents', 'evt_1')));
     await assertFails(getDoc(doc(aliceDb, 'paddleEvents', 'evt_1')));

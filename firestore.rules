@@ -28,7 +28,11 @@ service cloud.firestore {
     // Helpers
     // ===============================================================
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null &&
+             (
+               request.auth.token.email_verified == true ||
+               request.auth.token.firebase.sign_in_provider == 'google.com'
+             );
     }
 
     function isOwner(ownerId) {

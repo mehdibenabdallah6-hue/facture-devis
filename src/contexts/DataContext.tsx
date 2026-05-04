@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { AppPlan, AppSubscriptionStatus, BillingCycle } from '../lib/billing';
 import { track } from '../services/analytics';
 import { articleIdFromDescription } from '../lib/catalogImport';
+import { requiresEmailVerification } from '../lib/authVerification';
 
 // Referral tracking + discount rewards — called after user completes onboarding
 // Rewards: both referrer & referred get -50% on monthly plan or -15% on annual plan
@@ -376,7 +377,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || requiresEmailVerification(user)) {
       setCompany(null);
       setClients([]);
       setInvoices([]);
@@ -471,7 +472,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // We re-fetch the token each call so it cannot go stale (Firebase rotates them
   // every ~1h). Throws an Error with .status set when the server returns non-2xx.
   const callApi = async <T = any>(path: string, body: any): Promise<T> => {
-    if (!user) throw new Error('Non authentifié');
+    if (!user || requiresEmailVerification(user)) throw new Error('Email non vérifié');
     const current = auth.currentUser;
     if (!current) throw new Error('Session expirée. Veuillez vous reconnecter.');
     const token = await current.getIdToken();
