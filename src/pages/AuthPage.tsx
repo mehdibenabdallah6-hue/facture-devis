@@ -167,6 +167,12 @@ export default function AuthPage() {
             disabled={isSubmitting}
             className="w-full min-touch inline-flex items-center justify-center gap-3 rounded-2xl border border-outline-variant/20 bg-white px-5 py-4 font-black text-on-surface hover:bg-surface-container-low active:scale-[0.98] transition disabled:opacity-60"
           >
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M21.6 12.23c0-.78-.07-1.53-.2-2.23H12v4.22h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.52z" />
+              <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.62-2.44l-3.24-2.51c-.9.6-2.05.95-3.38.95-2.6 0-4.8-1.76-5.59-4.12H3.06v2.59A10 10 0 0 0 12 22z" />
+              <path fill="#FBBC05" d="M6.41 13.88A6 6 0 0 1 6.1 12c0-.65.11-1.28.31-1.88V7.53H3.06A10 10 0 0 0 2 12c0 1.61.39 3.14 1.06 4.47l3.35-2.59z" />
+              <path fill="#EA4335" d="M12 6c1.47 0 2.8.51 3.84 1.51l2.88-2.88A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.94 5.53l3.35 2.59C7.2 7.76 9.4 6 12 6z" />
+            </svg>
             Continuer avec Google
           </button>
 
