@@ -22,17 +22,48 @@ export default function Upgrade() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const pendingCheckoutRef = useRef<{ planId: 'starter' | 'pro'; billingCycle: BillingCycle } | null>(null);
 
-  // Calculate discounted prices
-  const getDiscountedPrice = (basePrice: number): number => {
-    if (!activeDiscount) return basePrice;
-    if (activeDiscount.type === '50_monthly_or_15_annual') {
-      return billingCycle === 'monthly' ? basePrice * 0.5 : basePrice * 0.85;
-    }
+  // The annual half of the referral promotion (-15% annual) lives in a
+  // separate Paddle discount because a single Paddle discount code cannot
+  // carry two different percentages. If the env var is empty, we degrade
+  // gracefully: the annual banner copy is hidden AND we never send a code
+  // to Paddle for that cycle. This keeps the displayed price identical to
+  // what's actually charged in checkout.
+  const referralAnnualCode = import.meta.env.VITE_PADDLE_REFERRAL_ANNUAL_CODE as string | undefined;
+
+  // Resolve the Paddle discount code that will actually be applied for the
+  // given (discount, cycle) pair. Returns null when no discount is
+  // applicable — in which case the displayed price must equal the base
+  // price too.
+  const getApplicableDiscount = (
+    cycle: BillingCycle,
+  ): { code: string; percent: number } | null => {
+    if (!activeDiscount) return null;
     if (activeDiscount.type === '20_annual') {
-      return billingCycle === 'annual' ? basePrice * 0.8 : basePrice;
+      // BIENVENUE applies on annual only.
+      if (cycle !== 'annual') return null;
+      return { code: 'BIENVENUE', percent: 20 };
     }
-    return basePrice;
+    if (activeDiscount.type === '50_monthly_or_15_annual') {
+      // Referral: monthly uses the stored code (typically PARRAIN50),
+      // annual requires a separate env-configured code (e.g. PARRAIN15).
+      if (cycle === 'monthly') {
+        return { code: activeDiscount.code, percent: 50 };
+      }
+      if (referralAnnualCode) {
+        return { code: referralAnnualCode, percent: 15 };
+      }
+      return null;
+    }
+    return null;
   };
+
+  const getDiscountedPrice = (basePrice: number): number => {
+    const applicable = getApplicableDiscount(billingCycle);
+    if (!applicable) return basePrice;
+    return basePrice * (1 - applicable.percent / 100);
+  };
+
+  const hasDiscountForCurrentCycle = getApplicableDiscount(billingCycle) !== null;
 
   // Initialise Paddle on demand (first click). Cached in paddleRef so a
   // second click within the same session reuses the existing instance.
@@ -107,13 +138,17 @@ export default function Upgrade() {
       billing_cycle: billingCycle,
     });
 
+    const applicable = getApplicableDiscount(billingCycle);
+
     paddle.Checkout.open({
       items: [{ priceId, quantity: 1 }],
       customer: { email: user?.email || '' },
+      ...(applicable ? { discountCode: applicable.code } : {}),
       customData: {
         userId: user?.uid || '',
         planId: planId,
         billingCycle: billingCycle,
+        ...(applicable ? { appliedDiscountCode: applicable.code } : {}),
       },
     });
 
@@ -129,7 +164,7 @@ export default function Upgrade() {
     return (
       <div className="flex flex-col items-center mb-6">
         <div className="flex items-baseline gap-1">
-          {activeDiscount && (
+          {hasDiscountForCurrentCycle && (
              <span className="text-lg line-through font-headline mr-2 text-on-surface-variant/40">
                {formatEuroPrice(basePrice / (billingCycle === 'annual' ? 12 : 1))}
              </span>
@@ -175,7 +210,9 @@ export default function Upgrade() {
             <Gift className="w-5 h-5 text-tertiary shrink-0" />
             <span className="font-bold text-tertiary">
               {activeDiscount.source === 'referral'
-                ? '🎉 Parrainage actif : -50% mensuel ou -15% annuel'
+                ? referralAnnualCode
+                  ? '🎉 Parrainage actif : -50% mensuel ou -15% annuel'
+                  : '🎉 Parrainage actif : -50% sur l’abonnement mensuel'
                 : `⏰ Offre bienvenue : -20% sur le plan annuel (expire dans ${Math.max(0, Math.round((new Date(company?.welcomeDiscountExpiry || '').getTime() - Date.now()) / (1000 * 60 * 60)))}h)`}
             </span>
           </div>
