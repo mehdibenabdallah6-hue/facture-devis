@@ -2,6 +2,15 @@ import React from 'react';
 import { Invoice, CompanySettings } from '../contexts/DataContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import {
+  getDocumentDateLabel,
+  getDocumentDueDateLabel,
+  getDocumentNumberLabel,
+  getDocumentTitle,
+  getDocumentTotalLabel,
+  shouldShowDueDate,
+  shouldShowPaymentDetails,
+} from '../lib/documentLabels';
 
 interface PDFPreviewProps {
   formData: Partial<Invoice>;
@@ -30,7 +39,10 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
   const totalTTC = totalHT + totalVAT;
   const template = getTemplate(company);
   const accentColor = getAccent(company);
-  const title = formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'FACTURE D’ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE';
+  const title = getDocumentTitle(formData.type, true);
+  const numberLabel = getDocumentNumberLabel(formData.type);
+  const dateLabel = getDocumentDateLabel(formData.type);
+  const dueDateLabel = getDocumentDueDateLabel(formData.type);
   const signedDate = formData.signedAt
     ? format(new Date(formData.signedAt), 'dd MMM yyyy', { locale: fr })
     : null;
@@ -72,15 +84,34 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
                 <div className="text-lg font-black leading-none" style={{ color: template === 'classique' ? '#111827' : accentColor }}>
                   {title}
                 </div>
-                <div className="text-[10px] font-bold text-gray-600 mt-1">{formData.number || 'N° en attente'}</div>
-                {formData.date && <div className="text-[9px] text-gray-500 mt-0.5">{format(new Date(formData.date), 'dd MMM yyyy', { locale: fr })}</div>}
+                <div className="text-[10px] font-bold text-gray-600 mt-1">
+                  {numberLabel} : {formData.number || 'en attente'}
+                </div>
+                {formData.date && (
+                  <div className="text-[9px] text-gray-500 mt-0.5">
+                    {dateLabel} : {format(new Date(formData.date), 'dd MMM yyyy', { locale: fr })}
+                  </div>
+                )}
+                {shouldShowDueDate(formData.type) && dueDateLabel && formData.dueDate && (
+                  <div className="text-[9px] text-gray-500 mt-0.5">
+                    {dueDateLabel} : {format(new Date(formData.dueDate), 'dd MMM yyyy', { locale: fr })}
+                  </div>
+                )}
               </div>
             </header>
 
             <section className={`shrink-0 rounded-lg p-2 mb-3 ${template === 'classique' ? 'border border-gray-300' : 'bg-gray-50'}`}>
-              <div className="text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">Facturé à</div>
+              <div className="text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">
+                {formData.type === 'quote' ? 'Client' : formData.type === 'credit' ? 'Client crédité' : 'Facturé à'}
+              </div>
               <div className="font-bold text-gray-950 text-xs truncate">{formData.clientName || '—'}</div>
             </section>
+
+            {formData.type === 'credit' && formData.linkedInvoiceNumber && (
+              <div className="shrink-0 mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[9px] font-bold text-amber-900">
+                Avoir lié à la facture {formData.linkedInvoiceNumber}
+              </div>
+            )}
 
             {visibleItems.length > 0 ? (
               <table className="w-full table-fixed text-[10px] shrink-0">
@@ -114,8 +145,11 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
                 <div className="flex justify-between py-0.5 text-[10px] text-gray-600"><span>Total HT</span><span>{formatCurrency(totalHT)}</span></div>
                 {formData.vatRegime === 'standard' && totalVAT > 0 && <div className="flex justify-between py-0.5 text-[10px] text-gray-600"><span>TVA</span><span>{formatCurrency(totalVAT)}</span></div>}
                 <div className="flex justify-between py-1 text-xs font-black border-t border-gray-300 mt-1" style={{ color: template === 'classique' ? '#111827' : accentColor }}>
-                  <span>Total TTC</span><span>{formatCurrency(totalTTC)}</span>
+                  <span>{getDocumentTotalLabel(formData.type)}</span><span>{formatCurrency(totalTTC)}</span>
                 </div>
+                {shouldShowPaymentDetails(formData.type) && formData.paymentMethod && (
+                  <div className="pt-1 text-[9px] text-gray-500 text-right">Paiement : {formData.paymentMethod}</div>
+                )}
               </div>
             </div>
 
@@ -125,9 +159,10 @@ export default function PDFPreview({ formData, company }: PDFPreviewProps) {
               </footer>
             )}
 
-            {formData.signature && formData.signedByName && signedDate && (
+            {formData.type === 'quote' && formData.signature && formData.signedByName && signedDate && (
               <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[9px] text-emerald-900 shrink-0">
-                <div className="font-black uppercase tracking-wider">Devis signé</div>
+                <div className="font-black uppercase tracking-wider">Acceptation du devis</div>
+                <div>Bon pour accord</div>
                 <div>Signé par {formData.signedByName} le {signedDate}</div>
                 <img src={formData.signature} alt="Signature" className="mt-1 h-8 max-w-[120px] object-contain opacity-80" />
               </div>

@@ -12,6 +12,15 @@ import PaddlePaywall from '../components/PaddlePaywall';
 import LegalInfoModal from '../components/LegalInfoModal';
 import { UpsellBanner } from '../components/UpsellBanner';
 import { calculateInvoiceTotals } from '../lib/invoiceTotals';
+import {
+  getDocumentDateLabel,
+  getDocumentDueDateLabel,
+  getDocumentNumberLabel,
+  getDocumentTitle,
+  getDocumentTotalLabel,
+  shouldShowDueDate,
+  shouldShowPaymentDetails,
+} from '../lib/documentLabels';
 
 // Rest of imports...
 import { PlusCircle, Trash2, ZoomIn, Printer, Send, Download, Camera, UploadCloud, Loader2, Image as ImageIcon, Sparkles, FileText, AlertCircle, Mic, MicOff, CheckCircle2, ArrowRight, ArrowLeft, Share2, Check, UserPlus, X, WifiOff, ImagePlus, Calculator, RefreshCw, Mail, CloudUpload, Shield, FileSpreadsheet, Plus, Euro, MessageCircle, Copy } from 'lucide-react';
@@ -1269,6 +1278,11 @@ export default function InvoiceCreate() {
     normalizeItemsForVatRegime(formData.items, formData.vatRegime),
     formData.vatRegime as 'standard' | 'franchise' | 'autoliquidation'
   );
+  const numberLabel = getDocumentNumberLabel(formData.type);
+  const dateLabel = getDocumentDateLabel(formData.type);
+  const dueDateLabel = getDocumentDueDateLabel(formData.type);
+  const showDueDateField = shouldShowDueDate(formData.type);
+  const showPaymentDetails = shouldShowPaymentDetails(formData.type);
 
   const generationMessages = [
     'Analyse de la photo…',
@@ -1402,7 +1416,9 @@ export default function InvoiceCreate() {
         }
         // Navigate to the newly created invoice so Factur-X / Chorus Pro buttons appear
         navigate(`/app/invoices/${newInvoiceId}`, { replace: true });
-        success('Facture créée ✓', 'Vous pouvez maintenant la télécharger au format Factur-X.');
+        const createdTitle = getDocumentTitle(invoiceData.type).toLowerCase();
+        const createdAgreement = invoiceData.type === 'invoice' || invoiceData.type === 'deposit' ? 'créée' : 'créé';
+        success(`${getDocumentTitle(invoiceData.type)} ${createdAgreement} ✓`, `Votre ${createdTitle} est prêt à vérifier.`);
       }
       // Only redirect to list if we updated an existing invoice (new ones redirect to their own page above)
       if (id) {
@@ -1716,7 +1732,8 @@ export default function InvoiceCreate() {
     
     // Draw Document Title & Number (Top Right)
     try {
-      const title = formData.type === 'quote' ? 'DEVIS' : formData.type === 'deposit' ? 'ACOMPTE' : formData.type === 'credit' ? 'AVOIR' : 'FACTURE';
+      const title = getDocumentTitle(formData.type, true);
+      const pdfNumberLabel = getDocumentNumberLabel(formData.type);
       doc.setFont('helvetica', 'bold');
       if (template === 'chantier' && !company?.letterheadUrl) {
         doc.setTextColor(255, 255, 255);
@@ -1724,13 +1741,13 @@ export default function InvoiceCreate() {
         doc.text(title, 196, 12, { align: 'right' });
         doc.setTextColor(28, 25, 23);
         doc.setFontSize(10);
-        doc.text(`N° ${formData.number}`, 196, 25, { align: 'right' });
+        doc.text(`${pdfNumberLabel} ${formData.number || 'en attente'}`, 196, 25, { align: 'right' });
       } else {
         doc.setTextColor(...(template === 'classique' || company?.letterheadUrl ? [28, 25, 23] as [number, number, number] : accentRgb));
         doc.setFontSize(20);
         doc.text(title, 140, 22);
         doc.setFontSize(11);
-        doc.text(`N° ${formData.number}`, 140, 30);
+        doc.text(`${pdfNumberLabel} ${formData.number || 'en attente'}`, 140, 30);
       }
       doc.setFont('helvetica', 'normal');
     } catch (e) {
@@ -1767,14 +1784,20 @@ export default function InvoiceCreate() {
     const dateYPos = Math.max(yPos, clientYPos) + 12;
     doc.setFontSize(10);
     doc.setTextColor(80);
-    doc.text(`Date d'émission: ${format(new Date(formData.date || Date.now()), 'dd/MM/yyyy')}`, 14, dateYPos);
+    doc.text(`${getDocumentDateLabel(formData.type)} : ${format(new Date(formData.date || Date.now()), 'dd/MM/yyyy')}`, 14, dateYPos);
     let nextDateYPos = dateYPos + 6;
     if (formData.serviceDate) {
       doc.text(`Date de prestation: ${format(new Date(formData.serviceDate), 'dd/MM/yyyy')}`, 14, nextDateYPos);
       nextDateYPos += 6;
     }
-    if (formData.type !== 'quote') {
-      doc.text(`Échéance: ${format(new Date(formData.dueDate || Date.now()), 'dd/MM/yyyy')}`, 14, nextDateYPos);
+    const pdfDueDateLabel = getDocumentDueDateLabel(formData.type);
+    if (shouldShowDueDate(formData.type) && pdfDueDateLabel && formData.dueDate) {
+      doc.text(`${pdfDueDateLabel} : ${format(new Date(formData.dueDate), 'dd/MM/yyyy')}`, 14, nextDateYPos);
+      nextDateYPos += 6;
+    }
+    if (formData.type === 'credit' && formData.linkedInvoiceNumber) {
+      doc.text(`Avoir lié à la facture d'origine : ${formData.linkedInvoiceNumber}`, 14, nextDateYPos);
+      nextDateYPos += 6;
     }
 
     const tableColumn = formData.vatRegime === 'standard' 
@@ -1834,18 +1857,18 @@ export default function InvoiceCreate() {
 
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('NET À PAYER:', 140, finalY + 30);
+    doc.text(`${getDocumentTotalLabel(formData.type)}:`, 140, finalY + 30);
     doc.setTextColor(...accentRgb);
     doc.text(`${totalTTC.toFixed(2)} €`, 196, finalY + 30, { align: 'right' });
 
     let signatureY = finalY + 45;
     
     // Add Signature if it exists
-    if (formData.signature && formData.signedByName && formData.signedAt) {
+    if (formData.type === 'quote' && formData.signature && formData.signedByName && formData.signedAt) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(100);
-      doc.text('Bon pour accord', 140, signatureY);
+      doc.text('Acceptation du devis — Bon pour accord', 140, signatureY);
       
       const sigDate = new Date(formData.signedAt).toLocaleDateString('fr-FR');
       doc.text(`Signé par ${formData.signedByName} le ${sigDate}`, 140, signatureY + 5);
@@ -1880,16 +1903,23 @@ export default function InvoiceCreate() {
       footerLines.push(company.pdfFooterText);
     }
 
-    if (formData.type !== 'quote' && formData.type !== 'credit') {
+    if (shouldShowPaymentDetails(formData.type)) {
+      if (formData.paymentMethod) {
+        footerLines.push(`Mode de paiement : ${formData.paymentMethod}.`);
+      }
+      if (company?.defaultPaymentTerms) {
+        footerLines.push(`Conditions de paiement : paiement à ${company.defaultPaymentTerms} jours.`);
+      }
+      footerLines.push("Pénalités de retard : 3 fois le taux d'intérêt légal, sauf conditions particulières indiquées.");
+      if (client?.type === 'B2B') {
+        footerLines.push('Indemnité forfaitaire pour frais de recouvrement : 40 € (clients professionnels).');
+      }
       footerLines.push("Préparé pour les formats structurés de facturation électronique, sous réserve de validation.");
     }
 
     const footerParts = [company?.name, company?.address, company?.siret ? `SIRET: ${company.siret}` : ''].filter(Boolean);
     if (footerParts.length > 0) {
       footerLines.push(footerParts.join(' — '));
-    }
-    if (formData.type !== 'quote' && formData.type !== 'credit') {
-      footerLines.push('En cas de retard de paiement, une indemnité forfaitaire de 40€ sera appliquée.');
     }
 
     if (footerLines.length > 0) {
@@ -2644,7 +2674,10 @@ export default function InvoiceCreate() {
               <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Type de document</label>
               <select 
                 value={formData.type}
-                onChange={e => setFormData({...formData, type: e.target.value as any})}
+                onChange={e => {
+                  const nextType = e.target.value as Invoice['type'];
+                  setFormData(prev => ({ ...prev, type: nextType }));
+                }}
                 className="w-full bg-surface-container-high border-[2px] border-transparent focus:border-primary/20 rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-0 text-sm font-bold text-primary transition-colors cursor-pointer"
               >
                 <option value="invoice">Facture</option>
@@ -2819,7 +2852,7 @@ export default function InvoiceCreate() {
             
             <div className="space-y-2 col-span-full md:col-span-1">
               <label className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">
-                Numéro *
+                {numberLabel} *
                 <button type="button" onClick={() => setIsNumberEditable(!isNumberEditable)} className="min-h-[32px] text-[10px] text-primary bg-primary/10 hover:bg-primary hover:text-on-primary px-2 py-0.5 rounded shadow-sm transition-colors">
                   {isNumberEditable ? 'Verrouiller' : 'Modifier'}
                 </button>
@@ -2835,7 +2868,7 @@ export default function InvoiceCreate() {
             </div>
 
             <div className="space-y-2 col-span-full md:col-span-1">
-              <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Date d'émission</label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">{dateLabel}</label>
               <input 
                 type="date" 
                 value={formData.date}
@@ -2843,15 +2876,22 @@ export default function InvoiceCreate() {
                 className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
               />
             </div>
-            <div className="space-y-2 col-span-full md:col-span-1">
-              <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Date d'échéance</label>
-              <input 
-                type="date" 
-                value={formData.dueDate}
-                onChange={e => setFormData({...formData, dueDate: e.target.value})}
-                className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
-              />
-            </div>
+            {showDueDateField && dueDateLabel && (
+              <div className="space-y-2 col-span-full md:col-span-1">
+                <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">{dueDateLabel}</label>
+                <input 
+                  type="date" 
+                  value={formData.dueDate}
+                  onChange={e => setFormData({...formData, dueDate: e.target.value})}
+                  className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-bold text-on-surface transition-colors"
+                />
+                {formData.type === 'quote' && (
+                  <p className="px-1 text-xs text-on-surface-variant">
+                    Cette date sert uniquement de validité du devis, pas d'échéance de paiement.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-5 pt-4 border-t border-surface-container-high">
@@ -3088,10 +3128,41 @@ export default function InvoiceCreate() {
             </div>
           </div>
 
-          <div className="space-y-2.5 md:space-y-3 pt-4 md:pt-6">
-            <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Notes & Coordonnées bancaires</label>
+          {showPaymentDetails && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 md:pt-6">
+              <div className="space-y-2.5 md:space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Mode de paiement</label>
+                <input
+                  type="text"
+                  value={formData.paymentMethod || ''}
+                  onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  placeholder="Ex : virement, carte, chèque..."
+                  className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-colors"
+                />
+              </div>
+              <div className="space-y-2.5 md:space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">Conditions de paiement</label>
+                <div className="min-h-[50px] rounded-xl md:rounded-2xl bg-surface-container-high px-4 md:px-5 py-3.5 md:py-4 text-sm font-bold text-on-surface">
+                  {company?.defaultPaymentTerms
+                    ? `Paiement à ${company.defaultPaymentTerms} jours`
+                    : 'À préciser dans les paramètres si nécessaire'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className={`space-y-2.5 md:space-y-3 ${showPaymentDetails ? '' : 'pt-4 md:pt-6'}`}>
+            <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant px-1">
+              {formData.type === 'quote' ? 'Notes du devis / acceptation' : formData.type === 'credit' ? "Notes de l'avoir" : 'Notes & Coordonnées bancaires'}
+            </label>
             <textarea 
-              placeholder="RIB, conditions de règlement, ou message personnalisé..."
+              placeholder={
+                formData.type === 'quote'
+                  ? "Validité, conditions d'acceptation, précisions chantier..."
+                  : formData.type === 'credit'
+                    ? "Référence ou motif de l'avoir..."
+                    : 'RIB, conditions de règlement, ou message personnalisé...'
+              }
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
               className="w-full bg-surface-container-high border-none rounded-xl md:rounded-2xl px-4 md:px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-primary/20 text-sm font-medium min-h-[88px] md:min-h-[100px] transition-colors"
@@ -3111,7 +3182,7 @@ export default function InvoiceCreate() {
             )}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
               <div>
-                <span className="text-base md:text-xl font-headline font-black text-on-surface">TOTAL {formData.type === 'quote' ? 'ESTIMÉ' : 'À PAYER'}</span>
+                <span className="text-base md:text-xl font-headline font-black text-on-surface">{getDocumentTotalLabel(formData.type)}</span>
                 {proposalRevealRun > 0 && (
                   <p className="text-[11px] font-bold text-primary mt-0.5">Total calculé automatiquement à partir des lignes.</p>
                 )}
@@ -3132,12 +3203,12 @@ export default function InvoiceCreate() {
                   <InvoiceStatusBadge invoice={currentInvoice} />
                   {currentInvoice.number && (
                     <span className="font-headline font-extrabold text-on-surface text-sm md:text-base truncate">
-                      N° {currentInvoice.number}
+                      {getDocumentNumberLabel(currentInvoice.type)} {currentInvoice.number}
                     </span>
                   )}
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-                  {!currentInvoice.isLocked ? (
+                  {!currentInvoice.isLocked && currentInvoice.type !== 'quote' && currentInvoice.type !== 'credit' ? (
                     <ValidateInvoiceButton
                       invoice={{
                         ...currentInvoice,
@@ -3151,6 +3222,7 @@ export default function InvoiceCreate() {
                         totalVAT,
                         totalTTC,
                       } as Invoice}
+                      label={currentInvoice.type === 'deposit' ? "Valider la facture d'acompte" : 'Valider la facture'}
                       onValidated={(num) => {
                         // Le numéro est attribué par le serveur — on rafraîchit le formulaire
                         // pour que l'aperçu colle. Un toast aurait été plus discret mais on
@@ -3158,7 +3230,7 @@ export default function InvoiceCreate() {
                         success(`Facture validée — n° ${num}`);
                       }}
                     />
-                  ) : (
+                  ) : currentInvoice.isLocked ? (
                     <>
                       {currentInvoice.type === 'invoice' && currentInvoice.status !== 'paid' && currentInvoice.status !== 'cancelled' && (
                         <button
@@ -3180,11 +3252,17 @@ export default function InvoiceCreate() {
                         }}
                       />
                     </>
+                  ) : (
+                    <span className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-surface-container-high px-4 py-3 text-sm font-bold text-on-surface-variant">
+                      {currentInvoice.type === 'quote'
+                        ? "Envoyez le devis pour signature quand il est prêt."
+                        : "Cet avoir doit être créé depuis une facture validée."}
+                    </span>
                   )}
                 </div>
               </div>
 
-              {currentInvoice.isLocked && (
+              {currentInvoice.isLocked && currentInvoice.type !== 'credit' && (
                 <p className="text-xs text-on-surface-variant leading-relaxed">
                   Cette facture a été scellée le{' '}
                   {currentInvoice.validatedAt

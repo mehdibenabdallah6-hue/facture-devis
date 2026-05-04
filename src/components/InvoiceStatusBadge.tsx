@@ -10,6 +10,7 @@
  */
 import React from 'react';
 import type { Invoice } from '../contexts/DataContext';
+import { getTypedStatusLabel } from '../lib/documentLabels';
 
 export interface InvoiceStatusBadgeProps {
   invoice: Pick<Invoice, 'type' | 'status' | 'isLocked'> & Partial<Pick<Invoice, 'dueDate'>>;
@@ -52,53 +53,51 @@ function getBadgeStyle(invoice: InvoiceStatusBadgeProps['invoice']): BadgeStyle 
     };
   }
 
-  switch (getEffectiveInvoiceStatus(invoice)) {
+  const effectiveStatus = getEffectiveInvoiceStatus(invoice);
+  const label = getTypedStatusLabel(invoice.type, invoice.status, effectiveStatus);
+
+  switch (effectiveStatus) {
     case 'paid':
       return {
-        label: 'Payée',
+        label,
         classes:
           'bg-tertiary-container text-on-tertiary-container border border-tertiary/20',
       };
     case 'sent':
+    case 'validated':
       return {
-        label: 'Envoyée',
+        label,
         classes:
           'bg-secondary-container text-on-secondary-container border border-secondary/20',
       };
     case 'overdue':
       return {
-        label: 'En retard',
+        label,
         classes:
           'bg-error-container text-on-error-container border border-error/20',
       };
     case 'cancelled':
       return {
-        label: 'Annulée',
+        label,
         classes:
           'bg-surface-container-high text-on-surface-variant border border-outline-variant/30 line-through',
       };
     case 'accepted':
       return {
-        label: 'Accepté',
+        label,
         classes:
           'bg-primary-container text-on-primary-container border border-primary/20',
       };
     case 'converted':
       return {
-        label: 'Converti',
+        label,
         classes:
           'bg-tertiary-container text-tertiary border border-tertiary/20 opacity-70',
-      };
-    case 'validated':
-      return {
-        label: 'Validée',
-        classes:
-          'bg-primary-container text-on-primary-container border border-primary/30',
       };
     case 'draft':
     default:
       return {
-        label: 'Brouillon',
+        label,
         classes:
           'bg-surface-container-high text-on-surface-variant border border-outline-variant/30',
       };

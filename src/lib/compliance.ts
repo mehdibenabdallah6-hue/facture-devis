@@ -256,7 +256,7 @@ export function checkInvoiceCompliance(
     issues.push({
       code: 'invoice.items.empty',
       severity: 'error',
-      message: 'Aucune ligne sur la facture',
+      message: isQuote ? 'Aucune ligne sur le devis' : isCredit ? "Aucune ligne sur l'avoir" : 'Aucune ligne sur la facture',
       fixTarget: 'invoice',
     });
   } else {
@@ -394,22 +394,22 @@ export function checkInvoiceCompliance(
 
   // ---- Devis : mentions précontractuelles ----
   if (isQuote) {
-    if (!hasMention(invoice.notes, ['validité', 'validite', 'valable'])) {
+    if (isBlank(invoice.dueDate) && !hasMention(invoice.notes, ['validité', 'validite', 'valable'])) {
       issues.push({
         code: 'quote.validity',
         severity: 'info',
         message: 'Durée de validité du devis non indiquée',
-        hint: 'Recommandé : préciser combien de temps les prix sont garantis.',
+        hint: 'Renseignez “Valable jusqu’au” ou précisez combien de temps les prix sont garantis.',
         fixTarget: 'invoice',
       });
     }
-    // Devis BTP > 1500€ : mention "bon pour accord" + signature.
-    if (btp && (invoice.totalTTC || 0) >= 1500 && !hasMention(invoice.notes, ['bon pour', 'accord'])) {
+    // Devis BTP > 1500€ : signature / bon pour accord dans la zone d'acceptation.
+    if (btp && (invoice.totalTTC || 0) >= 1500 && isBlank(invoice.signature)) {
       issues.push({
         code: 'quote.btp.bonPourAccord',
         severity: 'warning',
-        message: 'Mention « Bon pour accord » manquante (devis BTP > 1500 €)',
-        hint: 'Loi Hamon : devis BTP au-delà de 1500€ TTC = signature obligatoire.',
+        message: 'Acceptation du devis non signée',
+        hint: 'Envoyez le devis pour signature : la zone “Bon pour accord” sera intégrée au PDF signé.',
         fixTarget: 'invoice',
       });
     }

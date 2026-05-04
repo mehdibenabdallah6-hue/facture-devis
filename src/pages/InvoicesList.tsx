@@ -12,6 +12,7 @@ import { EmptyInvoicesState, EmptySearchState } from '../components/EmptyStates'
 import { UpsellBanner } from '../components/UpsellBanner';
 import { InvoiceStatusBadge, getEffectiveInvoiceStatus, getInvoiceStatusLabel } from '../components/InvoiceStatusBadge';
 import { CreditNoteButton } from '../components/CreditNoteButton';
+import { getTypedStatusLabel } from '../lib/documentLabels';
 import JSZip from 'jszip';
 import { track } from '../services/analytics';
 // jsPDF + jspdf-autotable are heavy (~960KB combined) and only needed when
@@ -401,19 +402,8 @@ export default function InvoicesList() {
   const canSendReminder = (invoice: Invoice) =>
     invoice.type === 'invoice' && ['sent', 'overdue'].includes(invoice.status);
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'paid': return 'Payée';
-      case 'sent': return 'Envoyée';
-      case 'overdue': return 'En retard';
-      case 'draft': return 'Brouillon';
-      case 'validated': return 'Validée';
-      case 'cancelled': return 'Annulée';
-      case 'accepted': return 'Accepté';
-      case 'converted': return 'Converti';
-      default: return status;
-    }
-  };
+  const getStatusLabel = (status: string) =>
+    getTypedStatusLabel(typeFilter === 'quote' ? 'quote' : 'invoice', status as Invoice['status'], status as Invoice['status']);
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
