@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
-  AlertTriangle,
   ArrowRight,
   Bell,
   BookOpen,
@@ -11,14 +10,12 @@ import {
   Check,
   ClipboardList,
   FileText,
-  Link,
   MessageCircle,
   Mic,
   Package,
   Palette,
   PenLine,
   Receipt,
-  RefreshCw,
   Send,
   ShieldCheck,
   Smartphone,
@@ -248,44 +245,30 @@ const stats = [
   ['Factur-X', 'export prêt pour la suite'],
 ];
 
-const heroWorkflowItems = [
-  { label: 'Photo chantier ajoutée', icon: <Camera className="w-4 h-4" /> },
-  { label: 'Devis préparé par IA', icon: <Sparkles className="w-4 h-4" /> },
-  { label: 'Lien de signature généré', icon: <Link className="w-4 h-4" /> },
-  { label: "Client signé aujourd'hui à 14:32", icon: <PenLine className="w-4 h-4" /> },
-  { label: 'Facture prête à envoyer', icon: <Receipt className="w-4 h-4" /> },
-];
-
 const workflowSteps = [
   {
     n: '01',
     icon: <Camera className="w-[22px] h-[22px] text-primary" />,
-    t: "Capturez l'intervention",
-    d: 'Prenez une photo, dictez la prestation ou écrivez comme un SMS. Photofacto prépare un brouillon de devis.',
+    t: 'Photo du carnet ou dictée',
+    d: 'Photographiez vos notes terrain ou dictez la prestation comme à un collègue. Aucune saisie complexe, pas de formulaire à remplir.',
   },
   {
     n: '02',
-    icon: <PenLine className="w-[22px] h-[22px] text-primary" />,
-    t: 'Corrigez et structurez',
-    d: 'Ajoutez vos prix, vos lignes et vos quantités. Les prestations utiles nourrissent votre catalogue pour les prochains devis.',
+    icon: <Sparkles className="w-[22px] h-[22px] text-primary" />,
+    t: 'Extraction par l’IA',
+    d: 'L’IA reconnaît les prestations dans vos notes et les structure en lignes propres : libellés, quantités, unités.',
   },
   {
     n: '03',
-    icon: <Smartphone className="w-[22px] h-[22px] text-primary" />,
-    t: 'Envoyez pour signature',
-    d: 'Le client reçoit un lien par email ou WhatsApp et signe directement sur son téléphone.',
+    icon: <ClipboardList className="w-[22px] h-[22px] text-primary" />,
+    t: 'Vos prix, votre catalogue',
+    d: 'Photofacto applique automatiquement les prix de votre catalogue. L’IA ne devine rien, elle structure ce que vous avez déjà.',
   },
   {
     n: '04',
     icon: <Receipt className="w-[22px] h-[22px] text-primary" />,
-    t: 'Transformez en facture',
-    d: 'Une fois le devis accepté, générez la facture PDF, propre et prête à envoyer.',
-  },
-  {
-    n: '05',
-    icon: <Bell className="w-[22px] h-[22px] text-primary" />,
-    t: 'Relancez si besoin',
-    d: 'Suivez les factures en retard et relancez les clients sans oublier qui doit encore payer.',
+    t: 'Devis prêt, signature, facture',
+    d: 'Vous vérifiez le devis, l’envoyez à signer en ligne, puis le transformez en facture en un clic.',
   },
 ];
 
@@ -456,15 +439,15 @@ export default function LandingPage({ profession }: LandingPageProps) {
     copy.hero
   ) : (
     <>
-      Devis signé, facture envoyée, client relancé
+      Prenez vos notes en photo,
       <br />
-      <span className="text-primary">depuis votre téléphone.</span>
+      <span className="text-primary">Photofacto prépare le devis.</span>
     </>
   );
 
   const heroSubtitle =
     copy?.subtitle ||
-    "Photofacto aide les artisans à créer leurs devis avec l'IA, mais surtout à structurer leur activité commerciale au fil de l’eau : clients, prestations, catalogue, signatures, factures et relances au même endroit.";
+    "L’IA structure le devis à partir de vos notes ou de votre dictée. Vos prix viennent de votre catalogue, pas de l’IA. Vous vérifiez, envoyez, faites signer, puis transformez en facture.";
 
   // Common reveal-on-scroll motion props for section intros. Centralised so
   // we keep the same easing/timing across the page and don't accidentally
@@ -539,34 +522,39 @@ export default function LandingPage({ profession }: LandingPageProps) {
               {heroSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={goRegister}
-                className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white border-none px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
-              >
-                <FileText className="w-[18px] h-[18px]" />
-                Créer mon premier devis
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex flex-col">
+                <button
+                  onClick={goRegister}
+                  className="btn-glow min-touch inline-flex items-center justify-center gap-2 bg-primary text-white border-none px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-cta-lg hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
+                >
+                  <FileText className="w-[18px] h-[18px]" />
+                  Créer mon premier devis
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <span className="mt-2 text-[11px] font-medium text-on-surface-variant text-center sm:text-left">
+                  Gratuit · sans carte bancaire
+                </span>
+              </div>
               <button
                 onClick={() => scrollTo('demo')}
-                className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-sm hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
+                className="min-touch inline-flex items-center justify-center gap-2 bg-white border-spark text-on-surface px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-[13px] sm:text-base shadow-spark-sm hover:-translate-y-0.5 hover:shadow-spark-cta-xl active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer self-start"
               >
                 <Zap className="w-[18px] h-[18px] text-primary" />
-                Essayer avec une prestation
+                Voir une démo en 30s
               </button>
             </div>
-            <div className="flex flex-wrap gap-3 sm:gap-5 mt-5">
+            <div className="flex flex-col gap-2.5 mt-6">
               {[
-                'Photo ou dictée → devis prêt à modifier',
-                'Catalogue qui se construit au fil des devis',
-                'Signature client sur téléphone',
+                'Vos prix, votre catalogue — l’IA ne devine rien',
+                'Photo ou dictée, vous gardez la main sur chaque ligne',
+                'Du devis signé à la relance, tout reste dans Photofacto',
               ].map(t => (
                 <div
                   key={t}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant"
+                  className="flex items-start gap-2 text-[13px] font-medium text-on-surface-variant"
                 >
-                  <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center shrink-0">
-                    <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                  <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                   </div>
                   {t}
                 </div>
@@ -582,65 +570,19 @@ export default function LandingPage({ profession }: LandingPageProps) {
               scale: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
               y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
             }}
-            className="w-full max-w-[390px] md:max-w-[440px] mx-auto md:mx-0 bg-white rounded-[24px] shadow-spark-lg border-spark overflow-hidden"
+            className="relative w-full max-w-[460px] md:max-w-none mx-auto md:mx-0"
           >
-            <div className="bg-secondary-dim px-4 md:px-5 py-3.5 flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-primary fill-primary" />
-              <div className="flex-1">
-                <div className="text-[10px] text-white/60 font-bold tracking-wide mb-1">
-                  MINI PARCOURS PHOTOFACTO
-                </div>
-                <div className="h-[3px] bg-white/15 rounded-full">
-                  <div className="w-5/6 h-full bg-primary rounded-full" />
-                </div>
-              </div>
-            </div>
-            <div className="px-4 md:px-5 py-4 md:py-5">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div>
-                  <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wide">
-                    Intervention
-                  </div>
-                  <div className="font-headline font-bold text-xl text-secondary-dim">
-                    Plomberie cuisine
-                  </div>
-                  <div className="text-xs text-on-surface-variant">Client : M. Martin</div>
-                </div>
-                <div className="rounded-full bg-green-50 text-green-700 px-2.5 py-1 text-[10px] font-bold">
-                  En cours
-                </div>
-              </div>
-              {heroWorkflowItems.map(({ label, icon }) => (
-                <div key={label} className="flex items-center gap-3 py-2.5 border-b border-background">
-                  <div className="w-8 h-8 rounded-full bg-primary/[0.08] text-primary flex items-center justify-center shrink-0">
-                    {icon}
-                  </div>
-                  <span className="text-sm font-semibold text-on-surface">{label}</span>
-                  <Check className="w-4 h-4 text-green-600 ml-auto" />
-                </div>
-              ))}
-              <div className="mt-3 flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3">
-                <AlertTriangle className="w-4 h-4 text-orange-700 mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold text-orange-900">Relance à prévoir si non payé à J+7</div>
-                  <div className="text-[11px] text-orange-800/80">Vous voyez tout de suite qui vous doit encore de l’argent.</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <button
-                  onClick={goRegister}
-                  className="min-touch bg-primary text-white rounded-[10px] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 shadow-spark-cta hover:-translate-y-0.5 hover:shadow-spark-cta-lg active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Send className="w-3 h-3" /> Envoyer pour signature
-                </button>
-                <button
-                  onClick={goRegister}
-                  className="min-touch bg-background border-spark text-on-surface rounded-[10px] py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 hover:-translate-y-0.5 hover:shadow-spark-sm active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <RefreshCw className="w-3 h-3" /> Transformer en facture
-                </button>
-              </div>
-            </div>
+            <div className="absolute -inset-6 -z-10 bg-[radial-gradient(circle_at_30%_20%,rgba(232,98,26,0.16),transparent_42%),radial-gradient(circle_at_75%_75%,rgba(46,52,64,0.10),transparent_38%)] rounded-[36px]" />
+            <img
+              src="/hero-photo-to-devis.jpg"
+              alt="Carnet manuscrit avec les notes d'un chantier salle de bain, photographié avec un téléphone, à côté du devis structuré généré par Photofacto avec les prix issus du catalogue intelligent"
+              width={1280}
+              height={960}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="relative w-full h-auto rounded-[24px] shadow-spark-lg border-spark"
+            />
           </motion.div>
         </div>
       </section>
@@ -698,14 +640,17 @@ export default function LandingPage({ profession }: LandingPageProps) {
       <section id="how-it-works" className="py-10 md:py-16 px-4 md:px-14 bg-white border-y-spark">
         <div className="max-w-[1200px] mx-auto">
           <motion.div {...fadeInUp} className="text-center mb-8 md:mb-11">
+            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary mb-3">
+              Comment ça marche
+            </div>
             <h2 className="font-headline font-extrabold text-3xl md:text-[40px] text-secondary-dim mb-2.5">
-              Du chantier au paiement, en 5 étapes.
+              De vos notes au devis prêt à envoyer, en 4 étapes.
             </h2>
             <p className="text-[15px] text-on-surface-variant max-w-2xl mx-auto">
-              Photofacto ne s’arrête pas au devis : vous créez, envoyez, faites signer, facturez et relancez depuis le même outil.
+              Vous capturez votre prestation, l’IA structure les lignes, votre catalogue applique vos prix, puis vous envoyez à signer et facturez.
             </p>
           </motion.div>
-          <div className="grid md:grid-cols-5 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {workflowSteps.map(({ n, icon, t, d }, i) => (
               <motion.div
                 key={n}
@@ -755,14 +700,23 @@ export default function LandingPage({ profession }: LandingPageProps) {
         <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[0.95fr_1.05fr] gap-8 md:gap-12 items-center">
           <motion.div {...fadeInUp}>
             <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary mb-3">
-              Catalogue intelligent
+              Pourquoi le catalogue intelligent
             </div>
             <h2 className="font-headline font-extrabold text-3xl md:text-[42px] text-secondary-dim mb-3 leading-tight">
-              Votre catalogue devient le cerveau commercial de votre activité.
+              Comment l’IA connaît vos prix ? Elle ne les connaît pas. Vous, oui.
             </h2>
-            <p className="text-[15px] md:text-base text-on-surface-variant leading-relaxed max-w-2xl mb-6">
-              Photofacto ne fait pas juste “un devis avec l’IA”. Il vous aide à transformer ce que vous avez déjà — Excel, carnet, anciens devis, photos ou notes — en prestations propres, réutilisables et cohérentes.
+            <p className="text-[15px] md:text-base text-on-surface-variant leading-relaxed max-w-2xl mb-5">
+              L’IA reconnaît <strong>les prestations</strong> dans vos notes (« pose meuble vasque », « mitigeur », « déplacement »). C’est <strong>votre catalogue</strong> qui applique <strong>vos prix</strong>, vos unités, vos forfaits. Photofacto vous aide à le construire à partir de ce que vous avez déjà — Excel, carnet, anciens devis, photos ou notes.
             </p>
+            <div className="bg-primary/[0.06] border border-primary/[0.18] rounded-2xl p-4 mb-6 flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="font-headline font-bold text-sm text-secondary-dim mb-0.5">L’IA ne fixe jamais vos prix.</div>
+                <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                  Sans prix dans votre catalogue, la ligne reste à compléter. Vous gardez la main sur chaque tarif et chaque marge.
+                </p>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2 mb-6">
               {catalogSources.map(source => (
                 <span
@@ -879,6 +833,74 @@ export default function LandingPage({ profession }: LandingPageProps) {
               </div>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      <section id="du-devis-a-la-facture" className="py-10 md:py-16 px-4 md:px-14 bg-background border-y-spark">
+        <div className="max-w-[1200px] mx-auto">
+          <motion.div {...fadeInUp} className="text-center mb-8 md:mb-10 max-w-[680px] mx-auto">
+            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary mb-3">
+              Du devis à la facture
+            </div>
+            <h2 className="font-headline font-extrabold text-3xl md:text-[42px] text-secondary-dim mb-3 leading-tight">
+              Un seul flux : signer, facturer, relancer.
+            </h2>
+            <p className="text-[15px] text-on-surface-variant leading-relaxed">
+              Une fois le devis envoyé, la suite reste fluide. Pas d’outil supplémentaire à ouvrir, pas de re-saisie : Photofacto enchaîne les étapes pour vous.
+            </p>
+          </motion.div>
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5">
+            {[
+              {
+                icon: <PenLine className="w-5 h-5 text-primary" />,
+                t: 'Signature en ligne',
+                d: 'Le client reçoit un lien par email ou WhatsApp et signe sur son téléphone, sans imprimer ni scanner.',
+                href: '#signature',
+                cta: 'Voir la signature',
+              },
+              {
+                icon: <Receipt className="w-5 h-5 text-primary" />,
+                t: 'Facture en un clic',
+                d: 'Le devis signé devient une facture PDF propre, avec votre numérotation, vos mentions et votre design.',
+                href: '#features',
+                cta: 'Voir la facturation',
+              },
+              {
+                icon: <Bell className="w-5 h-5 text-primary" />,
+                t: 'Relances suivies',
+                d: 'Les factures en retard ressortent dans votre tableau de bord, avec un message de relance prêt à envoyer.',
+                href: '#relances',
+                cta: 'Voir les relances',
+              },
+            ].map(({ icon, t, d, href, cta }, i) => (
+              <motion.a
+                key={t}
+                href={href}
+                onClick={e => { e.preventDefault(); scrollTo(href.replace('#', '')); }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                className="group bg-white rounded-3xl border-spark shadow-spark-sm p-5 md:p-6 hover:-translate-y-1 hover:shadow-spark-md hover:border-primary/30 transition-all duration-200 ease-out cursor-pointer"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/[0.08] flex items-center justify-center shrink-0">
+                    {icon}
+                  </div>
+                  <div className="font-headline font-extrabold text-base md:text-lg text-secondary-dim">
+                    {`${i + 1}. ${t}`}
+                  </div>
+                </div>
+                <p className="text-[13px] md:text-sm text-on-surface-variant leading-relaxed mb-4">
+                  {d}
+                </p>
+                <div className="flex items-center gap-1.5 text-[12px] font-bold text-primary group-hover:gap-2.5 transition-all">
+                  {cta}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </motion.a>
+            ))}
+          </div>
         </div>
       </section>
 
