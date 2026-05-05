@@ -45,16 +45,19 @@ export default function CGV() {
           </div>
 
           <div>
-            <h2 className="font-headline font-bold text-2xl text-on-surface mb-4">Article 3 — Essai Gratuit</h2>
+            <h2 className="font-headline font-bold text-2xl text-on-surface mb-4">Article 3 — Plan Gratuit Permanent</h2>
             <p className="text-on-surface-variant leading-relaxed">
-              Chaque nouvel utilisateur bénéficie d'un <strong>essai gratuit de 14 jours</strong> à compter de sa première connexion, donnant accès à l'ensemble des fonctionnalités du Service (factures illimitées, IA, photos de chantier, exports). Aucune carte bancaire n'est requise pour démarrer l'essai.
+              Photofacto propose un <strong>plan gratuit permanent</strong>, sans limite de durée et sans carte bancaire requise. Ce plan est limité à environ 10 documents par mois et 5 utilisations de l'IA par mois. Il ne donne pas accès aux photos de chantier dans les PDF ni aux exports comptables.
+            </p>
+            <p className="text-on-surface-variant leading-relaxed mt-3">
+              Les abonnements payants sont disponibles à tout moment depuis l'interface. Une <strong>offre de bienvenue</strong> (réduction limitée dans le temps) peut être proposée lors de la création du compte ; cette offre est valable pendant 48 heures et ne peut être cumulée avec d'autres codes promotionnels.
             </p>
           </div>
 
           <div>
             <h2 className="font-headline font-bold text-2xl text-on-surface mb-4">Article 4 — Plans et Tarifs</h2>
             <p className="text-on-surface-variant leading-relaxed">
-              À l'issue de l'essai gratuit ou à tout moment, l'utilisateur peut souscrire à l'un des plans suivants :
+              L'utilisateur peut souscrire à l'un des plans payants suivants à tout moment :
             </p>
             <div className="mt-4 space-y-4">
               <div className="bg-surface-container rounded-2xl p-5 border border-outline-variant/10">
@@ -96,10 +99,10 @@ export default function CGV() {
               Conformément à l'article L221-28 du Code de la consommation, le droit de rétractation ne s'applique pas aux contenus numériques fournis sur un support immatériel dont l'exécution a commencé avec l'accord du consommateur. 
             </p>
             <p className="text-on-surface-variant leading-relaxed mt-3 font-bold">
-              En souscrivant à un abonnement payant après la période d'essai gratuit de 14 jours, l'utilisateur accepte l'exécution immédiate du service et renonce expressément à son droit de rétractation. En conséquence, aucun remboursement ne sera effectué une fois le paiement validé.
+              En souscrivant à un abonnement payant, l'utilisateur accepte l'exécution immédiate du service et renonce expressément à son droit de rétractation. En conséquence, aucun remboursement ne sera effectué une fois le paiement validé.
             </p>
             <p className="text-on-surface-variant leading-relaxed mt-3">
-              L'essai gratuit de 14 jours permet à l'utilisateur de tester exhaustivement le Service avant tout achat.
+              Le plan gratuit permanent permet à l'utilisateur de tester le Service avant tout achat.
             </p>
           </div>
 

@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserPlus, Copy, Check, MessageCircle, Gift, Share2, Users } from 'lucide-react';
 import { useState } from 'react';
 
+const hasAnnualReferral = Boolean(import.meta.env.VITE_PADDLE_REFERRAL_ANNUAL_CODE);
+
 export default function ReferralPage() {
   const { user } = useAuth();
   const { company } = useData();
@@ -31,8 +33,11 @@ export default function ReferralPage() {
   };
 
   const handleWhatsAppShare = () => {
+    const discount = hasAnnualReferral
+      ? '-50% sur le mensuel ou -15% sur l\'annuel'
+      : '-50% sur l\'abonnement mensuel';
     const message = encodeURIComponent(
-      `Découvre Photofacto, l'app de facturation IA qui me fait gagner un temps fou ! Inscris-toi via mon lien et on bénéficie chacun de -50% sur l'abonnement mensuel (ou -15% sur l'annuel) : ${referralLink}`
+      `Découvre Photofacto, l'app de facturation IA qui me fait gagner un temps fou ! Inscris-toi via mon lien et on bénéficie chacun de ${discount} : ${referralLink}`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
@@ -116,8 +121,12 @@ export default function ReferralPage() {
               <p className="font-bold text-on-surface text-sm mb-1">Récompense mutuelle</p>
               <p className="text-on-surface-variant text-sm leading-relaxed">
                 Votre confrère et vous bénéficiez chacun de{' '}
-                <span className="font-semibold text-primary">-50% sur le plan mensuel</span> ou{' '}
-                <span className="font-semibold text-primary">-15% sur le plan annuel</span>.
+                <span className="font-semibold text-primary">-50% sur le plan mensuel</span>
+                {hasAnnualReferral && (
+                  <>{' '}ou{' '}
+                    <span className="font-semibold text-primary">-15% sur le plan annuel</span>
+                  </>
+                )}.
               </p>
             </div>
           </div>
@@ -149,7 +158,7 @@ export default function ReferralPage() {
         <div className="space-y-4">
           {[
             { step: '1', title: 'Partagez votre lien', desc: 'Envoyez votre lien unique à un confrère artisan par WhatsApp, SMS ou email.' },
-            { step: '2', title: 'Il s\'inscrit gratuitement', desc: 'Votre confrère crée son compte et bénéficie de 14 jours d\'essai gratuit.' },
+            { step: '2', title: 'Il crée son compte gratuit', desc: 'Votre confrère crée son compte gratuit et profite de Photofacto.' },
             { step: '3', title: 'Vous gagnez tous les deux', desc: 'Dès qu\'il complète son inscription, vous bénéficiez chacun de la réduction de parrainage.' },
           ].map(item => (
             <div key={item.step} className="flex items-start gap-4">
