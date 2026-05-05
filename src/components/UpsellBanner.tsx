@@ -14,6 +14,11 @@ import { track } from '../services/analytics';
    Both the invoice quota and the AI quota are surfaced.
    ────────────────────────────────────────────────────────────── */
 
+// Plan pricing constants — single source of truth to avoid future drift
+const STARTER_PRICE = '14,90€';
+// Starter plan: 50 AI uses/month, unlimited documents
+const STARTER_AI_LIMIT = 50;
+
 type Resource = 'invoice' | 'ai' | 'auto';
 
 interface UpsellBannerProps {
@@ -155,7 +160,7 @@ export function UpsellBanner({ resource = 'auto', surface, className = '' }: Ups
       ? 'Quota IA atteint pour ce mois'
       : 'Quota mensuel atteint';
     body = state.resource === 'ai'
-      ? `Vous avez utilisé vos ${state.limit} ${resourceNoun} gratuites. Passez à Starter pour 50 utilisations / mois (ou Pro pour l'illimité).`
+      ? `Vous avez utilisé vos ${state.limit} ${resourceNoun} gratuites. Passez à Starter pour ${STARTER_AI_LIMIT} utilisations / mois (ou Pro pour l'illimité).`
       : `Vous avez créé ${state.limit} ${resourceNoun} ce mois-ci. Passez à un plan payant pour continuer à facturer sans limite.`;
     cta = 'Voir les plans';
   } else if (isUrgent) {
@@ -163,16 +168,16 @@ export function UpsellBanner({ resource = 'auto', surface, className = '' }: Ups
       ? `Plus que ${state.remaining} utilisation${state.remaining > 1 ? 's' : ''} IA ce mois-ci`
       : `Plus que ${state.remaining} document${state.remaining > 1 ? 's' : ''} gratuit${state.remaining > 1 ? 's' : ''} ce mois-ci`;
     body = state.resource === 'ai'
-      ? 'Évitez l\'interruption — Starter offre 50 utilisations IA / mois.'
-      : 'Passez à Starter pour facturer sans limite (et garder l\'IA).';
+      ? `Évitez l'interruption — Starter offre ${STARTER_AI_LIMIT} utilisations IA / mois.`
+      : `Passez à Starter (${STARTER_PRICE}/mois) pour facturer sans limite (et garder l'IA).`;
     cta = 'Comparer les plans';
   } else {
     title = state.resource === 'ai'
       ? `${state.used} / ${state.limit} ${resourceNoun}`
       : `${state.used} / ${state.limit} ${resourceNoun} ce mois-ci`;
     body = state.resource === 'ai'
-      ? `Pour 9 € / mois, l'IA tourne 50 fois — vous gagnez ~${Math.max(45, 50 * 2)} minutes par mois sur la saisie.`
-      : 'Vous êtes bien lancé. Anticipez la limite avec Starter (illimité, 9 €/mois).';
+      ? `Pour ${STARTER_PRICE}/mois, l'IA tourne ${STARTER_AI_LIMIT} fois — vous gagnez ~${Math.max(45, STARTER_AI_LIMIT * 2)} minutes par mois sur la saisie.`
+      : `Vous êtes bien lancé. Anticipez la limite avec Starter (documents illimités, ${STARTER_PRICE}/mois).`;
     cta = 'Découvrir Starter';
   }
 

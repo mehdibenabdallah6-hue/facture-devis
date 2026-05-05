@@ -7,7 +7,6 @@ import { fr } from 'date-fns/locale';
 import {
   Camera,
   FileText,
-  Clock,
   CheckCircle,
   TrendingUp,
   TrendingDown,
@@ -152,15 +151,6 @@ export default function Dashboard() {
     return 'text-on-surface-variant';
   };
 
-  let daysLeft = 0;
-  let showTrialBanner = false;
-  if (company?.subscriptionStatus === 'trial' && company.trialStartedAt) {
-    const trialStart = new Date(company.trialStartedAt).getTime();
-    const now = Date.now();
-    daysLeft = 14 - Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
-    if (daysLeft <= 5 && daysLeft > 0) showTrialBanner = true;
-  }
-
   // ---- Quick-start checklist (4 steps, hides itself when all done) ----
   // Keep the first value loop visible: catalogue → devis → signature → facture.
   const hasPrice = (articles?.length || 0) > 0;
@@ -187,30 +177,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Trial Banner */}
-      {showTrialBanner && (
-        <div className="bg-primary-container border border-primary/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-bold text-on-primary-container text-sm">
-                Plus que {daysLeft} jour{daysLeft > 1 ? 's' : ''} d'essai gratuit
-              </p>
-              <p className="text-xs text-on-primary-container/70">
-                Continuez à facturer pour seulement 14,90€/mois
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/app/upgrade')}
-            className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap shadow-spark-cta active:scale-95 transition-transform"
-          >
-            Passer au Pro
-          </button>
-        </div>
-      )}
+      {/* Quota / upsell nudge for free users */}
+      <UpsellBanner surface="dashboard" />
 
       {/* Quick-start checklist — only while at least one step is pending */}
       {!onboardingDone && (
