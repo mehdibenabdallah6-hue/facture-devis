@@ -26,7 +26,11 @@ Règle principale : les secrets serveur ne doivent jamais commencer par `VITE_`.
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `CONTACT_TO_EMAIL`
-- `GEMINI_API_KEY`
+- `GEMINI_API_KEY` — vision (photo, PDF) et fallback texte
+- `DEEPSEEK_API_KEY` — texte / dictée par défaut (peut être vide pour rester sur Gemini)
+- `AI_TEXT_PROVIDER` — `deepseek` (défaut) ou `gemini`
+- `AI_VISION_PROVIDER` — `gemini` uniquement (DeepSeek n'a pas de vision)
+- `AI_FALLBACK_PROVIDER` — `gemini` (défaut), ou vide pour désactiver le fallback texte
 - `PADDLE_WEBHOOK_SECRET`
 - `PADDLE_PRICE_ID_STARTER`
 - `PADDLE_PRICE_ID_STARTER_ANNUAL`

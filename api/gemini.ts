@@ -1,12 +1,20 @@
-// Vercel Serverless Function — Direct REST call to Gemini API (v1)
-// Bypasses the @google/genai SDK to avoid v1beta model availability issues.
+// Vercel Serverless Function — invoice-extraction endpoint.
+//
+// Route name kept as /api/gemini for backwards compatibility with the
+// existing client (src/services/ai.ts), but the actual provider routing
+// now lives in api/_lib/aiProvider.ts:
+//   - text  / dictation        → DeepSeek (with Gemini fallback)
+//   - photo / image            → Gemini
+//   - document (PDF binary)    → Gemini   (treated as vision)
+//   - document (Excel as text) → DeepSeek (treated as text)
 //
 // SECURITY:
 //  - Auth required: Firebase ID token via Authorization: Bearer header.
-//  - Quota check + atomic increment server-side (the client cannot skip the
-//    counter the way it could when increments lived in DataContext).
-//  - On AI failure (both models down) we roll back the quota so the user
-//    isn't billed a quota-slot for nothing.
+//  - Quota is reserved atomically before any provider call and refunded
+//    if the *whole* extraction (primary + fallback) fails. A successful
+//    fallback never costs the user a second quota slot.
+//  - No API key is ever sent to the client — DEEPSEEK_API_KEY and
+//    GEMINI_API_KEY only live on the server.
 import { verifyAuth } from './_verify-auth.js';
 import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -19,12 +27,7 @@ import {
   MAX_BASE64_IMAGE_BYTES,
   sanitizeText,
 } from './_lib/validators.js';
-
-// Stable, generally-available Gemini models. `gemini-3-flash-preview` was a
-// short-lived preview that has since been retired — calling it now returns
-// 404 from the Generative Language API and surfaces as a 500 to clients.
-const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
+import { extractFromImage, extractFromText, type AiResult } from './_lib/aiProvider.js';
 
 // Mirror of src/lib/billing.ts and src/hooks/usePlan.ts. Keep in sync if
 // you change plan limits there.
@@ -35,35 +38,8 @@ const PLAN_AI_LIMITS: Record<string, number> = {
   pro: -1, // -1 = unlimited
 };
 
-const schema = {
-  type: 'OBJECT',
-  properties: {
-    clientName: { type: 'STRING', description: "Nom du client ou de l'entreprise cliente" },
-    clientAddress: { type: 'STRING', description: "Adresse complète du client" },
-    date: { type: 'STRING', description: "Date de la facture ou du devis au format YYYY-MM-DD" },
-    items: {
-      type: 'ARRAY',
-      items: {
-        type: 'OBJECT',
-        properties: {
-          description: { type: 'STRING', description: 'Description de la prestation ou du produit' },
-          quantity: { type: 'NUMBER', description: 'Quantité' },
-          unitPrice: { type: 'NUMBER', description: 'Prix unitaire HT ou TTC' },
-          vatRate: { type: 'NUMBER', description: 'Taux de TVA en pourcentage (ex: 20, 10, 5.5, 0). Si non précisé, mettre 20.' },
-        },
-        required: ['description', 'quantity', 'unitPrice', 'vatRate'],
-      },
-    },
-    notes: { type: 'STRING', description: 'Notes supplémentaires, mentions, ou numéro de facture' },
-  },
-  required: ['clientName', 'items'],
-};
-
 /**
- * Atomically check the user's IA quota and increment the counter. Returns
- * `{ ok: true }` if the request can proceed, or `{ ok: false, ... }` if the
- * monthly quota is exhausted. The transaction guarantees that two parallel
- * requests can't both pass when only one slot remains.
+ * Atomically check the user's IA quota and increment the counter.
  */
 async function reserveAiQuota(
   uid: string,
@@ -121,7 +97,7 @@ async function reserveAiQuota(
   });
 }
 
-/** Roll back a previously reserved AI quota slot (atomic decrement, floored at 0). */
+/** Roll back a previously reserved AI quota slot. */
 async function refundAiQuota(uid: string): Promise<void> {
   try {
     const { db } = ensureFirebaseAdmin();
@@ -141,19 +117,48 @@ async function refundAiQuota(uid: string): Promise<void> {
       );
     });
   } catch (err) {
-    // Refund failure is non-fatal — log it, the user just loses one slot.
     console.error('refundAiQuota failed:', err);
   }
 }
 
+function buildCatalogPrompt(catalogContext?: string) {
+  if (!catalogContext) return '';
+  return `\n\n[CATALOGUE PRIORITAIRE] Voici le catalogue de prestations/prix de l'artisan : ${catalogContext}.
+Règles catalogue :
+- Si une prestation de la description correspond à un élément du catalogue, utilise le nom, le prix unitaire et le taux de TVA du catalogue.
+- Si une quantité/surface est donnée par l'artisan, applique-la avec le prix catalogue correspondant.
+- Si aucun prix fiable n'est trouvé, mets unitPrice à 0 pour que l'artisan le complète.
+- Ne crée pas de prix inventé quand le catalogue ne permet pas de le justifier.`;
+}
+
+const PHOTO_SYSTEM_PROMPT_HEAD = `Tu es un assistant expert en facturation pour artisans. Génère une PROPOSITION de facture modifiable, pas une facture définitive.
+
+Priorité des sources :
+1. Description de l'artisan = source principale.
+2. Catalogue/prix existants = source prioritaire pour les noms de prestations, prix et TVA.
+3. Photo jointe = contexte visuel secondaire uniquement.`;
+
+const PHOTO_RULES_TAIL = `Règles importantes :
+- Base les lignes de facture surtout sur la description texte/voix.
+- Utilise la photo seulement pour confirmer le contexte général du chantier.
+- Ne devine jamais les mètres carrés, quantités, prix, matériaux précis ou détails invisibles si l'artisan ne les donne pas.
+- Si une information manque, utilise une ligne générique claire plutôt qu'une estimation risquée.
+- Préfère peu de lignes simples et réalistes plutôt que beaucoup de lignes incertaines.
+- Si une prestation du catalogue correspond à la description, utilise son nom et son prix.
+- Si aucun prix fiable n'est trouvé, mets unitPrice à 0 pour laisser l'artisan compléter.
+- Ne présente jamais le résultat comme parfaitement automatique ou certain.
+- La facture doit rester facilement modifiable par l'artisan.
+- Ne renvoie que du JSON valide correspondant au schéma.`;
+
+const TEXT_SYSTEM_PROMPT = `Tu es un assistant expert en facturation. Voici une transcription vocale ou un texte brut d'un artisan décrivant sa prestation. Extrait les informations pour pré-remplir un formulaire de facturation. Si le client n'est pas précisé avec précision, met un nom générique ou vide. Ne renvoie que du JSON valide correspondant au schéma.`;
+
+const DOCUMENT_PDF_SYSTEM_PROMPT = `Tu es un assistant expert en facturation. Analyse ce document PDF (facture, devis, bon de commande, relevé…). Extrait toutes les informations utiles pour pré-remplir un formulaire de facturation : nom du client, adresse, date, lignes de prestation avec description, quantité, prix unitaire et taux de TVA. Si des informations manquent, laisse vide. Ne renvoie que du JSON valide correspondant au schéma.`;
+
+const DOCUMENT_TEXT_SYSTEM_PROMPT = `Tu es un assistant expert en facturation. Voici le contenu d'un fichier Excel (tableur) exporté en texte. Analyse ces données et extrait les informations pour pré-remplir un formulaire de facturation : nom du client, adresse, date, lignes de prestation avec description, quantité, prix unitaire et taux de TVA. Interprète les colonnes intelligemment. Ne renvoie que du JSON valide correspondant au schéma.`;
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
   }
 
   // 1. Auth — never trust an unauthenticated caller.
@@ -193,7 +198,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // 2. Quota reservation — atomic increment so a flood of parallel requests
-  //    can't slip past the limit.
+  //    can't slip past the limit. Refunded only if extraction fails.
   let reserved = false;
   try {
     const quotaResult = await reserveAiQuota(auth.uid);
@@ -214,18 +219,12 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: 'Erreur de vérification du quota IA. Réessayez.' });
   }
 
-  try {
-    let parts: any[] = [];
+  const startedAt = Date.now();
+  let inputType: 'text' | 'image' = 'text';
 
-    // Ajout d'une antisèche pour l'IA si un catalogue existe
-    const catalogPrompt = catalogContext
-      ? `\n\n[CATALOGUE PRIORITAIRE] Voici le catalogue de prestations/prix de l'artisan : ${catalogContext}.
-Règles catalogue :
-- Si une prestation de la description correspond à un élément du catalogue, utilise le nom, le prix unitaire et le taux de TVA du catalogue.
-- Si une quantité/surface est donnée par l'artisan, applique-la avec le prix catalogue correspondant.
-- Si aucun prix fiable n'est trouvé, mets unitPrice à 0 pour que l'artisan le complète.
-- Ne crée pas de prix inventé quand le catalogue ne permet pas de le justifier.`
-      : '';
+  try {
+    const catalogPrompt = buildCatalogPrompt(catalogContext);
+    let result: AiResult;
 
     if (mode === 'image') {
       if (!base64Image || !mimeType) {
@@ -239,50 +238,32 @@ Règles catalogue :
           error: 'Décrivez la prestation en quelques mots pour générer une facture plus précise.',
         });
       }
-      const photoPrompt = `Tu es un assistant expert en facturation pour artisans. Génère une PROPOSITION de facture modifiable, pas une facture définitive.
-
-Priorité des sources :
-1. Description de l'artisan = source principale.
-2. Catalogue/prix existants = source prioritaire pour les noms de prestations, prix et TVA.
-3. Photo jointe = contexte visuel secondaire uniquement.
-
-Description de l'artisan :
-${userDescription}
-
-Règles importantes :
-- Base les lignes de facture surtout sur la description texte/voix.
-- Utilise la photo seulement pour confirmer le contexte général du chantier.
-- Ne devine jamais les mètres carrés, quantités, prix, matériaux précis ou détails invisibles si l'artisan ne les donne pas.
-- Si une information manque, utilise une ligne générique claire plutôt qu'une estimation risquée.
-- Préfère peu de lignes simples et réalistes plutôt que beaucoup de lignes incertaines.
-- Si une prestation du catalogue correspond à la description, utilise son nom et son prix.
-- Si aucun prix fiable n'est trouvé, mets unitPrice à 0 pour laisser l'artisan compléter.
-- Ne présente jamais le résultat comme parfaitement automatique ou certain.
-- La facture doit rester facilement modifiable par l'artisan.
-- Ne renvoie que du JSON valide correspondant au schéma.`;
-      parts = [
-        { text: photoPrompt + catalogPrompt },
-        { inlineData: { data: base64Image, mimeType } },
-      ];
+      inputType = 'image';
+      const photoPrompt = `${PHOTO_SYSTEM_PROMPT_HEAD}\n\nDescription de l'artisan :\n${userDescription}\n\n${PHOTO_RULES_TAIL}`;
+      result = await extractFromImage({
+        base64: base64Image,
+        mimeType,
+        promptText: photoPrompt,
+        catalogPrompt,
+      });
     } else if (mode === 'document') {
       if (base64Image && mimeType) {
-        parts = [
-          {
-            text:
-              "Tu es un assistant expert en facturation. Analyse ce document PDF (facture, devis, bon de commande, relevé…). Extrait toutes les informations utiles pour pré-remplir un formulaire de facturation : nom du client, adresse, date, lignes de prestation avec description, quantité, prix unitaire et taux de TVA. Si des informations manquent, laisse vide. Ne renvoie que du JSON valide correspondant au schéma." +
-              catalogPrompt,
-          },
-          { inlineData: { data: base64Image, mimeType } },
-        ];
+        // PDF (binary) → vision provider.
+        inputType = 'image';
+        result = await extractFromImage({
+          base64: base64Image,
+          mimeType,
+          promptText: DOCUMENT_PDF_SYSTEM_PROMPT,
+          catalogPrompt,
+        });
       } else if (promptText) {
-        parts = [
-          {
-            text:
-              "Tu es un assistant expert en facturation. Voici le contenu d'un fichier Excel (tableur) exporté en texte. Analyse ces données et extrait les informations pour pré-remplir un formulaire de facturation : nom du client, adresse, date, lignes de prestation avec description, quantité, prix unitaire et taux de TVA. Interprète les colonnes intelligemment. Ne renvoie que du JSON valide correspondant au schéma.\n\nContenu du tableur :\n" +
-              promptText +
-              catalogPrompt,
-          },
-        ];
+        // Excel pre-extracted text → text provider.
+        inputType = 'text';
+        result = await extractFromText({
+          systemPrompt: DOCUMENT_TEXT_SYSTEM_PROMPT,
+          userPrompt: `Contenu du tableur :\n${promptText}`,
+          catalogPrompt,
+        });
       } else {
         await refundAiQuota(auth.uid);
         return res.status(400).json({ error: 'Missing document data' });
@@ -292,110 +273,53 @@ Règles importantes :
         await refundAiQuota(auth.uid);
         return res.status(400).json({ error: 'Missing promptText' });
       }
-      parts = [
-        {
-          text:
-            "Tu es un assistant expert en facturation. Voici une transcription vocale ou un texte brut d'un artisan décrivant sa prestation. Extrait les informations pour pré-remplir un formulaire de facturation. Si le client n'est pas précisé avec précision, met un nom générique ou vide. Ne renvoie que du JSON valide correspondant au schéma.\n\nDescription de l'artisan: " +
-            promptText +
-            catalogPrompt,
-        },
-      ];
+      inputType = 'text';
+      result = await extractFromText({
+        systemPrompt: TEXT_SYSTEM_PROMPT,
+        userPrompt: `Description de l'artisan: ${promptText}`,
+        catalogPrompt,
+      });
     } else {
       await refundAiQuota(auth.uid);
       return res.status(400).json({ error: 'Invalid mode. Must be "image", "document", or "text".' });
     }
 
-    const body = {
-      contents: [{ role: 'user', parts }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: schema,
-        temperature: 0.1,
+    // Audit log: provider + input type + duration + fallback flag — no
+    // payload, no client data, no API key. The legacy `gemini_used`
+    // event type is preserved so existing admin filters keep working.
+    await writeAuditEvent({
+      ownerId: auth.uid,
+      actorUid: auth.uid,
+      type: 'gemini_used',
+      resourceType: 'ai',
+      resourceId: auth.uid,
+      metadata: {
+        mode: sanitizeText(mode, 30),
+        provider: result.provider,
+        model: result.model,
+        inputType,
+        fallback: result.fallback,
+        durationMs: Date.now() - startedAt,
       },
-    };
+    }).catch(() => undefined);
 
-    async function callGemini(model: string, apiUrl: string) {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        console.error(`Gemini API error (${model}):`, JSON.stringify(errBody));
-        throw new Error(JSON.stringify(errBody));
-      }
-
-      const result = await response.json();
-      const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) {
-        throw new Error('No data extracted from AI response.');
-      }
-      return normalizeAiResponse(JSON.parse(text));
-    }
-
-    try {
-      const primaryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-      const data = await callGemini(GEMINI_MODEL, primaryUrl);
-      await writeAuditEvent({
-        ownerId: auth.uid,
-        actorUid: auth.uid,
-        type: 'gemini_used',
-        resourceType: 'ai',
-        resourceId: auth.uid,
-        metadata: { mode: sanitizeText(mode, 30), fallback: false },
-      }).catch(() => undefined);
-      return res.status(200).json(data);
-    } catch (primaryError: any) {
-      console.warn(`Primary model ${GEMINI_MODEL} failed, trying fallback ${GEMINI_FALLBACK_MODEL}...`);
-      try {
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FALLBACK_MODEL}:generateContent?key=${apiKey}`;
-        const data = await callGemini(GEMINI_FALLBACK_MODEL, fallbackUrl);
-        await writeAuditEvent({
-          ownerId: auth.uid,
-          actorUid: auth.uid,
-          type: 'gemini_used',
-          resourceType: 'ai',
-          resourceId: auth.uid,
-          metadata: { mode: sanitizeText(mode, 30), fallback: true },
-        }).catch(() => undefined);
-        return res.status(200).json({ ...data, _fallback: true });
-      } catch (fallbackError: any) {
-        // Both models failed — refund the quota slot we reserved.
-        if (reserved) await refundAiQuota(auth.uid);
-        console.error('Both primary and fallback Gemini models failed:', fallbackError.message);
-        return res.status(500).json({ error: 'Service IA indisponible. Veuillez réessayer plus tard.' });
-      }
-    }
+    return res
+      .status(200)
+      .json({ ...result.data, _provider: result.provider, _fallback: result.fallback });
   } catch (error: any) {
     if (reserved) await refundAiQuota(auth.uid);
-    console.error("Erreur serveur lors de l'extraction IA:", error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    console.error(
+      `[ai] extraction failed type=${inputType} mode=${mode} ms=${Date.now() - startedAt}`,
+      safeProviderError(error),
+    );
+    return res
+      .status(500)
+      .json({ error: 'Service IA indisponible. Veuillez réessayer plus tard.' });
   }
 }
 
-function normalizeAiResponse(data: any) {
-  const items = Array.isArray(data?.items) ? data.items.slice(0, 30).map((item: any) => ({
-    description: sanitizeText(item?.description, 300) || 'Prestation à compléter',
-    quantity: safeNumber(item?.quantity, 1),
-    unitPrice: safeNumber(item?.unitPrice, 0),
-    vatRate: safeNumber(item?.vatRate, 20),
-    needsReview: true,
-    source: item?.unitPrice === 0 ? 'ai_price_missing' : 'ai_suggestion',
-  })) : [];
-
-  return {
-    clientName: sanitizeText(data?.clientName, 120),
-    clientAddress: sanitizeText(data?.clientAddress, 500),
-    date: sanitizeText(data?.date, 50),
-    notes: sanitizeText(data?.notes, 1500),
-    items,
-    needsReview: true,
-  };
-}
-
-function safeNumber(value: any, fallback: number) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
+function safeProviderError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const colonIdx = msg.indexOf(':');
+  return colonIdx > 0 ? msg.slice(0, colonIdx) : msg.slice(0, 60);
 }
