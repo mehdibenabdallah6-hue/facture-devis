@@ -304,11 +304,6 @@ export default function Dashboard() {
         />
       </section>
 
-      {/* Soft-upsell banner — picks the closest-to-limit quota (invoices or AI)
-          and renders a 60/80/100 % progressive nudge. Replaces the previous
-          ad-hoc invoice-only inline alert with a reusable, analytics-tracked
-          component so we get consistent funnel signal across pages. */}
-      <UpsellBanner surface="dashboard" resource="auto" />
 
       {/* Relances en attente — top 3 overdue invoices with quick actions.
           Reminders are sent automatically by the daily cron at /api/cron-reminders;
