@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import {
   ArrowRight,
@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { TestimonialColumn, type Testimonial } from '../components/TestimonialColumn';
 import { MiniDevisDemo } from '../components/MiniDevisDemo';
+import SignatureCanvas from '../components/SignatureCanvas';
 import { FOUNDER_PRICE_NOTICE, PRICE_TAX_LABEL } from '../lib/billing';
 
 type ProfessionKey =
@@ -387,6 +388,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [demoSignatureReady, setDemoSignatureReady] = useState(false);
   const copy = profession ? professionCopy[profession] : null;
 
   useEffect(() => {
@@ -857,8 +859,15 @@ export default function LandingPage({ profession }: LandingPageProps) {
               <div className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant mb-2">
                 Signature du client
               </div>
-              <div className="h-20 rounded-xl bg-white border border-dashed border-primary/40 flex items-center justify-center">
-                <span className="font-headline text-2xl text-primary -rotate-6">M. Martin</span>
+              <SignatureCanvas
+                width={320}
+                height={120}
+                onSave={() => setDemoSignatureReady(true)}
+              />
+              <div className="mt-2 text-[11px] text-on-surface-variant">
+                {demoSignatureReady
+                  ? 'Signature de démonstration enregistrée.'
+                  : 'Le client peut signer directement avec son doigt ou sa souris.'}
               </div>
             </div>
             <button
