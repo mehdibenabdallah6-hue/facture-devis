@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Photofacto">
+  <rect width="512" height="512" rx="112" fill="#fff7f0"/>
+  <path d="M256 42 421 137v190L256 470 91 327V137L256 42Z" fill="#fff" stroke="#E8621A" stroke-width="32" stroke-linejoin="round"/>
+  <path d="M174 334V166h94c51 0 84 29 84 73 0 45-33 74-84 74h-45v21h-49Zm49-65h39c25 0 40-11 40-30 0-18-15-29-40-29h-39v59Z" fill="#2E3440"/>
+  <path d="M296 334V211h43v38h45v38h-45v47h-43Z" fill="#E8621A"/>
+</svg>
