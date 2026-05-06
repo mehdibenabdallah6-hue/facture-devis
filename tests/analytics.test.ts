@@ -9,7 +9,6 @@ describe('analytics sanitizer', () => {
   it('n’autorise que les événements V1 explicitement whitelisted', () => {
     expect(isAllowedAnalyticsEvent('invoice_created')).toBe(true);
     expect(isAllowedAnalyticsEvent('demo_viewed')).toBe(true);
-    expect(isAllowedAnalyticsEvent('demo_mode_selected')).toBe(true);
     expect(isAllowedAnalyticsEvent('demo_cta_clicked')).toBe(true);
     expect(isAllowedAnalyticsEvent('login_completed')).toBe(false);
     expect(isAllowedAnalyticsEvent('upsell_banner_shown')).toBe(false);

@@ -29,7 +29,6 @@ export const ALLOWED_ANALYTICS_EVENTS = [
   'clicked_validate_invoice',
   'clicked_upgrade_plan',
   'demo_viewed',
-  'demo_mode_selected',
   'demo_cta_clicked',
 ] as const;
 

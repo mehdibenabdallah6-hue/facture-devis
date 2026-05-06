@@ -390,7 +390,7 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
 
         {variant === 'generateur-devis-artisan' && (
           <section className="px-4 md:px-14 py-10 md:py-14 bg-background">
-            <div className="max-w-[960px] mx-auto bg-white rounded-[24px] border-spark shadow-spark-lg p-5 md:p-8">
+            <div className="max-w-[1360px] mx-auto">
               <MiniDevisDemo page={variant} />
             </div>
           </section>
