@@ -34,6 +34,7 @@
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { verifyAuth } from './_verify-auth.js';
+import { effectivePlanForCompany, getMonthlyQuotaState, getPlanLimitsForCompany, quotaExceededMessage } from './_lib/billing.js';
 
 type InvoiceType = 'invoice' | 'quote' | 'deposit' | 'credit';
 
@@ -43,13 +44,6 @@ const PREFIX_FALLBACK: Record<InvoiceType, string> = {
   credit: 'AV',
   deposit: 'AC',
 };
-const PAID_STATUSES = new Set(['active', 'trialing', 'past_due']);
-const PLAN_INVOICE_LIMITS: Record<string, number> = {
-  free: 10,
-  starter: -1,
-  pro: -1,
-};
-
 function buildNumber(prefix: string, year: number, n: number): string {
   return `${prefix}-${year}-${String(n).padStart(4, '0')}`;
 }
@@ -204,33 +198,32 @@ function httpError(status: number, message: string): Error {
 }
 
 function buildInvoiceQuotaPatch(company: any, type: InvoiceType, now: Date) {
-  if (type !== 'invoice') return null;
+  if (type !== 'invoice' && type !== 'quote') return null;
 
-  const isPaid = PAID_STATUSES.has(company.subscriptionStatus || '');
-  const plan = isPaid && company.plan && company.plan !== 'free' ? company.plan : 'free';
-  const limit = PLAN_INVOICE_LIMITS[plan] ?? PLAN_INVOICE_LIMITS.free;
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastReset = company.monthlyInvoiceResetAt ? new Date(company.monthlyInvoiceResetAt) : null;
-  const needsReset =
-    !lastReset ||
-    lastReset.getMonth() !== now.getMonth() ||
-    lastReset.getFullYear() !== now.getFullYear();
-  const current = needsReset ? 0 : Number(company.monthlyInvoiceCount || 0);
+  const plan = effectivePlanForCompany(company);
+  const limit = getPlanLimitsForCompany(company).invoicesPerMonth;
+  const quota = getMonthlyQuotaState({
+    company,
+    countField: 'monthlyInvoiceCount',
+    resetField: 'monthlyInvoiceResetAt',
+    limit,
+    now,
+  });
 
-  if (limit !== -1 && current >= limit) {
+  if (quota.isBlocked) {
     return {
       blocked: true as const,
-      message: `Quota factures atteint (${current}/${limit}). Passez au plan supérieur ou attendez le mois prochain.`,
+      message: quotaExceededMessage('invoicesPerMonth', plan),
       patch: {},
     };
   }
 
   return {
     blocked: false as const,
-    patch: needsReset
+    patch: quota.needsReset
       ? {
           monthlyInvoiceCount: 1,
-          monthlyInvoiceResetAt: monthStart.toISOString(),
+          monthlyInvoiceResetAt: quota.monthStart,
           updatedAt: now.toISOString(),
         }
       : {

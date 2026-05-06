@@ -153,7 +153,7 @@ const pageData: Record<PublicSeoVariant, SeoPageData> = {
     eyebrow: 'Logiciel devis facture BTP',
     h1: <>Un logiciel BTP pour créer, signer, facturer et relancer.</>,
     intro:
-      'Photofacto garde les usages terrain au centre : photo chantier, catalogue intelligent, PDF propre, signature client et suivi des paiements.',
+      'Photofacto garde les usages terrain au centre : photo de notes, catalogue intelligent, PDF propre, signature client et suivi des paiements.',
     bullets: ['Chantiers BTP', 'Catalogue intelligent', 'Factur-X exportable', 'Marchés publics en secondaire'],
     sections: [
       { title: 'Terrain d’abord', text: 'Le point de départ peut être une photo, une dictée ou une note rapide.', icon: <Camera className="w-5 h-5" /> },

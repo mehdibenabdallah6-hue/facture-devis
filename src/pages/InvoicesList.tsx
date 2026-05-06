@@ -40,6 +40,7 @@ export default function InvoicesList() {
 
   const exportCSV = () => {
     if (!isPro) {
+      showError('Les exports comptables CSV/FEC sont disponibles avec le plan Pro.');
       navigate('/app/upgrade');
       return;
     }
@@ -78,6 +79,7 @@ export default function InvoicesList() {
 
   const exportFEC = () => {
     if (!isPro) {
+      showError('Les exports comptables CSV/FEC sont disponibles avec le plan Pro.');
       navigate('/app/upgrade');
       return;
     }
@@ -144,6 +146,7 @@ export default function InvoicesList() {
 
   const exportZIP = async () => {
     if (!isPro) {
+      showError('Les exports comptables CSV/FEC sont disponibles avec le plan Pro.');
       navigate('/app/upgrade');
       return;
     }

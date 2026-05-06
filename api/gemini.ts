@@ -28,15 +28,7 @@ import {
   sanitizeText,
 } from './_lib/validators.js';
 import { extractFromImage, extractFromText, type AiResult } from './_lib/aiProvider.js';
-
-// Mirror of src/lib/billing.ts and src/hooks/usePlan.ts. Keep in sync if
-// you change plan limits there.
-const PAID_STATUSES = new Set(['active', 'trialing', 'past_due']);
-const PLAN_AI_LIMITS: Record<string, number> = {
-  free: 5,
-  starter: 50,
-  pro: -1, // -1 = unlimited
-};
+import { effectivePlanForCompany, getMonthlyQuotaState, getPlanLimitsForCompany, quotaExceededMessage } from './_lib/billing.js';
 
 /**
  * Atomically check the user's IA quota and increment the counter.
@@ -51,34 +43,31 @@ async function reserveAiQuota(
     const snap = await tx.get(ref);
     const data = (snap.exists ? snap.data() : {}) || {};
 
-    const isPaid = PAID_STATUSES.has(data.subscriptionStatus || '');
-    const plan = isPaid && data.plan && data.plan !== 'free' ? data.plan : 'free';
-    const limit = PLAN_AI_LIMITS[plan] ?? PLAN_AI_LIMITS.free;
-
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastReset = data.monthlyResetAt ? new Date(data.monthlyResetAt) : null;
-    const needsReset =
-      !lastReset ||
-      lastReset.getMonth() !== now.getMonth() ||
-      lastReset.getFullYear() !== now.getFullYear();
+    const plan = effectivePlanForCompany(data);
+    const limit = getPlanLimitsForCompany(data).aiUsagesPerMonth;
+    const quota = getMonthlyQuotaState({
+      company: data,
+      countField: 'monthlyAiUsageCount',
+      resetField: 'monthlyResetAt',
+      limit,
+      now,
+    });
 
-    const currentUsage = needsReset ? 0 : (data.monthlyAiUsageCount || 0);
-
-    if (limit !== -1 && currentUsage >= limit) {
+    if (quota.isBlocked) {
       return {
         ok: false as const,
-        reason: `Quota IA atteint (${currentUsage}/${limit}). Passez au plan supérieur ou attendez le mois prochain.`,
+        reason: quotaExceededMessage('aiUsagesPerMonth', plan),
         status: 429,
       };
     }
 
-    if (needsReset) {
+    if (quota.needsReset) {
       tx.set(
         ref,
         {
           monthlyAiUsageCount: 1,
-          monthlyResetAt: monthStart.toISOString(),
+          monthlyResetAt: quota.monthStart,
           updatedAt: now.toISOString(),
         },
         { merge: true },

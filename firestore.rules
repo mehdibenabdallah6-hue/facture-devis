@@ -117,6 +117,9 @@ service cloud.firestore {
         'monthlyInvoiceCount',
         'monthlyInvoiceResetAt',
         'monthlyAiUsageCount',
+        'monthlyClientCount',
+        'monthlySignatureCount',
+        'monthlyCatalogImportCount',
         'monthlyResetAt',
         'paddleCustomerId',
         'paddleSubscriptionId',
@@ -124,6 +127,7 @@ service cloud.firestore {
         'pendingPlan',
         'pendingBillingCycle',
         'billingCycle',
+        'isTrialing',
         'trialEndsAt',
         'currentPeriodStart',
         'currentPeriodEnd',
@@ -196,6 +200,9 @@ service cloud.firestore {
                'monthlyInvoiceCount',
                'monthlyInvoiceResetAt',
                'monthlyAiUsageCount',
+               'monthlyClientCount',
+               'monthlySignatureCount',
+               'monthlyCatalogImportCount',
                'monthlyResetAt',
                'paddleCustomerId',
                'paddleSubscriptionId',
@@ -203,6 +210,7 @@ service cloud.firestore {
                'pendingPlan',
                'pendingBillingCycle',
                'billingCycle',
+               'isTrialing',
                'trialEndsAt',
                'currentPeriodStart',
                'currentPeriodEnd',
@@ -272,10 +280,13 @@ service cloud.firestore {
              isValidString('name', 1, 100) &&
              isValidOptionalString('profession', 0, 100) &&
              isValidOptionalString('trialStartedAt', 0, 50) &&
-             (!( 'subscriptionStatus' in request.resource.data ) || request.resource.data.subscriptionStatus in ['trial', 'active', 'expired', 'pending_activation', 'cancelled']) &&
+             (!( 'subscriptionStatus' in request.resource.data ) || request.resource.data.subscriptionStatus in ['trial', 'trialing', 'active', 'past_due', 'paused', 'expired', 'pending_activation', 'cancelled', 'canceled']) &&
              (!( 'plan' in request.resource.data ) || request.resource.data.plan in ['free', 'starter', 'pro']) &&
              (!( 'monthlyInvoiceCount' in request.resource.data ) || request.resource.data.monthlyInvoiceCount is number) &&
              (!( 'monthlyAiUsageCount' in request.resource.data ) || request.resource.data.monthlyAiUsageCount is number) &&
+             (!( 'monthlyClientCount' in request.resource.data ) || request.resource.data.monthlyClientCount is number) &&
+             (!( 'monthlySignatureCount' in request.resource.data ) || request.resource.data.monthlySignatureCount is number) &&
+             (!( 'monthlyCatalogImportCount' in request.resource.data ) || request.resource.data.monthlyCatalogImportCount is number) &&
              (!( 'invoiceCounter' in request.resource.data ) || request.resource.data.invoiceCounter is number) &&
              (!( 'quoteCounter' in request.resource.data ) || request.resource.data.quoteCounter is number) &&
              isValidOptionalString('address', 0, 500) &&

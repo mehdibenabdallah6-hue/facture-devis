@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { TestimonialColumn, type Testimonial } from '../components/TestimonialColumn';
 import { MiniDevisDemo } from '../components/MiniDevisDemo';
+import { FOUNDER_PRICE_NOTICE, PRICE_TAX_LABEL } from '../lib/billing';
 
 type ProfessionKey =
   | 'plombier'
@@ -106,10 +107,10 @@ const professionCopy: Record<ProfessionKey, ProfessionCopy> = {
     specialty: 'Pose, ragréage, plinthes, joints, dépose.',
   },
   couvreur: {
-    title: 'Logiciel devis facture couvreur avec photo chantier | Photofacto',
+    title: 'Logiciel devis facture couvreur avec photo de notes | Photofacto',
     description:
       'Transformez vos notes et photos de toiture en devis modifiables, envoyez le lien au client et suivez les paiements.',
-    hero: <>Devis toiture clairs, photo chantier et signature mobile.</>,
+    hero: <>Devis toiture clairs, photo de notes et signature mobile.</>,
     subtitle:
       'Réparation, zinguerie, fuite ou entretien : préparez un devis propre sans repartir de zéro le soir.',
     example: 'réparation fuite toiture + remplacement 8 tuiles + nacelle',
@@ -1019,38 +1020,43 @@ export default function LandingPage({ profession }: LandingPageProps) {
             <p className="text-[15px] text-on-surface-variant">
               Testez le tunnel complet, puis passez sur un plan plus confortable quand vous en avez besoin.
             </p>
+            <p className="mt-3 inline-flex rounded-full border border-primary/15 bg-primary/5 px-4 py-2 text-xs md:text-sm font-bold text-primary">
+              {FOUNDER_PRICE_NOTICE}
+            </p>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-4 md:gap-5 max-w-[960px] mx-auto">
             {[
               {
                 name: 'Gratuit',
-                price: '0€',
+                price: '0 €',
                 per: '/ toujours',
-                features: ['10 devis/factures par mois', 'PDF téléchargeable', 'Clients', '5 usages IA par mois', 'Lien de signature limité'],
+                features: ['5 devis/factures par mois', '3 clients', '3 usages IA par mois', '1 lien de signature par mois', 'PDF avec branding Photofacto'],
                 cta: 'Commencer gratuitement',
                 highlight: false,
               },
               {
                 name: 'Solo',
-                price: '14,90€',
-                per: '/ mois',
-                sub: 'ou 129€ / an',
-                features: ['Devis & factures illimités', 'Signature en ligne', 'Clients & catalogue intelligent', 'Relances simples', 'PDF personnalisé'],
+                price: '14,90 €',
+                per: `${PRICE_TAX_LABEL} / mois`,
+                sub: `ou 129 € ${PRICE_TAX_LABEL} / an`,
+                features: ['Devis & factures illimités', 'Clients illimités', 'Catalogue intelligent', '30 usages IA / mois', '20 liens de signature / mois', 'Relances simples', 'PDF personnalisé'],
                 cta: 'Commencer avec Solo',
                 highlight: true,
               },
               {
                 name: 'Pro',
-                price: '29,90€',
-                per: '/ mois',
-                sub: 'ou 249€ / an · pour encaisser plus vite',
+                price: '29,90 €',
+                per: `${PRICE_TAX_LABEL} / mois`,
+                sub: `ou 249 € ${PRICE_TAX_LABEL} / an · pour encaisser plus vite`,
                 features: [
+                  'Tout Solo',
+                  'IA avancée : audio, photo de notes, anciens devis',
+                  'Import catalogue photo/PDF/Excel',
                   'Signatures de devis illimitées',
-                  'Relances automatiques d’impayés',
+                  'Relances avancées d’impayés',
                   'Suivi des factures en retard',
                   'Factur-X exportable',
                   'Exports comptables (FEC, CSV)',
-                  'IA illimitée + photos chantier dans PDF',
                 ],
                 cta: 'Passer en Pro',
                 highlight: false,

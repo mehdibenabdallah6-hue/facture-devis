@@ -1,37 +1,12 @@
 import { useData } from '../contexts/DataContext';
-import { hasPaidAccessForStatus } from '../lib/billing';
-
-export interface PlanLimits {
-  canAddPhotosToPDF: boolean;
-  canExportCSV: boolean;
-  canUseAICalculator: boolean;
-  monthlyInvoiceLimit: number; // -1 for unlimited
-  monthlyAiUsageLimit: number; // -1 for unlimited
-}
-
-export const PLAN_LIMITS: Record<'free' | 'starter' | 'pro', PlanLimits> = {
-  free: {
-    canAddPhotosToPDF: false,
-    canExportCSV: false,
-    canUseAICalculator: false,
-    monthlyInvoiceLimit: 10,
-    monthlyAiUsageLimit: 5,
-  },
-  starter: {
-    canAddPhotosToPDF: false,
-    canExportCSV: false,
-    canUseAICalculator: true,
-    monthlyInvoiceLimit: -1,
-    monthlyAiUsageLimit: 50,
-  },
-  pro: {
-    canAddPhotosToPDF: true,
-    canExportCSV: true,
-    canUseAICalculator: true,
-    monthlyInvoiceLimit: -1,
-    monthlyAiUsageLimit: -1,
-  }
-};
+import {
+  getRemainingQuota,
+  hasPaidAccessForStatus,
+  isUnlimited,
+  needsMonthlyReset as hasMonthlyResetElapsed,
+  PLAN_LIMITS,
+  resolveEffectivePlan,
+} from '../lib/billing';
 
 export function usePlan() {
   const { company } = useData();
@@ -54,30 +29,40 @@ export function usePlan() {
     : null;
 
   // Check if monthly counters need reset (new month)
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const lastResetMonth = company?.monthlyResetAt ? new Date(company.monthlyResetAt).getMonth() : -1;
-  const lastResetYear = company?.monthlyResetAt ? new Date(company.monthlyResetAt).getFullYear() : -1;
-  const needsMonthlyReset = currentMonth !== lastResetMonth || currentYear !== lastResetYear;
+  const needsMonthlyReset = hasMonthlyResetElapsed(company?.monthlyResetAt);
 
   const hasPaidAccess = hasPaidAccessForStatus(company?.subscriptionStatus);
   const isPendingActivation = company?.subscriptionStatus === 'pending_activation';
-  const paidPlan = company?.plan && company.plan !== 'free' ? company.plan : 'starter';
-  const currentPlan = hasPaidAccess ? paidPlan : 'free';
+  const currentPlan = resolveEffectivePlan(company);
   const limits = PLAN_LIMITS[currentPlan];
 
   const checkInvoiceLimit = () => {
-    if (limits.monthlyInvoiceLimit === -1) return true;
-    // If new month, counters will be reset → allow
+    if (isUnlimited(limits.invoicesPerMonth)) return true;
     if (needsMonthlyReset) return true;
-    return (company?.monthlyInvoiceCount || 0) < limits.monthlyInvoiceLimit;
+    return (company?.monthlyInvoiceCount || 0) < limits.invoicesPerMonth;
+  };
+
+  const checkClientLimit = () => {
+    if (isUnlimited(limits.clients)) return true;
+    return (company?.monthlyClientCount || 0) < limits.clients;
   };
 
   const checkAiLimit = () => {
-    if (limits.monthlyAiUsageLimit === -1) return true;
-    // If new month, counters will be reset → allow
+    if (isUnlimited(limits.aiUsagesPerMonth)) return true;
     if (needsMonthlyReset) return true;
-    return (company?.monthlyAiUsageCount || 0) < limits.monthlyAiUsageLimit;
+    return (company?.monthlyAiUsageCount || 0) < limits.aiUsagesPerMonth;
+  };
+
+  const checkSignatureLimit = () => {
+    if (isUnlimited(limits.signatureLinksPerMonth)) return true;
+    if (needsMonthlyReset) return true;
+    return (company?.monthlySignatureCount || 0) < limits.signatureLinksPerMonth;
+  };
+
+  const checkCatalogImportLimit = () => {
+    if (isUnlimited(limits.catalogImportAiPerMonth)) return true;
+    if (needsMonthlyReset) return true;
+    return (company?.monthlyCatalogImportCount || 0) < limits.catalogImportAiPerMonth;
   };
 
   // ---- AI usage info (for in-UI feedback + post-use paywall gating) ----
@@ -92,9 +77,9 @@ export function usePlan() {
   // is logically 0 even though the doc still has the old value — the next
   // increment will reset it server-side.
   const aiUsed = needsMonthlyReset ? 0 : aiUsedRaw;
-  const aiLimit = limits.monthlyAiUsageLimit;
-  const aiUnlimited = aiLimit === -1;
-  const aiRemaining = aiUnlimited ? Infinity : Math.max(0, aiLimit - aiUsed);
+  const aiLimit = limits.aiUsagesPerMonth;
+  const aiUnlimited = isUnlimited(aiLimit);
+  const aiRemaining = getRemainingQuota(aiUsed, aiLimit);
   // After the upcoming use, will we be at or over the limit? Used by the
   // creation flow to show the paywall once the user has consumed their
   // final free use — never before.
@@ -108,9 +93,9 @@ export function usePlan() {
   // previous "either silent or hard-blocked" UX.
   const invoiceUsedRaw = company?.monthlyInvoiceCount || 0;
   const invoiceUsed = needsMonthlyReset ? 0 : invoiceUsedRaw;
-  const invoiceLimit = limits.monthlyInvoiceLimit;
-  const invoiceUnlimited = invoiceLimit === -1;
-  const invoiceRemaining = invoiceUnlimited ? Infinity : Math.max(0, invoiceLimit - invoiceUsed);
+  const invoiceLimit = limits.invoicesPerMonth;
+  const invoiceUnlimited = isUnlimited(invoiceLimit);
+  const invoiceRemaining = getRemainingQuota(invoiceUsed, invoiceLimit);
   const willExceedInvoiceLimitAfterUse = invoiceUnlimited
     ? false
     : (invoiceUsed + 1) >= invoiceLimit;
@@ -128,7 +113,10 @@ export function usePlan() {
     hasPaidAccess,
     isPendingActivation,
     checkInvoiceLimit,
+    checkClientLimit,
     checkAiLimit,
+    checkSignatureLimit,
+    checkCatalogImportLimit,
     aiUsed,
     aiLimit,
     aiUnlimited,

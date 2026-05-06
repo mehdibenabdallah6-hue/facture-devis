@@ -12,6 +12,7 @@ import {
 } from '../lib/catalogImport';
 import { CatalogImportPreview } from './CatalogImportPreview';
 import { track } from '../services/analytics';
+import { usePlan } from '../hooks/usePlan';
 
 type XLSXModule = typeof import('xlsx');
 let xlsxPromise: Promise<XLSXModule> | null = null;
@@ -65,6 +66,7 @@ const IMPORT_OPTIONS: ImportOption[] = [
 ];
 
 export function ImportCatalogModal({ isOpen, articles, onClose, onImport, onSuccess }: ImportCatalogModalProps) {
+  const { checkCatalogImportLimit } = usePlan();
   const fileRef = useRef<HTMLInputElement>(null);
   const [selectedOption, setSelectedOption] = useState<ImportOption | null>(null);
   const [items, setItems] = useState<CatalogImportPreviewItem[]>([]);
@@ -114,6 +116,9 @@ export function ImportCatalogModal({ isOpen, articles, onClose, onImport, onSucc
         const parsedItems = await parseSpreadsheet(file, articles);
         setItems(parsedItems);
       } else {
+        if (!checkCatalogImportLimit()) {
+          throw new Error('Vous avez utilisé vos imports catalogue IA du mois. Passez à Solo ou Pro pour continuer.');
+        }
         track('ai_extraction_started', {
           surface: 'catalog',
           ai_source: 'catalog_import',

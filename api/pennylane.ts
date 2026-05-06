@@ -19,6 +19,7 @@ import { parseJsonBody } from './_lib/http.js';
 import { checkRateLimit } from './_lib/rateLimit.js';
 import { writeAuditEvent } from './_lib/audit.js';
 import { sanitizeText } from './_lib/validators.js';
+import { effectivePlanForCompany } from './_lib/billing.js';
 
 const PENNYLANE_BASE_URL = 'https://app.pennylane.com/api/external/v2';
 
@@ -50,6 +51,8 @@ interface PennylaneInvoicePayload {
     vatNumber?: string;
     address?: string;
     legalForm?: string;
+    plan?: string;
+    subscriptionStatus?: string;
   };
 }
 
@@ -74,7 +77,10 @@ export default async function handler(req: any, res: any) {
     const invoiceId = sanitizeText(body.invoiceId, 120);
     if (!invoiceId) return res.status(400).json({ error: 'invoiceId requis' });
 
-    const { invoice } = await loadOwnedPennylanePayload(invoiceId, authCtx.uid);
+    const { invoice, company } = await loadOwnedPennylanePayload(invoiceId, authCtx.uid);
+    if (effectivePlanForCompany(company) !== 'pro') {
+      return res.status(403).json({ error: 'Les exports comptables et connecteurs structurés sont disponibles avec le plan Pro.' });
+    }
 
     if (!PENNYLANE_API_KEY) {
       await writeAuditEvent({
@@ -216,6 +222,8 @@ async function loadOwnedPennylanePayload(invoiceId: string, uid: string): Promis
       vatNumber: company.vatNumber || '',
       address: company.address || '',
       legalForm: company.legalForm || '',
+      plan: company.plan || 'free',
+      subscriptionStatus: company.subscriptionStatus || 'expired',
     },
   };
 }

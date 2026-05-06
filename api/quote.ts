@@ -19,6 +19,8 @@ import { createShareToken, hashShareToken, safeCompare } from './_lib/quoteShare
 import { sendResendEmail } from './_lib/email.js';
 import { writeAuditEvent } from './_lib/audit.js';
 import { escapeHtml, isEmail, sanitizeText } from './_lib/validators.js';
+import { FieldValue } from 'firebase-admin/firestore';
+import { effectivePlanForCompany, getMonthlyQuotaState, getPlanLimitsForCompany, quotaExceededMessage } from './_lib/billing.js';
 
 export const config = {
   api: {
@@ -68,6 +70,18 @@ async function handleShare(req: any, res: any, body: any) {
 
   const companySnap = await db.collection('companies').doc(authCtx.uid).get();
   const company = companySnap.exists ? (companySnap.data() as any) : {};
+  const plan = effectivePlanForCompany(company);
+  const signatureLimit = getPlanLimitsForCompany(company).signatureLinksPerMonth;
+  const signatureQuota = getMonthlyQuotaState({
+    company,
+    countField: 'monthlySignatureCount',
+    resetField: 'monthlyResetAt',
+    limit: signatureLimit,
+  });
+  if (signatureQuota.isBlocked) {
+    return tooManyRequests(res, quotaExceededMessage('signatureLinksPerMonth', plan));
+  }
+
   const token = createShareToken();
   const tokenHash = hashShareToken(token);
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -76,36 +90,66 @@ async function handleShare(req: any, res: any, body: any) {
   const shareUrl = `${baseUrl}/sign/${shareRef.id}?token=${encodeURIComponent(token)}`;
   const now = new Date().toISOString();
 
-  await db.runTransaction(async tx => {
-    tx.set(shareRef, {
-      originalInvoiceId: invoiceId,
-      quoteId: invoiceId,
-      companyId: authCtx.uid,
-      ownerId: authCtx.uid,
-      tokenHash,
-      number: invoice.number || '',
-      clientName: invoice.clientName || '',
-      clientEmail: invoice.clientEmail || '',
-      date: invoice.date || '',
-      dueDate: invoice.dueDate || '',
-      items: Array.isArray(invoice.items) ? invoice.items : [],
-      totalHT: Number(invoice.totalHT || 0),
-      totalTTC: Number(invoice.totalTTC || 0),
-      totalVAT: Number(invoice.totalVAT || 0),
-      vatRegime: invoice.vatRegime || 'standard',
-      notes: invoice.notes || '',
-      companyName: company.name || company.legalName || '',
-      companyAddress: company.address || '',
-      companyEmail: company.email || authCtx.email || '',
-      companyPhone: company.phone || '',
-      companySiret: company.siret || '',
-      status: 'pending_signature',
-      createdAt: now,
-      expiresAt,
-      signedAt: null,
+  try {
+    await db.runTransaction(async tx => {
+      const companyRef = db.collection('companies').doc(authCtx.uid);
+      const freshCompanySnap = await tx.get(companyRef);
+      const freshCompany = freshCompanySnap.exists ? (freshCompanySnap.data() as any) : {};
+      const freshPlan = effectivePlanForCompany(freshCompany);
+      const freshLimit = getPlanLimitsForCompany(freshCompany).signatureLinksPerMonth;
+      const freshQuota = getMonthlyQuotaState({
+        company: freshCompany,
+        countField: 'monthlySignatureCount',
+        resetField: 'monthlyResetAt',
+        limit: freshLimit,
+      });
+      if (freshQuota.isBlocked) {
+        throw withStatus(new Error(quotaExceededMessage('signatureLinksPerMonth', freshPlan)), 429);
+      }
+
+      tx.set(shareRef, {
+        originalInvoiceId: invoiceId,
+        quoteId: invoiceId,
+        companyId: authCtx.uid,
+        ownerId: authCtx.uid,
+        tokenHash,
+        number: invoice.number || '',
+        clientName: invoice.clientName || '',
+        clientEmail: invoice.clientEmail || '',
+        date: invoice.date || '',
+        dueDate: invoice.dueDate || '',
+        items: Array.isArray(invoice.items) ? invoice.items : [],
+        totalHT: Number(invoice.totalHT || 0),
+        totalTTC: Number(invoice.totalTTC || 0),
+        totalVAT: Number(invoice.totalVAT || 0),
+        vatRegime: invoice.vatRegime || 'standard',
+        notes: invoice.notes || '',
+        companyName: company.name || company.legalName || '',
+        companyAddress: company.address || '',
+        companyEmail: company.email || authCtx.email || '',
+        companyPhone: company.phone || '',
+        companySiret: company.siret || '',
+        status: 'pending_signature',
+        createdAt: now,
+        expiresAt,
+        signedAt: null,
+      });
+      tx.update(invoiceRef, { shareUrl, sharedQuoteId: shareRef.id, updatedAt: now });
+      if (freshLimit !== null) {
+        tx.set(companyRef, freshQuota.needsReset ? {
+          monthlySignatureCount: 1,
+          monthlyResetAt: freshQuota.monthStart,
+          updatedAt: now,
+        } : {
+          monthlySignatureCount: FieldValue.increment(1),
+          updatedAt: now,
+        }, { merge: true });
+      }
     });
-    tx.update(invoiceRef, { shareUrl, sharedQuoteId: shareRef.id, updatedAt: now });
-  });
+  } catch (error: any) {
+    if (error?.status === 429) return tooManyRequests(res, error.message);
+    throw error;
+  }
 
   await writeAuditEvent({
     ownerId: authCtx.uid,

@@ -27,6 +27,7 @@ import { buildAdminErrors, buildAdminSummary, loadAdminDataset } from './_lib/ad
 import { buildAdminUserRows } from './_lib/adminUsers.js';
 import { fetchAdminPostHogOverview, type PostHogPeriod } from './_lib/adminPosthog.js';
 import { ADMIN_ALLOWED_EVENTS, incrementCounter } from './_lib/adminSanitize.js';
+import { effectivePlanForCompany } from './_lib/billing.js';
 
 const REMINDER_FROM = 'Photofacto <factures@photofacto.fr>';
 
@@ -245,6 +246,11 @@ export default async function handler(req: any, res: any) {
       }
 
       const company = data.ownerId ? await getCompany(data.ownerId) : null;
+      if (effectivePlanForCompany(company) !== 'pro') {
+        skipped++;
+        continue;
+      }
+
       const { subject, html } = buildEmail({
         stage,
         invoiceNumber: data.number || data.id || '—',
