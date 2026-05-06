@@ -5,7 +5,7 @@ import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { usePlan } from '../hooks/usePlan';
-import { BillingCycle, PLAN_PRICING, formatEuroPrice, getMonthlyEquivalent } from '../lib/billing';
+import { BillingCycle, FOUNDER_PRICE_NOTICE, PLAN_PRICING, PRICE_TAX_LABEL, formatEuroPrice, getMonthlyEquivalent } from '../lib/billing';
 import { track } from '../services/analytics';
 
 export default function Upgrade() {
@@ -172,7 +172,7 @@ export default function Upgrade() {
           <span className="text-5xl font-extrabold tracking-tight font-headline text-on-surface">
             {formatEuroPrice(monthlyEquivalent)}
           </span>
-          <span className="font-medium text-sm text-on-surface-variant">/mois</span>
+          <span className="font-medium text-sm text-on-surface-variant">{PRICE_TAX_LABEL} / mois</span>
         </div>
 
         {billingCycle === 'annual' && (
@@ -181,7 +181,7 @@ export default function Upgrade() {
               Paiement annuel
             </span>
             <span className="text-sm font-medium text-on-surface-variant">
-              soit {formatEuroPrice(discountedPrice)} / an
+              soit {formatEuroPrice(discountedPrice)} {PRICE_TAX_LABEL} / an
             </span>
           </div>
         )}
@@ -202,6 +202,9 @@ export default function Upgrade() {
         <p className="text-lg text-on-surface-variant font-medium text-balance">
           Choisissez l'offre qui correspond à vos besoins. <br className="hidden md:block" />
           Économisez jusqu'à 50€ avec l'abonnement annuel.
+        </p>
+        <p className="inline-flex rounded-full border border-primary/15 bg-primary/5 px-4 py-2 text-sm font-bold text-primary">
+          {FOUNDER_PRICE_NOTICE}
         </p>
 
         {/* Active Discount Banner */}
@@ -256,7 +259,7 @@ export default function Upgrade() {
             <span className="text-2xl font-black text-on-surface-variant">0€</span>
           </div>
           <h2 className="text-2xl font-headline font-bold mb-2 text-on-surface">Gratuit</h2>
-          <p className="text-sm text-on-surface-variant mb-8 text-center h-10">Pour découvrir l'application.</p>
+          <p className="text-sm text-on-surface-variant mb-8 text-center h-10">Pour tester Photofacto.</p>
           
           <div className="w-full text-left space-y-3 mb-8 flex-1">
             <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline-variant/20 pb-2 mb-4">
@@ -264,15 +267,27 @@ export default function Upgrade() {
             </div>
             <li className="flex items-start gap-2 text-sm text-on-surface">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>10 Factures / mois</span>
+              <span>5 devis/factures par mois</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>5 Extractions IA / mois</span>
+              <span>3 clients</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>3 usages IA par mois</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>1 lien de signature par mois</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>PDF avec branding Photofacto</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface-variant opacity-50">
               <X className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>Photos chantier & Export FEC</span>
+              <span>Factur-X et exports comptables</span>
             </li>
           </div>
           <button disabled className="w-full bg-surface-container-high text-on-surface py-3 rounded-xl font-bold cursor-not-allowed mt-auto">
@@ -289,7 +304,7 @@ export default function Upgrade() {
             <span className="text-2xl font-black text-primary"><Zap className="w-8 h-8" /></span>
           </div>
           <h2 className="text-2xl font-headline font-bold mb-2 text-on-surface">Solo</h2>
-          <p className="text-sm text-on-surface-variant mb-6 text-center">Idéal pour les micro-entrepreneurs.</p>
+          <p className="text-sm text-on-surface-variant mb-6 text-center">Pour artisans solo.</p>
           
           <PriceDisplay planId="starter" />
           
@@ -299,19 +314,27 @@ export default function Upgrade() {
             </div>
             <li className="flex items-start gap-2 text-sm text-on-surface">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>Factures & Devis illimités</span>
+              <span>Devis & factures illimités</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>50 Extractions IA / mois</span>
+              <span>30 usages IA / mois</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>Calculateur de surfaces</span>
+              <span>Clients et catalogue intelligent</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>20 liens de signature / mois</span>
+            </li>
+            <li className="flex items-start gap-2 text-sm text-on-surface">
+              <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <span>Relances simples et PDF personnalisé</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface-variant opacity-50">
               <X className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>Photos chantier & Export FEC</span>
+              <span>Factur-X et exports CSV/FEC</span>
             </li>
           </div>
           <button 
@@ -319,7 +342,7 @@ export default function Upgrade() {
             disabled={loadingCode !== null}
             className="w-full btn-glow bg-primary text-on-primary py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-spark-cta mt-auto"
           >
-            {loadingCode === 'starter' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'S\'abonner à Solo'}
+            {loadingCode === 'starter' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commencer avec Solo'}
             {!loadingCode && <ArrowRight className="w-4 h-4" />}
           </button>
         </div>
@@ -330,7 +353,7 @@ export default function Upgrade() {
             <Crown className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-2xl font-headline font-bold mb-2 text-on-surface">Pro</h2>
-          <p className="text-sm text-on-surface-variant mb-6 text-center">Pour les entreprises établies.</p>
+          <p className="text-sm text-on-surface-variant mb-6 text-center">Pour gagner du temps et mieux suivre vos paiements.</p>
 
           <PriceDisplay planId="pro" />
 
@@ -340,19 +363,19 @@ export default function Upgrade() {
             </div>
             <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>Facturation illimitée</span>
+              <span>Tout Solo</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>IA en illimité</span>
+              <span>IA avancée : audio, photo de notes, anciens devis</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>Photos de chantier (PDF)</span>
+              <span>Signatures de devis illimitées</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-on-surface font-bold">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <span>Export FEC & Chorus Pro <span className="text-[10px] text-on-surface-variant">(Bientôt)</span></span>
+              <span>Relances avancées, Factur-X et exports CSV/FEC</span>
             </li>
           </div>
           <button

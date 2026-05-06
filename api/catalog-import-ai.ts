@@ -13,15 +13,10 @@ import {
   type ExistingCatalogArticle,
   type RawCatalogImportItem,
 } from './_lib/catalogImport.js';
+import { effectivePlanForCompany, getMonthlyQuotaState, getPlanLimitsForCompany, quotaExceededMessage } from './_lib/billing.js';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
-const PAID_STATUSES = new Set(['active', 'trialing', 'past_due']);
-const PLAN_AI_LIMITS: Record<string, number> = {
-  free: 5,
-  starter: 50,
-  pro: -1,
-};
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
 const SOURCE_TYPES = new Set(['photo', 'old_quote', 'pdf']);
 
@@ -105,7 +100,7 @@ export default async function handler(req: any, res: any) {
   let reserved = false;
   try {
     const existingArticles = await loadExistingArticles(auth.uid);
-    const quotaResult = await reserveAiQuota(auth.uid);
+    const quotaResult = await reserveCatalogImportQuota(auth.uid);
     if (quotaResult.ok === false) {
       return res.status(quotaResult.status).json({ error: quotaResult.reason });
     }
@@ -122,7 +117,7 @@ export default async function handler(req: any, res: any) {
     const warnings = normalizeWarnings(raw.warnings);
 
     if (items.length === 0) {
-      if (reserved) await refundAiQuota(auth.uid);
+      if (reserved) await refundCatalogImportQuota(auth.uid);
       return res.status(422).json({
         error: 'Aucune prestation exploitable détectée. Essayez une photo plus nette ou un autre document.',
         warnings,
@@ -135,7 +130,7 @@ export default async function handler(req: any, res: any) {
       needsReview: true,
     });
   } catch (error: any) {
-    if (reserved) await refundAiQuota(auth.uid);
+    if (reserved) await refundCatalogImportQuota(auth.uid);
     const status = error.status || 500;
     if (status >= 500 && status !== 502) console.error('catalog-import-ai failed:', error);
     return res.status(status).json({ error: error.message || 'Erreur serveur. Veuillez réessayer.' });
@@ -151,7 +146,7 @@ async function loadExistingArticles(uid: string): Promise<ExistingCatalogArticle
   })) as ExistingCatalogArticle[];
 }
 
-async function reserveAiQuota(
+async function reserveCatalogImportQuota(
   uid: string,
 ): Promise<{ ok: true } | { ok: false; reason: string; status: number }> {
   const { db } = ensureFirebaseAdmin();
@@ -161,36 +156,33 @@ async function reserveAiQuota(
     const snap = await tx.get(ref);
     const data = (snap.exists ? snap.data() : {}) || {};
 
-    const isPaid = PAID_STATUSES.has(data.subscriptionStatus || '');
-    const plan = isPaid && data.plan && data.plan !== 'free' ? data.plan : 'free';
-    const limit = PLAN_AI_LIMITS[plan] ?? PLAN_AI_LIMITS.free;
-
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastReset = data.monthlyResetAt ? new Date(data.monthlyResetAt) : null;
-    const needsReset =
-      !lastReset ||
-      lastReset.getMonth() !== now.getMonth() ||
-      lastReset.getFullYear() !== now.getFullYear();
-
-    const currentUsage = needsReset ? 0 : (data.monthlyAiUsageCount || 0);
-    if (limit !== -1 && currentUsage >= limit) {
+    const plan = effectivePlanForCompany(data);
+    const limit = getPlanLimitsForCompany(data).catalogImportAiPerMonth;
+    const quota = getMonthlyQuotaState({
+      company: data,
+      countField: 'monthlyCatalogImportCount',
+      resetField: 'monthlyResetAt',
+      limit,
+      now,
+    });
+    if (quota.isBlocked) {
       return {
         ok: false as const,
-        reason: `Quota IA atteint (${currentUsage}/${limit}). Passez au plan supérieur ou attendez le mois prochain.`,
+        reason: quotaExceededMessage('catalogImportAiPerMonth', plan),
         status: 429,
       };
     }
 
-    if (needsReset) {
+    if (quota.needsReset) {
       tx.set(ref, {
-        monthlyAiUsageCount: 1,
-        monthlyResetAt: monthStart.toISOString(),
+        monthlyCatalogImportCount: 1,
+        monthlyResetAt: quota.monthStart,
         updatedAt: now.toISOString(),
       }, { merge: true });
     } else {
       tx.set(ref, {
-        monthlyAiUsageCount: FieldValue.increment(1),
+        monthlyCatalogImportCount: FieldValue.increment(1),
         updatedAt: now.toISOString(),
       }, { merge: true });
     }
@@ -199,22 +191,22 @@ async function reserveAiQuota(
   });
 }
 
-async function refundAiQuota(uid: string): Promise<void> {
+async function refundCatalogImportQuota(uid: string): Promise<void> {
   try {
     const { db } = ensureFirebaseAdmin();
     const ref = db.collection('companies').doc(uid);
     await db.runTransaction(async tx => {
       const snap = await tx.get(ref);
       const data = (snap.exists ? snap.data() : {}) || {};
-      const current = data.monthlyAiUsageCount || 0;
+      const current = data.monthlyCatalogImportCount || 0;
       if (current <= 0) return;
       tx.set(ref, {
-        monthlyAiUsageCount: FieldValue.increment(-1),
+        monthlyCatalogImportCount: FieldValue.increment(-1),
         updatedAt: new Date().toISOString(),
       }, { merge: true });
     });
   } catch (error) {
-    console.error('catalog import refundAiQuota failed:', error);
+    console.error('catalog import refund quota failed:', error);
   }
 }
 

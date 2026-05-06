@@ -61,30 +61,33 @@ export default function CGV() {
             </p>
             <div className="mt-4 space-y-4">
               <div className="bg-surface-container rounded-2xl p-5 border border-outline-variant/10">
-                <h3 className="font-bold text-on-surface text-lg mb-2">Plan Gratuit — 0€/an</h3>
+                <h3 className="font-bold text-on-surface text-lg mb-2">Plan Gratuit — 0 € TTC</h3>
                 <ul className="text-on-surface-variant text-sm space-y-1">
-                  <li>• 10 factures par mois</li>
-                  <li>• 5 utilisations de l'IA par mois</li>
-                  <li>• Pas de photos de chantier dans les PDF</li>
-                  <li>• Pas d'export CSV/FEC</li>
+                  <li>• 5 devis/factures par mois</li>
+                  <li>• 3 clients</li>
+                  <li>• 3 usages IA par mois</li>
+                  <li>• 1 lien de signature par mois</li>
+                  <li>• PDF avec branding Photofacto</li>
                 </ul>
               </div>
               <div className="bg-surface-container rounded-2xl p-5 border border-primary/20">
-                <h3 className="font-bold text-on-surface text-lg mb-2">Plan Solo — 14,90€/mois ou 129€/an</h3>
+                <h3 className="font-bold text-on-surface text-lg mb-2">Plan Solo — 14,90 € TTC/mois ou 129 € TTC/an</h3>
                 <ul className="text-on-surface-variant text-sm space-y-1">
                   <li>• Factures et devis illimités</li>
-                  <li>• 50 utilisations de l'IA par mois</li>
-                  <li>• Export Factur-X</li>
-                  <li>• Envoi d'emails automatique</li>
+                  <li>• Clients illimités</li>
+                  <li>• 30 usages IA par mois</li>
+                  <li>• 20 liens de signature par mois</li>
+                  <li>• Relances manuelles et PDF personnalisé</li>
                 </ul>
               </div>
               <div className="bg-surface-container rounded-2xl p-5 border border-tertiary/20">
-                <h3 className="font-bold text-on-surface text-lg mb-2">Plan Pro — 29,90€/mois ou 249€/an</h3>
+                <h3 className="font-bold text-on-surface text-lg mb-2">Plan Pro — 29,90 € TTC/mois ou 249 € TTC/an</h3>
                 <ul className="text-on-surface-variant text-sm space-y-1">
-                  <li>• Tout illimité (factures, IA, stockage)</li>
-                  <li>• Photos de chantier dans les PDF</li>
+                  <li>• Tout Solo</li>
+                  <li>• 500 usages IA par mois</li>
+                  <li>• Signatures de devis illimitées</li>
+                  <li>• Factur-X exportable</li>
                   <li>• Export CSV et FEC</li>
-                  <li>• Support prioritaire</li>
                 </ul>
               </div>
             </div>

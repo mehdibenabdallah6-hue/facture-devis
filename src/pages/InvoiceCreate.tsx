@@ -403,7 +403,7 @@ export default function InvoiceCreate() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isPro, isFree, plan, checkInvoiceLimit, checkAiLimit, limits, hasPaidAccess, isPendingActivation, aiUsed, aiLimit, aiUnlimited, willExceedAiLimitAfterUse } = usePlan();
+  const { isPro, isFree, isStarter, plan, checkInvoiceLimit, checkAiLimit, limits, hasPaidAccess, isPendingActivation, aiUsed, aiLimit, aiUnlimited, invoiceLimit, willExceedAiLimitAfterUse } = usePlan();
   const [showUpsellModal, setShowUpsellModal] = useState<string | null>(null);
   const [showPhotoSourcePicker, setShowPhotoSourcePicker] = useState(false);
   const [photoDescription, setPhotoDescription] = useState('');
@@ -632,9 +632,9 @@ export default function InvoiceCreate() {
   /**
    * Gate every AI-powered action (photo extraction, document import, voice
    * dictation) through the same monthly counter:
-   *   - Free  : 5 / month   (PLAN_LIMITS.free.monthlyAiUsageLimit)
-   *   - Solo  : 50 / month  (PLAN_LIMITS.starter.monthlyAiUsageLimit)
-   *   - Pro   : unlimited
+   *   - Free  : 3 / month
+   *   - Solo  : 30 / month
+   *   - Pro   : 500 / month
    * Returns true if the user can proceed; otherwise pops the upsell modal
    * with a plan-specific message and returns false.
    */
@@ -644,17 +644,17 @@ export default function InvoiceCreate() {
       surface: 'invoice_create',
       quota_resource: 'ai',
       used: aiUsed,
-      limit: limits.monthlyAiUsageLimit,
+      limit: aiLimit,
       plan: company?.plan || 'free',
     });
-    const cap = limits.monthlyAiUsageLimit;
+    const cap = aiLimit;
     if (isFree) {
       setShowUpsellModal(
-        `Vous avez atteint la limite de ${cap} utilisations IA / mois du plan Gratuit. Passez au plan Solo pour 50 utilisations / mois.`
+        `Vous avez utilisé vos ${cap} usages IA du mois. Passez à Solo ou Pro pour continuer.`
       );
     } else {
       setShowUpsellModal(
-        `Vous avez atteint la limite de ${cap} utilisations IA / mois du plan Solo. Passez au plan Pro pour un usage illimité.`
+        `Vous avez atteint la limite de ${cap} usages IA / mois du plan Solo. Passez au plan Pro pour continuer.`
       );
     }
     return false;
@@ -1235,7 +1235,7 @@ export default function InvoiceCreate() {
         surface: 'invoice_create',
         quota_resource: 'ai',
         used: aiUsed,
-        limit: limits.monthlyAiUsageLimit,
+        limit: aiLimit,
         plan: company?.plan || 'free',
       });
     }
@@ -1371,7 +1371,7 @@ export default function InvoiceCreate() {
   const handleSave = async (status: Invoice['status'] = 'draft') => {
     // Check plan invoice limit for new invoices
     if (!id && !checkInvoiceLimit()) {
-      setShowUpsellModal('Vous avez atteint la limite de ' + limits.monthlyInvoiceLimit + ' documents/mois du plan Gratuit.');
+      setShowUpsellModal(`Vous avez atteint la limite de ${invoiceLimit ?? 5} devis/factures ce mois-ci. Passez à Solo pour créer des documents illimités.`);
       return;
     }
     // Verrou : on refuse la sauvegarde si la facture est validée. Un toast
@@ -1583,6 +1583,12 @@ export default function InvoiceCreate() {
 
   // ---------- Factur-X Download ----------
   const handleFacturXDownload = async () => {
+    if (!isPro) {
+      showError('Plan Pro requis', 'L’export Factur-X est disponible avec le plan Pro.');
+      navigate('/app/upgrade');
+      return;
+    }
+
     try {
       const doc = await generatePDF(false);
       const client = clients.find(c => c.id === formData.clientId);
@@ -2617,6 +2623,7 @@ export default function InvoiceCreate() {
               >
                 <Shield className="w-4 h-4" />
                 Télécharger Factur-X
+                {!isPro && <span className="rounded-full bg-on-primary/20 px-2 py-0.5 text-[10px] font-black">PRO</span>}
               </button>
               {/* Chorus Pro Hidden for now */}
               {/* {formData.chorusStatus !== 'submitted' && (
@@ -3004,14 +3011,14 @@ export default function InvoiceCreate() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (!limits.canUseAICalculator) {
-                            setShowUpsellModal('Le calculateur de surfaces est disponible à partir du plan Solo (14,90€/mois).');
+                          if (!isStarter) {
+                            setShowUpsellModal('Le calculateur de surfaces est disponible à partir du plan Solo (14,90 € TTC/mois).');
                             return;
                           }
                           setActiveCalculatorIndex(activeCalculatorIndex === index ? null : index);
                         }}
                         className="min-h-[32px] min-w-[32px] text-primary hover:text-primary/70 transition-colors rounded flex items-center justify-center"
-                        title={limits.canUseAICalculator ? 'Calculateur (L x l x h)' : 'Calculateur de surfaces — plan Solo'}
+                        title={isStarter ? 'Calculateur (L x l x h)' : 'Calculateur de surfaces — plan Solo'}
                       >
                         <Calculator className="w-3.5 h-3.5" />
                       </button>

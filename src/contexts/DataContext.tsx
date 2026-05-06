@@ -2,7 +2,16 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { collection, doc, onSnapshot, query, where, setDoc, addDoc, updateDoc, deleteDoc, increment, getDoc } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from './AuthContext';
-import { AppPlan, AppSubscriptionStatus, BillingCycle } from '../lib/billing';
+import {
+  AppPlan,
+  AppSubscriptionStatus,
+  BillingCycle,
+  PLAN_LIMITS,
+  isQuotaExceeded,
+  normalizeMonthlyUsage,
+  planLimitMessage,
+  resolveEffectivePlan,
+} from '../lib/billing';
 import { track } from '../services/analytics';
 import { articleIdFromDescription } from '../lib/catalogImport';
 import { requiresEmailVerification } from '../lib/authVerification';
@@ -54,7 +63,11 @@ export interface CompanySettings {
   paddlePriceId?: string | null;
   paddleLastEventAt?: string | null;
   monthlyInvoiceCount?: number;
+  monthlyInvoiceResetAt?: string;
   monthlyAiUsageCount?: number;
+  monthlyClientCount?: number;
+  monthlySignatureCount?: number;
+  monthlyCatalogImportCount?: number;
   monthlyResetAt?: string; // ISO date — quand les compteurs ont été reset pour la dernière fois
   invoiceCounter?: number;
   quoteCounter?: number;
@@ -547,6 +560,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!user) throw new Error('Not authenticated');
     const now = new Date().toISOString();
     try {
+      const effectivePlan = resolveEffectivePlan(company);
+      const clientLimit = PLAN_LIMITS[effectivePlan].clients;
+      if (isQuotaExceeded(clients.length, clientLimit)) {
+        throw new Error(planLimitMessage('clients', effectivePlan));
+      }
+
       const docRef = await addDoc(collection(db, 'clients'), {
         ...data,
         ownerId: user.uid,
@@ -695,6 +714,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const companyRef = doc(db, 'companies', user.uid);
       const companySnap = await getDoc(companyRef);
       const companyData = companySnap.exists() ? companySnap.data() : {};
+      const effectivePlan = resolveEffectivePlan(companyData);
+      const invoiceLimit = PLAN_LIMITS[effectivePlan].invoicesPerMonth;
+      const invoiceUsed = normalizeMonthlyUsage(
+        companyData.monthlyInvoiceCount,
+        companyData.monthlyInvoiceResetAt || companyData.monthlyResetAt,
+      );
+      if ((data.type === 'invoice' || data.type === 'quote') && isQuotaExceeded(invoiceUsed, invoiceLimit)) {
+        throw new Error(planLimitMessage('invoicesPerMonth', effectivePlan));
+      }
 
       const {
         id: _id,
@@ -995,6 +1023,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const invoice = invoices.find(inv => inv.id === invoiceId);
     if (!invoice) throw new Error('Invoice not found');
     if (invoice.type !== 'quote') throw new Error('Seuls les devis peuvent être envoyés pour signature.');
+    const effectivePlan = resolveEffectivePlan(company);
+    const signatureLimit = PLAN_LIMITS[effectivePlan].signatureLinksPerMonth;
+    const signatureUsed = normalizeMonthlyUsage(company.monthlySignatureCount, company.monthlyResetAt);
+    if (isQuotaExceeded(signatureUsed, signatureLimit)) {
+      throw new Error(planLimitMessage('signatureLinksPerMonth', effectivePlan));
+    }
 
     const token = await user.getIdToken();
     const response = await fetch('/api/quote', {

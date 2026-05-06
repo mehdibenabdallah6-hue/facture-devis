@@ -77,6 +77,26 @@ describe('api/catalog-import-ai', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('bloque le deuxième import catalogue IA du plan gratuit', async () => {
+    const admin = createMockAdmin({
+      company: {
+        plan: 'free',
+        subscriptionStatus: 'expired',
+        monthlyCatalogImportCount: 1,
+        monthlyResetAt: new Date().toISOString(),
+      },
+    });
+    vi.mocked(ensureFirebaseAdmin).mockReturnValue(admin);
+
+    const res = createMockResponse();
+    await handler(baseReq({}), res);
+
+    expect(res.statusCode).toBe(429);
+    expect(res.body.error).toContain('imports catalogue IA');
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(admin.transactionSet).not.toHaveBeenCalled();
+  });
+
   it('répond 422 si aucune prestation exploitable n’est détectée et ne crée aucun article', async () => {
     const admin = createMockAdmin();
     vi.mocked(ensureFirebaseAdmin).mockReturnValue(admin);
@@ -181,6 +201,7 @@ function createMockAdmin(options: { articles?: any[]; company?: any } = {}) {
         subscriptionStatus: 'active',
         plan: 'pro',
         monthlyAiUsageCount: 0,
+        monthlyCatalogImportCount: 0,
         monthlyResetAt: new Date().toISOString(),
         ...options.company,
       }),
@@ -189,6 +210,7 @@ function createMockAdmin(options: { articles?: any[]; company?: any } = {}) {
   };
   return {
     articleSet,
+    transactionSet: tx.set,
     db: {
       collection: vi.fn((name: string) => {
         if (name !== 'companies') throw new Error(`Unexpected collection ${name}`);

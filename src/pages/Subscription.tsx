@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { usePlan } from '../hooks/usePlan';
 import { ArrowLeft, Crown, CreditCard, AlertCircle, Mail, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
-import { PLAN_DISPLAY_NAMES, PLAN_FEATURES, PLAN_PRICING, formatEuroPrice } from '../lib/billing';
+import { FOUNDER_PRICE_NOTICE, PLAN_DISPLAY_NAMES, PLAN_FEATURES, PLAN_PRICING, PRICE_TAX_LABEL, formatEuroPrice } from '../lib/billing';
 
 export default function Subscription() {
   const { company } = useData();
@@ -15,19 +15,19 @@ export default function Subscription() {
   const planFeatures: Record<string, { name: string; features: string[]; price: string; current: boolean }> = {
     free: {
       name: PLAN_DISPLAY_NAMES.free,
-      price: '0€/mois',
+      price: `0 € ${PRICE_TAX_LABEL}/mois`,
       current: isFree,
       features: PLAN_FEATURES.free,
     },
     starter: {
       name: PLAN_DISPLAY_NAMES.starter,
-      price: `${formatEuroPrice(PLAN_PRICING.starter.monthly)}/mois`,
+      price: `${formatEuroPrice(PLAN_PRICING.starter.monthly)} ${PRICE_TAX_LABEL}/mois`,
       current: isStarter,
       features: PLAN_FEATURES.starter,
     },
     pro: {
       name: PLAN_DISPLAY_NAMES.pro,
-      price: `${formatEuroPrice(PLAN_PRICING.pro.monthly)}/mois`,
+      price: `${formatEuroPrice(PLAN_PRICING.pro.monthly)} ${PRICE_TAX_LABEL}/mois`,
       current: isPro,
       features: PLAN_FEATURES.pro,
     },
@@ -55,6 +55,10 @@ export default function Subscription() {
           <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Mon abonnement</h1>
           <p className="text-on-surface-variant">Plan actuel : <span className="font-bold text-on-surface">{displayedPlan.name} — {displayedPlan.price}</span></p>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-primary/15 bg-primary/5 px-5 py-4 text-sm font-bold text-primary">
+        {FOUNDER_PRICE_NOTICE}
       </div>
 
       {/* Current Plan Status */}

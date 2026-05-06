@@ -17,6 +17,7 @@ import { checkRateLimit } from './_lib/rateLimit.js';
 import { parseJsonBody } from './_lib/http.js';
 import { writeAuditEvent } from './_lib/audit.js';
 import { sanitizeText } from './_lib/validators.js';
+import { effectivePlanForCompany } from './_lib/billing.js';
 
 // ---------- Types ----------
 
@@ -59,6 +60,8 @@ interface CompanyPayload {
   capital?: number;
   defaultCurrency?: string;
   vatRegime?: 'standard' | 'franchise' | 'autoliquidation';
+  plan?: string;
+  subscriptionStatus?: string;
 }
 
 // ---------- Config ----------
@@ -343,6 +346,9 @@ export default async function handler(req: any, res: any) {
       if (!invoiceId) return res.status(400).json({ error: 'invoiceId requis' });
 
       const { invoice, company } = await loadOwnedInvoiceForExport(invoiceId, authCtx.uid);
+      if (effectivePlanForCompany(company) !== 'pro') {
+        return res.status(403).json({ error: 'L’export Factur-X et les connecteurs structurés sont disponibles avec le plan Pro.' });
+      }
 
       // Validate: only invoices subject to e-invoicing
       if (invoice.type === 'quote') {
@@ -471,6 +477,8 @@ async function loadOwnedInvoiceForExport(invoiceId: string, uid: string): Promis
       capital: rawCompany.capital || 0,
       defaultCurrency: rawCompany.defaultCurrency || 'EUR',
       vatRegime: rawCompany.vatRegime || 'standard',
+      plan: rawCompany.plan || 'free',
+      subscriptionStatus: rawCompany.subscriptionStatus || 'expired',
     },
   };
 }

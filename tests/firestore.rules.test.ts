@@ -145,6 +145,10 @@ rulesDescribe('firestore.rules', () => {
         name: 'Toiture Alice',
         monthlyAiUsageCount: 4,
         monthlyInvoiceCount: 7,
+        monthlyClientCount: 3,
+        monthlySignatureCount: 1,
+        monthlyCatalogImportCount: 1,
+        monthlyResetAt: '2026-05-01T00:00:00.000Z',
       });
     });
 
@@ -155,6 +159,18 @@ rulesDescribe('firestore.rules', () => {
     }));
     await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
       monthlyInvoiceCount: 0,
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      monthlyClientCount: 0,
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      monthlySignatureCount: 0,
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      monthlyCatalogImportCount: 0,
+    }));
+    await assertFails(updateDoc(doc(aliceDb, 'companies', alice), {
+      monthlyResetAt: '2026-06-01T00:00:00.000Z',
     }));
   });
 
