@@ -1,0 +1,1 @@
+PASS /Users/mehdi/photofacto-pricing-work/tests/fixtures/facturx/standard-tva-10.pdf 3b

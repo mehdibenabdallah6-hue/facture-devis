@@ -106,9 +106,13 @@
 
 ### 1.7 Factur-X / e-invoicing
 
-- Génération PDF Factur-X (CII XML embarqué) via
-  `src/services/facturx.ts` — déjà présent dans le code legacy, non
-  modifié dans cette passe.
+- Génération PDF Factur-X via `src/services/facturx.ts` avec XML CII embarqué
+  sous `factur-x.xml`, métadonnées XMP Factur-X, Associated Files et
+  OutputIntent ICC sRGB. Les tests automatisés vérifient l’extraction XML, les
+  montants, les régimes TVA et les métadonnées.
+- Statut validation : export BASIC généré par défaut, fixtures validées avec
+  veraPDF 1.30.1 et Mustangproject CLI 2.23.0. Voir
+  [`docs/facturx-validation/external-validation-2026-05-09.md`](facturx-validation/external-validation-2026-05-09.md).
 - Prep PDP/PA 2026 : abstraction dans
   [`src/lib/einvoicing/provider.ts`](../src/lib/einvoicing/provider.ts) —
   voir [`docs/EINVOICING_2026.md`](EINVOICING_2026.md).
