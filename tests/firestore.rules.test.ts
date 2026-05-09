@@ -138,6 +138,45 @@ rulesDescribe('firestore.rules', () => {
     }));
   });
 
+  it('autorise la création onboarding en plan gratuit sans subscriptionStatus ni trialStartedAt', async () => {
+    const aliceDb = verifiedDb(alice);
+
+    await assertSucceeds(setDoc(doc(aliceDb, 'companies', alice), {
+      ownerId: alice,
+      name: 'Toiture Alice',
+      profession: 'Couvreuse',
+      plan: 'free',
+      createdAt: '2026-05-09T10:00:00.000Z',
+      updatedAt: '2026-05-09T10:00:00.000Z',
+      welcomeDiscountExpiry: '2026-05-11T10:00:00.000Z',
+    }));
+  });
+
+  it("autorise explicitement subscriptionStatus expired mais refuse subscriptionStatus free à l'onboarding", async () => {
+    const aliceDb = verifiedDb(alice);
+    const bobDb = verifiedDb(bob);
+
+    await assertSucceeds(setDoc(doc(aliceDb, 'companies', alice), {
+      ownerId: alice,
+      name: 'Toiture Alice',
+      profession: 'Couvreuse',
+      plan: 'free',
+      subscriptionStatus: 'expired',
+      createdAt: '2026-05-09T10:00:00.000Z',
+      updatedAt: '2026-05-09T10:00:00.000Z',
+    }));
+
+    await assertFails(setDoc(doc(bobDb, 'companies', bob), {
+      ownerId: bob,
+      name: 'Plomberie Bob',
+      profession: 'Plombier',
+      plan: 'free',
+      subscriptionStatus: 'free',
+      createdAt: '2026-05-09T10:00:00.000Z',
+      updatedAt: '2026-05-09T10:00:00.000Z',
+    }));
+  });
+
   it('empêche un utilisateur de réinitialiser ses quotas', async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'companies', alice), {

@@ -24,6 +24,7 @@ import { AdminRoute } from './components/AdminRoute';
 import { initPostHog, initSentry, identifyUser } from './services/analytics';
 import { lazyWithRetry, clearChunkReloadFlag } from './lib/lazyWithRetry';
 import { requiresEmailVerification } from './lib/authVerification';
+import { needsOnboarding as shouldShowOnboarding } from './lib/onboarding';
 
 // Initialize analytics (no-op if env vars not set)
 initPostHog();
@@ -88,7 +89,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   // Check if onboarding is needed
-  const needsOnboarding = !company || !company.profession || !company.name || company.name === 'Mon Entreprise';
+  const needsOnboarding = shouldShowOnboarding(company);
   const isOnboardingRoute = location.pathname === '/app/onboarding' || location.pathname === '/app/onboarding-success';
 
   if (needsOnboarding && !isOnboardingRoute) {
