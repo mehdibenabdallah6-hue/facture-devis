@@ -4,6 +4,7 @@ import { useData, processReferral } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
+import { buildOnboardingCompanyPayload } from '../lib/onboarding';
 
 const PROFESSIONS = [
   { name: 'Plombier', emoji: '🔧' },
@@ -45,16 +46,14 @@ export default function Onboarding() {
     setError(null);
     try {
       const now = new Date().toISOString();
-      await saveCompany({
-        ...company,
-        ownerId: user.uid,
-        name: companyName.trim(),
+      await saveCompany(buildOnboardingCompanyPayload({
+        userId: user.uid,
+        companyName,
         profession: finalProfession,
-        subscriptionStatus: company?.subscriptionStatus || 'free',
-        createdAt: company?.createdAt || now,
-        updatedAt: now,
-        welcomeDiscountExpiry: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      });
+        existingCompany: company,
+        nowIso: now,
+        welcomeDiscountExpiryIso: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      }));
 
       // Send welcome email (best effort)
       if (user.email) {
@@ -82,7 +81,7 @@ export default function Onboarding() {
       navigate('/app/invoices/new');
     } catch (err) {
       console.error(err);
-      setError('Une erreur est survenue. Réessayez.');
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
     } finally {
       setLoading(false);
     }

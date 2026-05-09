@@ -516,13 +516,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const companyRef = doc(db, 'companies', user.uid);
     const now = new Date().toISOString();
     const isCreation = !company;
+    const writeData = {
+      ...data,
+      ownerId: user.uid,
+      updatedAt: now,
+      ...(isCreation ? { createdAt: data.createdAt || now } : {})
+    };
+    const nextCompany = {
+      ...(company || {}),
+      ...writeData,
+    } as CompanySettings;
     try {
-      await setDoc(companyRef, {
-        ...data,
-        ownerId: user.uid,
-        updatedAt: now,
-        ...(isCreation ? { createdAt: now } : {})
-      }, { merge: true });
+      await setDoc(companyRef, writeData, { merge: true });
+      setCompany(nextCompany);
       if (isCreation) {
         track('company_created', { source: 'onboarding' });
       }
