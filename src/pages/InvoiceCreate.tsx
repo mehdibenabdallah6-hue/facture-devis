@@ -50,9 +50,11 @@ const loadXlsx = async (): Promise<XLSXModule> => {
 };
 
 import { extractInvoiceData, extractDataFromText, extractFromDocument } from '../services/ai';
-import { generateFacturXPDF, generateFacturXXML } from '../services/facturx';
+import { generateFacturXPDF, type FacturXProfile } from '../services/facturx';
 import PDFPreview from '../components/PDFPreview';
 import { track } from '../services/analytics';
+
+const FACTURX_EXPORT_PROFILE: FacturXProfile = 'BASIC';
 
 /**
  * Returns the most frequently used items from previous invoices for a specific client.
@@ -1590,13 +1592,12 @@ export default function InvoiceCreate() {
     }
 
     try {
-      const doc = await generatePDF(false);
       const client = clients.find(c => c.id === formData.clientId);
-      const facturxPdf = await generateFacturXPDF(doc, {
+      const facturxPdf = await generateFacturXPDF({ output: () => new ArrayBuffer(0) }, {
         invoice: formData as Invoice,
         company: company!,
         client: client,
-        profile: 'BASIC',
+        profile: FACTURX_EXPORT_PROFILE,
       });
 
       // Download the Factur-X PDF
@@ -1611,11 +1612,11 @@ export default function InvoiceCreate() {
       // Audit trail: trace the Factur-X export. Fire-and-forget — a log
       // failure must never disrupt the download UX.
       if (id) {
-        void logInvoiceEvent(id, 'export_facturx', { profile: 'BASIC' });
+        void logInvoiceEvent(id, 'export_facturx', { profile: FACTURX_EXPORT_PROFILE });
       }
     } catch (err) {
       console.error('Factur-X generation error:', err);
-      showError('Erreur Factur-X', 'Le PDF standard a été téléchargé à la place.');
+      showError('Erreur Factur-X', 'La génération Factur-X a échoué. Vérifiez les informations obligatoires puis réessayez. Le PDF standard a été téléchargé.');
       await generatePDF(true);
     }
   };
@@ -2604,16 +2605,16 @@ export default function InvoiceCreate() {
           </div>
         )}
 
-        {/* Factur-X & Chorus Pro — Top banner for invoices (visible early, not hidden at bottom) */}
-        {id && formData.type === 'invoice' && company?.vatRegime !== 'franchise' && formData.vatRegime !== 'franchise' && (
+        {/* Factur-X — Top banner for invoices (visible early, not hidden at bottom) */}
+        {id && formData.type === 'invoice' && (
           <div className="animate-fade-in-up bg-surface-container-lowest rounded-2xl p-4 md:p-5 shadow-sm border border-primary/10 space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Shield className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-bold text-sm text-on-surface">Export Factur-X en préparation</p>
-                <p className="text-xs text-on-surface-variant">Téléchargez une facture structurée à vérifier avant dépôt officiel</p>
+                <p className="font-bold text-sm text-on-surface">Export Factur-X validé</p>
+                <p className="text-xs text-on-surface-variant">PDF avec XML Factur-X embarqué, connexion plateforme agréée en préparation</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -3314,7 +3315,7 @@ export default function InvoiceCreate() {
               className="min-touch flex items-center justify-center gap-2 md:gap-3 bg-surface-container-highest text-on-surface py-3.5 md:py-5 px-4 md:px-6 rounded-2xl font-black text-base md:text-lg shadow-xl shadow-surface-container-high/50 hover:-translate-y-1 active:scale-95 transition-all border border-outline-variant/10 group"
             >
               <Shield className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-              Factur-X (Basic)
+              Factur-X (BASIC)
             </button>
 
             <button

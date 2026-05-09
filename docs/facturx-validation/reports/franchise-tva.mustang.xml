@@ -1,0 +1,31 @@
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/ZF_240/FACTUR-X_BASIC.xslt; urlResolved=true; URL=jar:file:/Users/mehdi/photofacto-pricing-work/scratch/validators/Mustang-CLI-2.23.0.jar!/xslt/ZF_240/FACTUR-X_BASIC.xslt]
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/XP_Z12_012/20260216_BR-FR-Flux2-Schematron-CII_V1.3.0.xsl; urlResolved=true; URL=jar:file:/Users/mehdi/photofacto-pricing-work/scratch/validators/Mustang-CLI-2.23.0.jar!/xslt/XP_Z12_012/20260216_BR-FR-Flux2-Schematron-CII_V1.3.0.xsl]
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:valid XML:valid Signature:null Checksum:0AE181EA1E27D53C07AEE7578C1C69D2F012EBD0 Profile:urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic Version:2 Took:1263ms Errors:[] ErrorIDs: []
+<?xml version="1.0" encoding="UTF-8"?>
+
+<validation filename="franchise-tva.pdf" datetime="2026-05-09 10:01:12">
+  <pdf>ValidationResult [flavour=3b, totalAssertions=1423, assertions=[], isCompliant=true]
+    <info>
+      <signature>unknown</signature>
+      <duration unit="ms">559</duration>
+    </info>
+    <summary status="valid"/>
+  </pdf>  
+  <xml>
+    <info>
+      <version>2</version>
+      <profile>urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic</profile>
+      <validator version="2.23.0"/>
+      <rules>
+        <fired>55</fired>
+        <failed>0</failed>
+      </rules>
+      <duration unit="ms">683</duration>
+    </info>
+    <summary status="valid"/>
+  </xml>
+  <summary status="valid"/>
+</validation>
+

@@ -1,0 +1,1 @@
+PASS /Users/mehdi/photofacto-pricing-work/tests/fixtures/facturx/acompte.pdf 3b
