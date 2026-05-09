@@ -160,19 +160,22 @@ export default function Upgrade() {
     const discountedPrice = getDiscountedPrice(basePrice);
     const monthlyEquivalent =
       billingCycle === 'annual' ? discountedPrice / 12 : getMonthlyEquivalent(planId, billingCycle);
+    const monthlyPriceLabel = formatEuroPrice(monthlyEquivalent);
+    const baseMonthlyPriceLabel = formatEuroPrice(basePrice / (billingCycle === 'annual' ? 12 : 1));
+    const annualPriceLabel = formatEuroPrice(discountedPrice);
 
     return (
       <div className="flex flex-col items-center mb-6">
-        <div className="flex items-baseline gap-1">
+        <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center">
           {hasDiscountForCurrentCycle && (
-             <span className="text-lg line-through font-headline mr-2 text-on-surface-variant/40">
-               {formatEuroPrice(basePrice / (billingCycle === 'annual' ? 12 : 1))}
+             <span className="shrink-0 whitespace-nowrap text-lg line-through font-headline text-on-surface-variant/40">
+               {baseMonthlyPriceLabel}
              </span>
           )}
-          <span className="text-5xl font-extrabold tracking-tight font-headline text-on-surface">
-            {formatEuroPrice(monthlyEquivalent)}
+          <span className="shrink-0 whitespace-nowrap text-5xl font-extrabold tracking-tight font-headline leading-none text-on-surface">
+            {monthlyPriceLabel}
           </span>
-          <span className="font-medium text-sm text-on-surface-variant">{PRICE_TAX_LABEL} / mois</span>
+          <span className="whitespace-nowrap font-medium text-sm text-on-surface-variant">{PRICE_TAX_LABEL} / mois</span>
         </div>
 
         {billingCycle === 'annual' && (
@@ -180,8 +183,8 @@ export default function Upgrade() {
             <span className="text-xs font-bold text-primary px-2 py-0.5 bg-primary/10 rounded-full mb-1">
               Paiement annuel
             </span>
-            <span className="text-sm font-medium text-on-surface-variant">
-              soit {formatEuroPrice(discountedPrice)} {PRICE_TAX_LABEL} / an
+            <span className="text-sm font-medium text-on-surface-variant text-center">
+              soit <span className="whitespace-nowrap">{annualPriceLabel}</span> {PRICE_TAX_LABEL} / an
             </span>
           </div>
         )}
