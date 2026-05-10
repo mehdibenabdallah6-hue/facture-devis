@@ -9,7 +9,7 @@ import {
   type AppPlan,
   type PlanLimitValue,
   type PlanLimits,
-} from '../../src/lib/billing';
+} from '../../shared/billing.js';
 
 export const PAID_STATUSES = PAID_ACCESS_STATUSES;
 

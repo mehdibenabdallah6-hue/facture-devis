@@ -8,7 +8,7 @@ import {
   serverError,
   unauthorized,
 } from './http.js';
-import type { AppPlan, BillingCycle } from '../../src/lib/billing';
+import type { AppPlan, BillingCycle } from '../../shared/billing';
 
 const ALLOWED_PENDING_PLANS = new Set<AppPlan>(['starter', 'pro']);
 const ALLOWED_BILLING_CYCLES = new Set<BillingCycle>(['monthly', 'annual']);
