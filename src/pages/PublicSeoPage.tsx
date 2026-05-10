@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MiniDevisDemo } from '../components/MiniDevisDemo';
+import { Seo } from '../components/Seo';
 
 export type PublicSeoVariant =
   | 'generateur-devis-artisan'
@@ -309,21 +310,11 @@ export default function PublicSeoPage({ variant }: { variant: PublicSeoVariant }
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    document.title = page.title;
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.setAttribute('name', 'description');
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute('content', page.description);
-  }, [page]);
-
   const goRegister = () => navigate('/inscription?mode=register');
 
   return (
     <div className="min-h-screen bg-background font-body text-on-surface">
+      <Seo title={page.title} description={page.description} path={`/${variant}`} />
       <div className="accent-bar-spark" />
       <nav className="flex items-center justify-between gap-2 px-3.5 md:px-14 py-2.5 md:py-4 bg-white border-b-spark">
         <a href="/" className="flex items-center gap-2 min-w-0">

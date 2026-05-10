@@ -3,7 +3,7 @@ import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Sparkles, ArrowRight, ShieldCheck, Check, Loader2 } from 'lucide-react';
-import { formatEuroPrice, PLAN_PRICING } from '../lib/billing';
+import { formatEuroPrice, PLAN_FEATURES, PLAN_PRICING, PRICE_TAX_LABEL } from '../lib/billing';
 
 interface PaddlePaywallProps {
   onSuccess: () => void;
@@ -19,6 +19,8 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
   // resume features re-open a checkout overlay without explicit consent.
   const paddleRef = useRef<Paddle | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const ensurePaddle = async (): Promise<Paddle | null> => {
     if (paddleRef.current) return paddleRef.current;
@@ -35,8 +37,16 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
         eventCallback: async (event) => {
           if (event.name === 'checkout.completed') {
             setLoading(true);
-            await activateSubscription('starter', 'annual');
-            onSuccess();
+            setCheckoutError(null);
+            setCheckoutNotice('Paiement reçu, activation en cours. Cela peut prendre quelques secondes.');
+            try {
+              await activateSubscription('starter', 'annual');
+              onSuccess();
+            } catch (error) {
+              setCheckoutError(error instanceof Error ? error.message : 'Impossible de préparer l’activation. Contactez le support.');
+            } finally {
+              setLoading(false);
+            }
           }
         },
       });
@@ -50,6 +60,8 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
 
   const openCheckout = async () => {
     setLoading(true);
+    setCheckoutError(null);
+    setCheckoutNotice(null);
     const paddle = await ensurePaddle();
     if (!paddle) {
       setLoading(false);
@@ -104,28 +116,35 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
         <p className="text-center text-on-surface-variant mb-8 text-lg">
           {pendingActivation ? (
             <>
-              Paiement reçu. Nous confirmons votre abonnement avec Paddle.
-              Cette étape prend généralement quelques secondes.
+              Paiement reçu, activation en cours. Cela peut prendre quelques secondes.
             </>
           ) : (
             <>
               Débloquez le résultat et profitez de Photofacto en illimité.
               Offre Solo à seulement{' '}
               <strong className="text-primary">
-                {formatEuroPrice(PLAN_PRICING.starter.annual / 12)}/mois
+                {formatEuroPrice(PLAN_PRICING.starter.annual / 12)} {PRICE_TAX_LABEL}/mois
               </strong>{' '}
               (payé annuellement).
             </>
           )}
         </p>
 
+        {checkoutNotice && !pendingActivation && (
+          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-secondary/20 bg-secondary/10 px-4 py-3 text-sm font-bold text-secondary">
+            <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+            <span>{checkoutNotice}</span>
+          </div>
+        )}
+
+        {checkoutError && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-900">
+            {checkoutError}
+          </div>
+        )}
+
         <ul className="space-y-4 mb-10 w-full text-left">
-          {[
-            "Factures & devis illimités",
-            "50 Extractions IA / mois",
-            "Catalogue intelligent",
-            "Factur-X exportable"
-          ].map((feature, idx) => (
+          {PLAN_FEATURES.starter.map((feature, idx) => (
              <li key={idx} className="flex items-start gap-4">
                <div className="bg-primary/10 p-1 rounded-full text-primary mt-0.5">
                  <Check className="w-4 h-4" />
@@ -146,7 +165,7 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
 
         <div className="mt-6 flex items-center gap-2 text-xs text-on-surface-variant">
           <ShieldCheck className="w-4 h-4" />
-          <span>Paiement annuel ({formatEuroPrice(PLAN_PRICING.starter.annual)}). Sécurisé par Paddle.</span>
+          <span>Paiement annuel ({formatEuroPrice(PLAN_PRICING.starter.annual)} {PRICE_TAX_LABEL}). Sécurisé par Paddle.</span>
         </div>
       </div>
     </div>

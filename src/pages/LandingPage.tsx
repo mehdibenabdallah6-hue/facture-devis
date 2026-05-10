@@ -29,6 +29,7 @@ import { TestimonialColumn, type Testimonial } from '../components/TestimonialCo
 import { MiniDevisDemo } from '../components/MiniDevisDemo';
 import SignatureCanvas from '../components/SignatureCanvas';
 import { FOUNDER_PRICE_NOTICE, PRICE_TAX_LABEL } from '../lib/billing';
+import { Seo } from '../components/Seo';
 
 type ProfessionKey =
   | 'plombier'
@@ -390,6 +391,11 @@ export default function LandingPage({ profession }: LandingPageProps) {
   const [searchParams] = useSearchParams();
   const [demoSignatureReady, setDemoSignatureReady] = useState(false);
   const copy = profession ? professionCopy[profession] : null;
+  const seoTitle = copy?.title || 'Photofacto — Devis, catalogue intelligent, signature et relances pour artisans';
+  const seoDescription =
+    copy?.description ||
+    "Créez vos devis avec l’IA, structurez votre catalogue de prix, faites signer vos clients, générez vos factures et relancez les impayés.";
+  const seoPath = profession ? `/${profession}` : '/';
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -403,28 +409,6 @@ export default function LandingPage({ profession }: LandingPageProps) {
       navigate('/app');
     }
   }, [user, navigate]);
-
-  useEffect(() => {
-    const setMeta = (title: string, desc: string) => {
-      document.title = title;
-      let meta = document.querySelector('meta[name="description"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('name', 'description');
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', desc);
-    };
-
-    if (copy) {
-      setMeta(copy.title, copy.description);
-    } else {
-      setMeta(
-        'Photofacto — Devis, catalogue intelligent, signature et relances pour artisans',
-        "Créez vos devis avec l’IA, structurez votre catalogue de prix, faites signer vos clients, générez vos factures et relancez les impayés.",
-      );
-    }
-  }, [copy]);
 
   const goRegister = () => navigate('/inscription?mode=register');
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -455,6 +439,7 @@ export default function LandingPage({ profession }: LandingPageProps) {
 
   return (
     <div className="min-h-screen bg-background font-body text-on-surface">
+      <Seo title={seoTitle} description={seoDescription} path={seoPath} />
       <div className="accent-bar-spark" />
 
       <nav className="flex items-center justify-between gap-2 px-3.5 md:px-14 py-2.5 md:py-4 bg-white border-b-spark sticky top-0 z-40 backdrop-blur">

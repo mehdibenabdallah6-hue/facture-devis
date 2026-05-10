@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import handler from '../../api/cron-reminders';
+import handler, { isAuthorizedCronRequest } from '../../api/cron-reminders';
 import { createMockResponse } from './testResponse';
 
 const previousEnv = {
@@ -36,6 +36,36 @@ describe('api/cron-reminders auth', () => {
     await handler({ method: 'GET', headers: { authorization: 'Bearer wrong' }, query: {} }, res);
 
     expect(res.statusCode).toBe(401);
+  });
+
+  it('refuse Bearer undefined en production quand CRON_SECRET est absent', async () => {
+    delete process.env.CRON_SECRET;
+
+    expect(isAuthorizedCronRequest({
+      headers: { authorization: 'Bearer undefined' },
+      query: {},
+    })).toBe(false);
+
+    const res = createMockResponse();
+    await handler({ method: 'GET', headers: { authorization: 'Bearer undefined' }, query: {} }, res);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('refuse le fallback query string en production', async () => {
+    expect(isAuthorizedCronRequest({
+      headers: {},
+      query: { secret: 'cron-secret' },
+    })).toBe(false);
+  });
+
+  it('autorise le fallback query string uniquement hors production', async () => {
+    process.env.NODE_ENV = 'development';
+
+    expect(isAuthorizedCronRequest({
+      headers: {},
+      query: { secret: 'cron-secret' },
+    })).toBe(true);
   });
 
   it('accepte le bon secret puis bloque sur la prochaine config manquante', async () => {

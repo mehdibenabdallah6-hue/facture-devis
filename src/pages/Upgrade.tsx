@@ -20,6 +20,8 @@ export default function Upgrade() {
   const paddleRef = useRef<Paddle | null>(null);
   const [loadingCode, setLoadingCode] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
+  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const pendingCheckoutRef = useRef<{ planId: 'starter' | 'pro'; billingCycle: BillingCycle } | null>(null);
 
   // The annual half of the referral promotion (-15% annual) lives in a
@@ -83,15 +85,23 @@ export default function Upgrade() {
           if (event.name === 'checkout.completed') {
             if (pendingCheckoutRef.current) {
               setLoadingCode(pendingCheckoutRef.current.planId);
-              await activateSubscription(
-                pendingCheckoutRef.current.planId,
-                pendingCheckoutRef.current.billingCycle,
-              );
-              track('subscription_started', {
-                plan: pendingCheckoutRef.current.planId,
-                billing_cycle: pendingCheckoutRef.current.billingCycle,
-              });
-              navigate('/app/abonnement');
+              setCheckoutError(null);
+              setCheckoutNotice('Paiement reçu, activation en cours. Cela peut prendre quelques secondes.');
+              try {
+                await activateSubscription(
+                  pendingCheckoutRef.current.planId,
+                  pendingCheckoutRef.current.billingCycle,
+                );
+                track('subscription_started', {
+                  plan: pendingCheckoutRef.current.planId,
+                  billing_cycle: pendingCheckoutRef.current.billingCycle,
+                });
+                navigate('/app/abonnement');
+              } catch (error) {
+                setCheckoutError(error instanceof Error ? error.message : 'Impossible de préparer l’activation. Contactez le support.');
+              } finally {
+                setLoadingCode(null);
+              }
             }
           }
         },
@@ -106,6 +116,8 @@ export default function Upgrade() {
 
   const openCheckout = async (planId: 'starter' | 'pro') => {
     setLoadingCode(planId);
+    setCheckoutError(null);
+    setCheckoutNotice(null);
     const paddle = await ensurePaddle();
     if (!paddle) {
       setLoadingCode(null);
@@ -228,8 +240,22 @@ export default function Upgrade() {
           <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-secondary/10 border border-secondary/20 text-on-surface text-sm font-medium shadow-sm">
             <Loader2 className="w-5 h-5 text-secondary animate-spin shrink-0" />
             <span className="font-bold text-secondary">
-              Paiement reçu. Activation de votre abonnement en cours...
+              Paiement reçu, activation en cours. Cela peut prendre quelques secondes.
             </span>
+          </div>
+        )}
+
+        {checkoutNotice && !isPendingActivation && (
+          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-secondary/10 border border-secondary/20 text-on-surface text-sm font-medium shadow-sm">
+            <Loader2 className="w-5 h-5 text-secondary animate-spin shrink-0" />
+            <span className="font-bold text-secondary">{checkoutNotice}</span>
+          </div>
+        )}
+
+        {checkoutError && (
+          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-900 text-sm font-bold shadow-sm">
+            <X className="w-5 h-5 shrink-0" />
+            <span>{checkoutError}</span>
           </div>
         )}
 

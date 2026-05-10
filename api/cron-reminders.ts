@@ -1,6 +1,8 @@
-// Vercel Cron — daily payment reminders.
+// Daily payment reminders.
 //
-// Schedule (configured in vercel.json): once a day, around 09:00 Europe/Paris.
+// Schedule: call this endpoint from an external cron when the project runs on
+// Vercel Hobby. Vercel native crons require a compatible paid plan and are not
+// configured in vercel.json for the MVP.
 //
 // Logic:
 //   1. Query every `invoice` (type === 'invoice') whose dueDate is in the past
@@ -17,8 +19,10 @@
 //   - `clientEmail` missing → skipped (we still flip status to 'overdue').
 //
 // Authorization:
-//   - Vercel sets `Authorization: Bearer ${CRON_SECRET}` on cron invocations.
-//     We accept either that secret or `?secret=...` for manual triggers.
+//   - Production requires `Authorization: Bearer ${CRON_SECRET}`.
+//   - `CRON_SECRET` must be configured; missing/empty secrets are rejected.
+//   - Query-string secrets are accepted only outside production for manual
+//     local testing.
 
 import { ensureFirebaseAdmin } from './_firebase-admin.js';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -60,6 +64,30 @@ function pickStage(daysOverdue: number, remindersSent: number): ReminderStage | 
 
 function formatEuro(value: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+}
+
+export function isAuthorizedCronRequest(req: any): boolean {
+  const configuredSecret = process.env.CRON_SECRET?.trim();
+  const authHeader = String(req.headers?.authorization || req.headers?.Authorization || '');
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!configuredSecret) {
+    return !isProduction;
+  }
+
+  const expectedHeader = `Bearer ${configuredSecret}`;
+  if (authHeader === expectedHeader) return true;
+
+  if (!isProduction) {
+    const queryToken = typeof req.query?.secret === 'string' ? req.query.secret : '';
+    return queryToken === configuredSecret;
+  }
+
+  return false;
+}
+
+function getCompanyDisplayName(company: any): string {
+  return company?.name || company?.legalName || company?.tradeName || 'Photofacto';
 }
 
 function buildEmail(opts: {
@@ -145,15 +173,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // ── Auth ───────────────────────────────────────────────────────────
-  const expected = `Bearer ${process.env.CRON_SECRET}`;
-  const authHeader = req.headers.authorization || '';
-  const queryToken = typeof req.query?.secret === 'string' ? req.query.secret : '';
-  const allowed =
-    process.env.NODE_ENV !== 'production' ||
-    authHeader === expected ||
-    (process.env.CRON_SECRET && queryToken === process.env.CRON_SECRET);
-
-  if (!allowed) {
+  if (!isAuthorizedCronRequest(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -257,7 +277,7 @@ export default async function handler(req: any, res: any) {
         totalTTC: Number(data.totalTTC || 0),
         dueDate,
         daysOverdue,
-        companyName: company?.companyName,
+        companyName: getCompanyDisplayName(company),
         signerName: company?.signerName || company?.ownerName,
       });
 

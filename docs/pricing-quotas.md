@@ -17,8 +17,8 @@ Les prix affichés sont TTC. L’identifiant technique `starter` est conservé p
 - Validation devis/factures : `api/invoice-validate.ts`.
 - Liens de signature : `api/quote.ts`.
 - Connecteurs structurés : `api/chorus.ts` et `api/pennylane.ts`.
-- Relances automatiques : `api/cron-reminders.ts` limite l’envoi automatique au plan Pro.
+- Relances automatiques : `api/cron-reminders.ts` limite l’envoi automatique au plan Pro. Le projet ne déclare pas de Vercel Cron natif en mode Hobby ; il faut un cron externe ou un plan Vercel compatible, avec `Authorization: Bearer ${CRON_SECRET}`.
 
 ## Risques connus
 
-La création de clients et la création de brouillons restent principalement côté client/Firestore. L’UI bloque les limites Free, et `firestore.rules` empêche la modification client des champs plan/quota/billing, mais une vraie garantie anti-contournement complète demanderait de déplacer ces créations dans des routes API transactionnelles.
+La création de clients et la création de brouillons restent principalement côté client/Firestore. L’UI bloque la limite Free de 3 clients au total via `clients.length`, et `firestore.rules` empêche la modification client des champs plan/quota/billing, mais une vraie garantie anti-contournement complète demanderait de déplacer ces créations dans des routes API transactionnelles.
