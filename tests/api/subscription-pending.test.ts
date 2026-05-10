@@ -9,7 +9,8 @@ vi.mock('../../api/_lib/firebaseAdmin.js', () => ({
   ensureFirebaseAdmin: vi.fn(),
 }));
 
-import handler from '../../api/subscription-pending';
+import { handleSubscriptionPending } from '../../api/_lib/subscriptionPending';
+import paddleWebhookHandler from '../../api/paddle-webhook';
 import { verifyAuth } from '../../api/_lib/auth.js';
 import { ensureFirebaseAdmin } from '../../api/_lib/firebaseAdmin.js';
 
@@ -26,7 +27,7 @@ describe('api/subscription-pending', () => {
     vi.mocked(ensureFirebaseAdmin).mockReturnValue({ db: { collection } } as any);
 
     const res = createMockResponse();
-    await handler({
+    await handleSubscriptionPending({
       method: 'POST',
       headers: { authorization: 'Bearer token' },
       body: {
@@ -49,7 +50,7 @@ describe('api/subscription-pending', () => {
 
   it('refuse les plans et cycles invalides', async () => {
     const resPlan = createMockResponse();
-    await handler({
+    await handleSubscriptionPending({
       method: 'POST',
       headers: { authorization: 'Bearer token' },
       body: { pendingPlan: 'free', billingCycle: 'annual' },
@@ -58,7 +59,7 @@ describe('api/subscription-pending', () => {
     expect(resPlan.statusCode).toBe(400);
 
     const resCycle = createMockResponse();
-    await handler({
+    await handleSubscriptionPending({
       method: 'POST',
       headers: { authorization: 'Bearer token' },
       body: { pendingPlan: 'pro', billingCycle: 'lifetime' },
@@ -72,12 +73,35 @@ describe('api/subscription-pending', () => {
     vi.mocked(verifyAuth).mockRejectedValue(Object.assign(new Error('Missing Authorization bearer token'), { status: 401 }));
 
     const res = createMockResponse();
-    await handler({
+    await handleSubscriptionPending({
       method: 'POST',
       headers: {},
       body: { pendingPlan: 'starter', billingCycle: 'monthly' },
     }, res);
 
     expect(res.statusCode).toBe(401);
+  });
+
+  it('reste accessible via la rewrite Vercel dans la fonction paddle-webhook', async () => {
+    const set = vi.fn().mockResolvedValue(undefined);
+    const doc = vi.fn(() => ({ set }));
+    const collection = vi.fn(() => ({ doc }));
+    vi.mocked(ensureFirebaseAdmin).mockReturnValue({ db: { collection } } as any);
+
+    const res = createMockResponse();
+    await paddleWebhookHandler({
+      method: 'POST',
+      url: '/api/paddle-webhook?billingResource=subscription-pending',
+      query: { billingResource: 'subscription-pending' },
+      headers: { authorization: 'Bearer token' },
+      body: { pendingPlan: 'pro', billingCycle: 'monthly' },
+    }, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({
+      subscriptionStatus: 'pending_activation',
+      pendingPlan: 'pro',
+      pendingBillingCycle: 'monthly',
+    }), { merge: true });
   });
 });

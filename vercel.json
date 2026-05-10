@@ -17,6 +17,10 @@
       "destination": "/api/cron-reminders?adminResource=errors"
     },
     {
+      "source": "/api/subscription-pending",
+      "destination": "/api/paddle-webhook?billingResource=subscription-pending"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

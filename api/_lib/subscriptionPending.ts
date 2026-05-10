@@ -1,20 +1,19 @@
-import { verifyAuth } from './_lib/auth.js';
-import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
+import { verifyAuth } from './auth.js';
+import { ensureFirebaseAdmin } from './firebaseAdmin.js';
 import {
   applyCors,
   badRequest,
   methodNotAllowed,
   ok,
-  parseJsonBody,
   serverError,
   unauthorized,
-} from './_lib/http.js';
-import type { AppPlan, BillingCycle } from '../src/lib/billing';
+} from './http.js';
+import type { AppPlan, BillingCycle } from '../../src/lib/billing';
 
 const ALLOWED_PENDING_PLANS = new Set<AppPlan>(['starter', 'pro']);
 const ALLOWED_BILLING_CYCLES = new Set<BillingCycle>(['monthly', 'annual']);
 
-export default async function handler(req: any, res: any) {
+export async function handleSubscriptionPending(req: any, res: any) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return methodNotAllowed(res);
@@ -28,7 +27,7 @@ export default async function handler(req: any, res: any) {
 
   let body: any;
   try {
-    body = parseJsonBody(req);
+    body = await parseJsonRequest(req);
   } catch {
     return badRequest(res, 'JSON invalide.');
   }
@@ -63,4 +62,14 @@ export default async function handler(req: any, res: any) {
   } catch (error) {
     return serverError(res, error);
   }
+}
+
+async function parseJsonRequest(req: any) {
+  if (typeof req.body === 'string') return JSON.parse(req.body || '{}');
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  if (Buffer.isBuffer(req.body)) return JSON.parse(req.body.toString('utf8') || '{}');
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
 }

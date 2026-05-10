@@ -3,6 +3,7 @@ import { ensureFirebaseAdmin } from './_lib/firebaseAdmin.js';
 import { methodNotAllowed, ok, serverError, unauthorized } from './_lib/http.js';
 import { verifyPaddleSignature } from './_lib/paddle.js';
 import { PAID_STATUSES, planFromPriceId } from './_lib/billing.js';
+import { handleSubscriptionPending } from './_lib/subscriptionPending.js';
 
 type PaddleEvent = {
   event_id?: string;
@@ -27,6 +28,7 @@ export const config = {
 };
 
 export default async function handler(req: any, res: any) {
+  if (isSubscriptionPendingRequest(req)) return handleSubscriptionPending(req, res);
   if (req.method !== 'POST') return methodNotAllowed(res);
 
   const secret = process.env.PADDLE_WEBHOOK_SECRET;
@@ -157,6 +159,19 @@ export default async function handler(req: any, res: any) {
     return ok(res, { received: true, ...result });
   } catch (error) {
     return serverError(res, error);
+  }
+}
+
+function isSubscriptionPendingRequest(req: any) {
+  const queryValue = req.query?.billingResource;
+  if (queryValue === 'subscription-pending') return true;
+  const requestUrl = typeof req.url === 'string' ? req.url : '';
+  if (!requestUrl) return false;
+  try {
+    const parsed = new URL(requestUrl, 'https://photofacto.fr');
+    return parsed.searchParams.get('billingResource') === 'subscription-pending';
+  } catch {
+    return requestUrl.includes('billingResource=subscription-pending');
   }
 }
 
