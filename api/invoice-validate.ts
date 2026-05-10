@@ -56,17 +56,37 @@ function pickPrefix(type: InvoiceType, companyInvoicePrefix?: string): string {
 }
 
 export default async function handler(req: any, res: any) {
+  let step = 'start';
+  let uid: string | undefined;
+  let invoiceId: string | undefined;
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
-  // 1. Auth
-  let uid: string;
+  let admin;
   try {
+    step = 'firebase_admin';
+    admin = ensureFirebaseAdmin();
+  } catch (e: any) {
+    logInvoiceValidateError(step, e, { invoiceId, uid });
+    sendError(res, 500, 'Configuration serveur Firebase indisponible.', {
+      code: 'firebase_admin_init_failed',
+      detail: safeErrorMessage(e),
+    });
+    return;
+  }
+
+  // 1. Auth
+  try {
+    step = 'auth';
     ({ uid } = await verifyAuth(req));
   } catch (e: any) {
-    res.status(e.status || 401).json({ error: e.message || 'Unauthorized' });
+    logInvoiceValidateError(step, e, { invoiceId, uid });
+    sendError(res, e.status || 401, e.message || 'Unauthorized', {
+      code: e.status === 403 ? 'auth_forbidden' : 'auth_invalid',
+    });
     return;
   }
 
@@ -74,21 +94,32 @@ export default async function handler(req: any, res: any) {
   let body: any = req.body;
   if (typeof body === 'string') {
     try {
+      step = 'parse_body';
       body = JSON.parse(body);
     } catch (e: any) {
-      res.status(400).json({ error: 'Invalid JSON body', detail: e.message });
+      logInvoiceValidateError(step, e, { invoiceId, uid });
+      sendError(res, 400, 'Invalid JSON body', {
+        code: 'invalid_json',
+        detail: safeErrorMessage(e),
+      });
       return;
     }
   }
   body = body || {};
-  const invoiceId: string | undefined = body.invoiceId;
+  invoiceId = body.invoiceId;
   const draft = body.draft && typeof body.draft === 'object' ? body.draft : null;
   if (!invoiceId || typeof invoiceId !== 'string') {
-    res.status(400).json({ error: 'invoiceId is required' });
+    sendError(res, 400, 'invoiceId is required', { code: 'missing_invoice_id' });
     return;
   }
 
-  const { db } = ensureFirebaseAdmin();
+  console.info('[invoice-validate] begin', {
+    uid,
+    invoiceId,
+    hasDraft: !!draft,
+  });
+
+  const { db } = admin;
   const invoiceRef = db.collection('invoices').doc(invoiceId);
   const companyRef = db.collection('companies').doc(uid);
   const eventsRef = db.collection('invoiceEvents');
@@ -96,7 +127,13 @@ export default async function handler(req: any, res: any) {
   try {
     const result = await db.runTransaction(async (tx) => {
       // Reads MUST happen before writes inside a transaction.
+      step = 'load_invoice';
       const invoiceSnap = await tx.get(invoiceRef);
+      console.info('[invoice-validate] invoice loaded', {
+        uid,
+        invoiceId,
+        exists: invoiceSnap.exists,
+      });
       if (!invoiceSnap.exists) throw httpError(404, 'Invoice not found');
 
       const invoice = invoiceSnap.data() as any;
@@ -108,11 +145,22 @@ export default async function handler(req: any, res: any) {
       }
 
       // Pull company for the prefix and VAT defaults.
+      step = 'load_company';
       const companySnap = await tx.get(companyRef);
       const company = companySnap.exists ? (companySnap.data() as any) : {};
+      step = 'sanitize_draft';
       const draftPatch = draft ? sanitizeDraftPatch(draft, invoice, company) : null;
       const invoiceForValidation = draftPatch ? { ...invoice, ...draftPatch } : invoice;
+      console.info('[invoice-validate] sanitized draft', {
+        uid,
+        invoiceId,
+        hasDraft: !!draftPatch,
+        type: invoiceForValidation.type,
+        date: invoiceForValidation.date,
+        itemsCount: Array.isArray(invoiceForValidation.items) ? invoiceForValidation.items.length : 0,
+      });
 
+      step = 'validate_type';
       const type: InvoiceType = (invoiceForValidation.type as InvoiceType) || 'invoice';
       if (!['invoice', 'quote', 'deposit', 'credit'].includes(type)) {
         throw httpError(400, `Invalid invoice type: ${type}`);
@@ -126,9 +174,11 @@ export default async function handler(req: any, res: any) {
       const year = isNaN(issueDate.getTime()) ? new Date().getFullYear() : issueDate.getFullYear();
       const counterId = `${type}-${year}`;
       const counterRef = companyRef.collection('counters').doc(counterId);
+      step = 'load_counter';
       const counterSnap = await tx.get(counterRef);
       const previousValue = counterSnap.exists ? (counterSnap.data() as any).value || 0 : 0;
       const nextValue = previousValue + 1;
+      step = 'quota';
       const quotaPatch = buildInvoiceQuotaPatch(company, type, new Date());
       if (quotaPatch && quotaPatch.blocked) {
         throw httpError(429, quotaPatch.message);
@@ -141,6 +191,7 @@ export default async function handler(req: any, res: any) {
       const nowIso = now.toDate().toISOString();
 
       // Writes
+      step = 'write_counter';
       tx.set(counterRef, {
         type,
         year,
@@ -151,6 +202,7 @@ export default async function handler(req: any, res: any) {
         tx.set(companyRef, quotaPatch.patch, { merge: true });
       }
 
+      step = 'write_invoice';
       tx.update(invoiceRef, {
         ...(draftPatch || {}),
         number,
@@ -164,6 +216,7 @@ export default async function handler(req: any, res: any) {
       // Audit trail event — created in same transaction so the invoice cannot
       // be validated without a corresponding event. This is the server-side
       // record of truth; client UI is read-only.
+      step = 'write_event';
       const eventRef = eventsRef.doc();
       tx.set(eventRef, {
         invoiceId,
@@ -186,8 +239,11 @@ export default async function handler(req: any, res: any) {
     res.status(200).json({ ok: true, ...result });
   } catch (e: any) {
     const status = e.status || 500;
-    console.error('invoice-validate error:', e);
-    res.status(status).json({ error: e.message || 'Server error' });
+    logInvoiceValidateError(step, e, { invoiceId, uid });
+    sendError(res, status, errorMessageForStatus(status, e), {
+      code: e.code || codeForStatus(status),
+      detail: status >= 500 ? safeErrorMessage(e) : undefined,
+    });
   }
 }
 
@@ -195,6 +251,43 @@ function httpError(status: number, message: string): Error {
   const e = new Error(message);
   (e as any).status = status;
   return e;
+}
+
+function sendError(res: any, status: number, error: string, extra: Record<string, any> = {}) {
+  res.status(status).json(pruneUndefined({ error, ...extra }));
+}
+
+function logInvoiceValidateError(step: string, e: any, context: { invoiceId?: string; uid?: string }) {
+  console.error('[invoice-validate] failed', {
+    invoiceId: context.invoiceId,
+    uid: context.uid,
+    step,
+    message: safeErrorMessage(e),
+    code: e?.code,
+    status: e?.status,
+  });
+}
+
+function errorMessageForStatus(status: number, e: any): string {
+  if (status === 400) return e.message || 'Requête de validation invalide.';
+  if (status === 401) return e.message || 'Authentification requise.';
+  if (status === 403) return e.message || 'Accès refusé.';
+  if (status === 404) return e.message || 'Facture introuvable.';
+  if (status === 429) return e.message || 'Quota mensuel dépassé.';
+  return 'Erreur serveur pendant la validation de la facture.';
+}
+
+function codeForStatus(status: number): string {
+  if (status === 400) return 'bad_request';
+  if (status === 401) return 'unauthorized';
+  if (status === 403) return 'forbidden';
+  if (status === 404) return 'invoice_not_found';
+  if (status === 429) return 'quota_exceeded';
+  return 'invoice_validate_failed';
+}
+
+function safeErrorMessage(e: any): string | undefined {
+  return e?.message ? String(e.message).slice(0, 500) : undefined;
 }
 
 function buildInvoiceQuotaPatch(company: any, type: InvoiceType, now: Date) {

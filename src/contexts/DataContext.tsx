@@ -555,12 +555,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(planLimitMessage('clients', effectivePlan));
       }
 
-      const docRef = await addDoc(collection(db, 'clients'), {
+      const clientPayload = {
         ...data,
         ownerId: user.uid,
         createdAt: now,
         updatedAt: now
-      });
+      };
+
+      const docRef = await addDoc(collection(db, 'clients'), clientPayload);
+      const newClient = { id: docRef.id, ...clientPayload } as Client;
+      setClients(prev => prev.some(c => c.id === docRef.id) ? prev : [newClient, ...prev]);
       track('client_created', { source: 'manual' });
       return docRef.id;
     } catch (error) {

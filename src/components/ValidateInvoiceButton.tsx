@@ -142,11 +142,7 @@ export function ValidateInvoiceButton({
     setError(null);
     setSubmitting(true);
     try {
-      // The validation API now receives the visible draft and saves it
-      // server-side before assigning the legal number. This avoids fragile
-      // client Firestore updates being rejected just before validation.
-      const { chantierPhotos: _chantierPhotos, ...draft } = invoice;
-      const { number } = await validateInvoice(invoice.id, draft);
+      const { number } = await validateInvoice(invoice.id, buildValidationDraft(effectiveInvoice));
       setIsOpen(false);
       onValidated?.(number);
     } catch (e: any) {
@@ -257,4 +253,25 @@ export function ValidateInvoiceButton({
       )}
     </>
   );
+}
+
+function buildValidationDraft(invoice: Invoice): Partial<Invoice> {
+  return {
+    type: invoice.type,
+    clientId: invoice.clientId,
+    clientName: invoice.clientName,
+    clientEmail: invoice.clientEmail,
+    date: invoice.date,
+    dueDate: invoice.dueDate,
+    serviceDate: invoice.serviceDate,
+    vatRegime: invoice.vatRegime,
+    items: (invoice.items || []).map(item => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      vatRate: item.vatRate,
+    })),
+    notes: invoice.notes,
+    paymentMethod: invoice.paymentMethod,
+  };
 }
