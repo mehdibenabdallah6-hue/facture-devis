@@ -3,7 +3,7 @@ import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Sparkles, ArrowRight, ShieldCheck, Check, Loader2 } from 'lucide-react';
-import { formatEuroPrice, PLAN_PRICING } from '../lib/billing';
+import { formatEuroPrice, PLAN_FEATURES, PLAN_PRICING, PRICE_TAX_LABEL } from '../lib/billing';
 
 interface PaddlePaywallProps {
   onSuccess: () => void;
@@ -104,15 +104,14 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
         <p className="text-center text-on-surface-variant mb-8 text-lg">
           {pendingActivation ? (
             <>
-              Paiement reçu. Nous confirmons votre abonnement avec Paddle.
-              Cette étape prend généralement quelques secondes.
+              Paiement reçu, activation en cours. Cela peut prendre quelques secondes.
             </>
           ) : (
             <>
               Débloquez le résultat et profitez de Photofacto en illimité.
               Offre Solo à seulement{' '}
               <strong className="text-primary">
-                {formatEuroPrice(PLAN_PRICING.starter.annual / 12)}/mois
+                {formatEuroPrice(PLAN_PRICING.starter.annual / 12)} {PRICE_TAX_LABEL}/mois
               </strong>{' '}
               (payé annuellement).
             </>
@@ -120,12 +119,7 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
         </p>
 
         <ul className="space-y-4 mb-10 w-full text-left">
-          {[
-            "Factures & devis illimités",
-            "50 Extractions IA / mois",
-            "Catalogue intelligent",
-            "Factur-X exportable"
-          ].map((feature, idx) => (
+          {PLAN_FEATURES.starter.map((feature, idx) => (
              <li key={idx} className="flex items-start gap-4">
                <div className="bg-primary/10 p-1 rounded-full text-primary mt-0.5">
                  <Check className="w-4 h-4" />
@@ -146,7 +140,7 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
 
         <div className="mt-6 flex items-center gap-2 text-xs text-on-surface-variant">
           <ShieldCheck className="w-4 h-4" />
-          <span>Paiement annuel ({formatEuroPrice(PLAN_PRICING.starter.annual)}). Sécurisé par Paddle.</span>
+          <span>Paiement annuel ({formatEuroPrice(PLAN_PRICING.starter.annual)} {PRICE_TAX_LABEL}). Sécurisé par Paddle.</span>
         </div>
       </div>
     </div>

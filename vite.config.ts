@@ -147,7 +147,6 @@ export default defineConfig(({mode}) => {
             // Split heavy libs into separate chunks
             'vendor-pdf': ['jspdf', 'jspdf-autotable', 'pdf-lib'],
             'vendor-xlsx': ['xlsx'],
-            'vendor-html2canvas': ['html2canvas'],
           },
         },
       },
