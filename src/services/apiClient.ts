@@ -26,8 +26,16 @@ export async function callAuthenticatedApi<T = unknown>(
     // ignore parse error
   }
   if (!res.ok) {
-    const err: any = new Error(payload?.error || `${path} a échoué (${res.status})`);
+    const messageParts = [
+      payload?.error,
+      payload?.detail,
+      payload?.code ? `code: ${payload.code}` : null,
+    ].filter(Boolean);
+    const err: any = new Error(messageParts.length ? messageParts.join(' — ') : `${path} a échoué (${res.status})`);
     err.status = res.status;
+    err.code = payload?.code;
+    err.detail = payload?.detail;
+    err.payload = payload;
     throw err;
   }
   return payload as T;

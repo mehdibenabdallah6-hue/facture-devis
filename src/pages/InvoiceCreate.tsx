@@ -597,7 +597,9 @@ export default function InvoiceCreate() {
         name: formData.clientName,
         type: 'B2C',
       });
-      setFormData(prev => ({ ...prev, clientId: newClientId }));
+      setFormData(prev => ({ ...prev, clientId: newClientId, clientName: formData.clientName }));
+      setClientSearch(formData.clientName);
+      setShowClientDropdown(false);
     } catch (err) {
       console.error('Error adding client:', err);
       showError("Erreur client", "Impossible de créer le client automatiquement.");
@@ -617,7 +619,10 @@ export default function InvoiceCreate() {
         phone: newClientPhone.trim() || undefined,
         address: newClientAddress.trim() || undefined,
       });
-      setFormData(prev => ({ ...prev, clientId: newClientId, clientName: newClientName.trim() }));
+      const clientName = newClientName.trim();
+      setFormData(prev => ({ ...prev, clientId: newClientId, clientName }));
+      setClientSearch(clientName);
+      setShowClientDropdown(false);
       setShowNewClientModal(false);
       setNewClientName('');
       setNewClientEmail('');

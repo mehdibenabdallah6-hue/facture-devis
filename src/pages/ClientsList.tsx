@@ -63,6 +63,7 @@ export default function ClientsList() {
         await updateClient(editingClient.id, formData);
       } else {
         await addClient(formData);
+        setSearchTerm('');
       }
       handleCloseModal();
     } finally {
