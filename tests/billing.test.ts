@@ -122,8 +122,11 @@ describe('PLAN_LIMITS', () => {
 
   it('résout le plan effectif uniquement si le statut payant est valide', () => {
     expect(resolveEffectivePlan({ plan: 'starter', subscriptionStatus: 'active' })).toBe('starter');
+    expect(resolveEffectivePlan({ plan: 'starter', subscriptionStatus: 'trialing' })).toBe('starter');
     expect(resolveEffectivePlan({ plan: 'pro', subscriptionStatus: 'past_due' })).toBe('pro');
     expect(resolveEffectivePlan({ plan: 'pro', subscriptionStatus: 'expired' })).toBe('free');
+    expect(resolveEffectivePlan({ plan: 'pro', subscriptionStatus: 'canceled' })).toBe('free');
+    expect(resolveEffectivePlan({ plan: 'pro', subscriptionStatus: 'paused' })).toBe('free');
     expect(planLimitMessage('signatureLinksPerMonth', 'starter')).toContain('signatures illimitées');
   });
 });

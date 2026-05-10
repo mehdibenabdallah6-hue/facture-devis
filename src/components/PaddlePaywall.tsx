@@ -19,6 +19,8 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
   // resume features re-open a checkout overlay without explicit consent.
   const paddleRef = useRef<Paddle | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const ensurePaddle = async (): Promise<Paddle | null> => {
     if (paddleRef.current) return paddleRef.current;
@@ -35,8 +37,16 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
         eventCallback: async (event) => {
           if (event.name === 'checkout.completed') {
             setLoading(true);
-            await activateSubscription('starter', 'annual');
-            onSuccess();
+            setCheckoutError(null);
+            setCheckoutNotice('Paiement reçu, activation en cours. Cela peut prendre quelques secondes.');
+            try {
+              await activateSubscription('starter', 'annual');
+              onSuccess();
+            } catch (error) {
+              setCheckoutError(error instanceof Error ? error.message : 'Impossible de préparer l’activation. Contactez le support.');
+            } finally {
+              setLoading(false);
+            }
           }
         },
       });
@@ -50,6 +60,8 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
 
   const openCheckout = async () => {
     setLoading(true);
+    setCheckoutError(null);
+    setCheckoutNotice(null);
     const paddle = await ensurePaddle();
     if (!paddle) {
       setLoading(false);
@@ -117,6 +129,19 @@ export default function PaddlePaywall({ onSuccess, onCancel, pendingActivation =
             </>
           )}
         </p>
+
+        {checkoutNotice && !pendingActivation && (
+          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-secondary/20 bg-secondary/10 px-4 py-3 text-sm font-bold text-secondary">
+            <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+            <span>{checkoutNotice}</span>
+          </div>
+        )}
+
+        {checkoutError && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-900">
+            {checkoutError}
+          </div>
+        )}
 
         <ul className="space-y-4 mb-10 w-full text-left">
           {PLAN_FEATURES.starter.map((feature, idx) => (

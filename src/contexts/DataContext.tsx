@@ -550,15 +550,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const activateSubscription = async (pendingPlan?: AppPlan, billingCycle?: BillingCycle) => {
     if (!user) return;
     try {
-      const companyRef = doc(db, 'companies', user.uid);
-      await setDoc(companyRef, { 
-        subscriptionStatus: 'pending_activation',
-        pendingPlan: pendingPlan || null,
-        pendingBillingCycle: billingCycle || null,
-        updatedAt: new Date().toISOString() 
-      }, { merge: true });
+      const payload = await callApi<{
+        subscriptionStatus: AppSubscriptionStatus;
+        pendingPlan: AppPlan;
+        pendingBillingCycle: BillingCycle;
+        updatedAt: string;
+      }>('/api/subscription-pending', {
+        pendingPlan,
+        billingCycle,
+      });
+      setCompany(prev => prev ? {
+        ...prev,
+        subscriptionStatus: payload.subscriptionStatus,
+        pendingPlan: payload.pendingPlan,
+        pendingBillingCycle: payload.pendingBillingCycle,
+        updatedAt: payload.updatedAt,
+      } : prev);
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `companies/${user.uid}`);
+      console.error('activateSubscription failed:', error);
+      throw error;
     }
   };
 
