@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Sparkles, Zap, AlertTriangle, ArrowRight } from 'lucide-react';
 import { usePlan } from '../hooks/usePlan';
 import { track } from '../services/analytics';
+import { formatEuroPrice, PLAN_DISPLAY_NAMES, PLAN_LIMITS, PLAN_PRICING, PRICE_TAX_LABEL } from '../lib/billing';
 
 /* ──────────────────────────────────────────────────────────────
    PHOTOFACTO — UpsellBanner
@@ -14,10 +15,9 @@ import { track } from '../services/analytics';
    Both the invoice quota and the AI quota are surfaced.
    ────────────────────────────────────────────────────────────── */
 
-// Plan pricing constants — single source of truth to avoid future drift
-const STARTER_PRICE = '14,90€';
-// Starter plan: 50 AI uses/month, unlimited documents
-const STARTER_AI_LIMIT = 50;
+const SOLO_PRICE = `${formatEuroPrice(PLAN_PRICING.starter.monthly)} ${PRICE_TAX_LABEL}`;
+const SOLO_AI_LIMIT = PLAN_LIMITS.starter.aiUsagesPerMonth ?? 0;
+const SOLO_NAME = PLAN_DISPLAY_NAMES.starter;
 
 type Resource = 'invoice' | 'ai' | 'auto';
 
@@ -160,7 +160,7 @@ export function UpsellBanner({ resource = 'auto', surface, className = '' }: Ups
       ? 'Quota IA atteint pour ce mois'
       : 'Quota mensuel atteint';
     body = state.resource === 'ai'
-      ? `Vous avez utilisé vos ${state.limit} ${resourceNoun} gratuites. Passez à Starter pour ${STARTER_AI_LIMIT} utilisations / mois (ou Pro pour l'illimité).`
+      ? `Vous avez utilisé vos ${state.limit} ${resourceNoun} gratuites. Passez à ${SOLO_NAME} pour ${SOLO_AI_LIMIT} utilisations / mois (ou Pro pour un quota plus élevé).`
       : `Vous avez créé ${state.limit} ${resourceNoun} ce mois-ci. Passez à un plan payant pour continuer à facturer sans limite.`;
     cta = 'Voir les plans';
   } else if (isUrgent) {
@@ -168,17 +168,17 @@ export function UpsellBanner({ resource = 'auto', surface, className = '' }: Ups
       ? `Plus que ${state.remaining} utilisation${state.remaining > 1 ? 's' : ''} IA ce mois-ci`
       : `Plus que ${state.remaining} document${state.remaining > 1 ? 's' : ''} gratuit${state.remaining > 1 ? 's' : ''} ce mois-ci`;
     body = state.resource === 'ai'
-      ? `Évitez l'interruption — Starter offre ${STARTER_AI_LIMIT} utilisations IA / mois.`
-      : `Passez à Starter (${STARTER_PRICE}/mois) pour facturer sans limite (et garder l'IA).`;
+      ? `Évitez l'interruption — ${SOLO_NAME} offre ${SOLO_AI_LIMIT} utilisations IA / mois.`
+      : `Passez à ${SOLO_NAME} (${SOLO_PRICE}/mois) pour facturer sans limite (et garder l'IA).`;
     cta = 'Comparer les plans';
   } else {
     title = state.resource === 'ai'
       ? `${state.used} / ${state.limit} ${resourceNoun}`
       : `${state.used} / ${state.limit} ${resourceNoun} ce mois-ci`;
     body = state.resource === 'ai'
-      ? `Pour ${STARTER_PRICE}/mois, l'IA tourne ${STARTER_AI_LIMIT} fois — vous gagnez ~${Math.max(45, STARTER_AI_LIMIT * 2)} minutes par mois sur la saisie.`
-      : `Vous êtes bien lancé. Anticipez la limite avec Starter (documents illimités, ${STARTER_PRICE}/mois).`;
-    cta = 'Découvrir Starter';
+      ? `Pour ${SOLO_PRICE}/mois, l'IA tourne ${SOLO_AI_LIMIT} fois — vous gagnez ~${Math.max(45, SOLO_AI_LIMIT * 2)} minutes par mois sur la saisie.`
+      : `Vous êtes bien lancé. Anticipez la limite avec ${SOLO_NAME} (documents illimités, ${SOLO_PRICE}/mois).`;
+    cta = `Découvrir ${SOLO_NAME}`;
   }
 
   const handleCtaClick = () => {

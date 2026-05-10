@@ -9,7 +9,7 @@ import {
 } from '../lib/billing';
 
 export function usePlan() {
-  const { company } = useData();
+  const { company, clients } = useData();
 
   // Check if referral discount is still valid
   const hasReferralDiscount = company?.referralDiscountCode && company.referralDiscountExpiry
@@ -44,7 +44,7 @@ export function usePlan() {
 
   const checkClientLimit = () => {
     if (isUnlimited(limits.clients)) return true;
-    return (company?.monthlyClientCount || 0) < limits.clients;
+    return clients.length < limits.clients;
   };
 
   const checkAiLimit = () => {

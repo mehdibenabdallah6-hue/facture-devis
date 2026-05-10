@@ -15,7 +15,7 @@ Firebase + Vercel Functions.
 
 ## Prérequis
 
-- Node.js 18+
+- Node.js 22+ recommandé (CI actuelle)
 - compte Firebase (Firestore + Auth)
 - compte Vercel pour le déploiement
 - compte Paddle pour le billing (sandbox suffit en dev)
@@ -119,14 +119,32 @@ Les variables d'environnement doivent être configurées côté Vercel
   pas s'authentifier auprès de Firestore.
 - `PADDLE_WEBHOOK_SECRET` — pour vérifier les webhooks de billing.
 - `GEMINI_API_KEY` — pour les fonctions IA (analyse de photos, dictée).
+- `CRON_SECRET` — secret long et aléatoire pour `/api/cron-reminders`.
+- `AUDIT_IP_SALT` — sel unique production pour hasher les IP dans les traces sécurité/audit.
+
+Le projet reste compatible Vercel Hobby : `vercel.json` ne déclare pas de cron
+natif. Les relances automatiques doivent être déclenchées par un cron externe
+qui appelle `/api/cron-reminders` avec `Authorization: Bearer ${CRON_SECRET}`,
+ou par Vercel Cron après passage sur un plan compatible.
+
+### Plans et quotas
+
+Source de vérité : [`src/lib/billing.ts`](src/lib/billing.ts).
+
+- Gratuit : 5 devis/factures par mois, 3 clients, 3 usages IA, 1 lien de signature, 1 import catalogue IA, PDF avec branding Photofacto.
+- Solo (`starter` technique) : documents et clients illimités, 30 usages IA/mois, 20 liens de signature/mois, 5 imports catalogue IA/mois, PDF personnalisé, relances manuelles.
+- Pro : 500 usages IA/mois, signatures/imports catalogue IA illimités, relances automatiques si le cron est actif, Factur-X exportable, exports CSV/FEC.
+
+Les prix affichés sont TTC.
 
 ---
 
 ## Tests
 
-- Type-check : `npx tsc --noEmit`
-- Tests rules Firestore : **non écrits** — voir §4 de
-  `docs/FIREBASE_RULES.md` pour la liste des scénarios à couvrir.
+- Type-check : `npm run lint`
+- Tests unitaires/API : `npm run test`
+- Tests rules Firestore : `JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH" npm run test:rules` en local si Java 21 n’est pas le Java par défaut.
+- Build production : `npm run build`
 - Tests E2E : non en place.
 
 ---

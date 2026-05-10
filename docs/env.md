@@ -16,6 +16,7 @@ Règle principale : les secrets serveur ne doivent jamais commencer par `VITE_`.
 - `VITE_PADDLE_PRICE_STARTER_ANNUAL_ID`
 - `VITE_PADDLE_PRICE_PRO_ID`
 - `VITE_PADDLE_PRICE_PRO_ANNUAL_ID`
+- `VITE_PADDLE_REFERRAL_ANNUAL_CODE` — optionnel, code Paddle séparé pour la remise parrainage annuelle.
 - `VITE_POSTHOG_KEY`
 - `VITE_POSTHOG_HOST`
 - `VITE_SENTRY_DSN`
@@ -39,8 +40,8 @@ Règle principale : les secrets serveur ne doivent jamais commencer par `VITE_`.
 - `PADDLE_PRICE_ID_PREMIUM` et `PADDLE_PRICE_ID_PREMIUM_ANNUAL` sont d’anciens noms dépréciés. Ne pas les utiliser pour une nouvelle configuration.
 - `APP_URL`
 - `ALLOWED_ORIGINS`
-- `AUDIT_IP_SALT`
-- `CRON_SECRET`
+- `AUDIT_IP_SALT` — obligatoire en production, unique et aléatoire, utilisé pour hasher les IP.
+- `CRON_SECRET` — obligatoire pour `/api/cron-reminders` en production, long et aléatoire. L’endpoint refuse les appels si ce secret est absent en production.
 - `CHORUS_LOGIN`
 - `CHORUS_PASSWORD`
 - `CHORUS_PISTE_CLIENT_ID`
@@ -54,3 +55,4 @@ Règle principale : les secrets serveur ne doivent jamais commencer par `VITE_`.
 `NODE_ENV` est fourni par Node/Vercel selon l’environnement d’exécution. Il ne doit généralement pas être configuré manuellement.
 
 Ne commitez jamais de vraie clé API, service account Firebase, secret Paddle ou clé Resend.
+Les clés IA (`GEMINI_API_KEY`, `DEEPSEEK_API_KEY`) ne doivent jamais être préfixées par `VITE_`.

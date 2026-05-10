@@ -61,7 +61,7 @@ export default function PrivacyPolicy() {
             <ul className="text-on-surface-variant leading-relaxed mt-3 space-y-2">
               <li><strong>Fourniture du service :</strong> création et gestion de factures, devis, avoirs, clients, catalogue d'articles</li>
               <li><strong>Extraction IA :</strong> analyse de photos, documents et dictées vocales pour pré-remplir les formulaires</li>
-              <li><strong>Gestion de l'abonnement :</strong> facturation SaaS via Paddle, suivi des plans (Free/Starter/Pro)</li>
+              <li><strong>Gestion de l'abonnement :</strong> facturation SaaS via Paddle, suivi des plans (Gratuit/Solo/Pro)</li>
               <li><strong>Communication transactionnelle :</strong> envoi de factures par email via Resend, rappels de factures impayées</li>
               <li><strong>Amélioration du service :</strong> analyse anonymisée des usages, correction de bugs, développement de nouvelles fonctionnalités</li>
               <li><strong>Sécurité :</strong> détection et prévention des fraudes, monitoring des accès non autorisés</li>

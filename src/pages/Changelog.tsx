@@ -45,7 +45,7 @@ const releases: Release[] = [
       { type: 'fix', text: 'Fallback modèle Gemini' },
       { type: 'fix', text: 'Reset mensuel des compteurs' },
       { type: 'improvement', text: 'Code-splitting' },
-      { type: 'improvement', text: 'Free tier augmenté (10 factures, 5 IA)' },
+      { type: 'improvement', text: 'Plans clarifiés : Gratuit (5 documents, 3 IA), Solo (30 IA) et Pro (500 IA)' },
     ],
   },
   {

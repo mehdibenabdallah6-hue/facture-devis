@@ -127,8 +127,8 @@
 ├── public/
 │   ├── icons/icon-192.png, icon-512.png, apple-touch-icon.png  # ← logo PF hexagonal
 │   ├── logo-full.png             # Version haute résolution
-│   ├── manifest.json, sw.js (généré par vite-plugin-pwa, pas tracké)
-│   └── favicon.svg, og-image.svg, robots.txt, sitemap.xml
+│   ├── site.webmanifest          # Manifest public
+│   └── favicon.svg, og-image.png, robots.txt, sitemap.xml
 ├── index.html                    # Meta SEO + fonts Google (Space Grotesk, DM Sans, Anton, Archivo Black, Material Symbols)
 ├── vite.config.ts                # React + Tailwind + vercelApiPlugin (simule API en dev) + VitePWA
 ├── vercel.json                   # Rewrites SPA (exclut /api/)
@@ -149,11 +149,13 @@
 ## 4. LOGIQUE MÉTIER — ce qu'il faut savoir
 
 ### Modèle freemium
-- Plan **Free** : 10 factures/mois max
-- Plan **Solo** (Paddle) : factures illimitées, PDF Factur-X, export ZIP mensuel
-- Plan **Pro** (Paddle) : + multi-utilisateurs, intégration Chorus Pro / Pennylane
+Source de vérité : `src/lib/billing.ts`.
 
-Le flag `isFree` / `plan` est dans `DataContext.tsx`. Les paywalls sont dans `PaddlePaywall.tsx` et `Upgrade.tsx`.
+- Plan **Gratuit** (`free`) : 5 devis/factures par mois, 3 clients, 3 usages IA/mois, 1 lien de signature/mois, 1 import catalogue IA/mois, PDF avec branding Photofacto.
+- Plan **Solo** (`starter` côté technique/Paddle) : devis/factures et clients illimités, 30 usages IA/mois, 20 liens de signature/mois, 5 imports catalogue IA/mois, PDF personnalisé, relances manuelles.
+- Plan **Pro** (`pro`) : 500 usages IA/mois, signatures/imports catalogue IA illimités, relances automatiques si le cron est branché, Factur-X exportable, exports CSV/FEC.
+
+Les prix affichés sont TTC. Le flag `isFree` / `plan` est résolu via `usePlan()` et `src/lib/billing.ts`. Les paywalls sont dans `PaddlePaywall.tsx` et `Upgrade.tsx`.
 
 ### Parrainage
 - Code généré pour chaque utilisateur → **-50% abonnement mensuel (ou -15% annuel) pour les 2 parties**
@@ -189,7 +191,10 @@ VITE_FIREBASE_APP_ID
 VITE_PADDLE_CLIENT_TOKEN           # Token public checkout
 VITE_PADDLE_ENV                    # 'production' ou 'sandbox'
 VITE_PADDLE_PRICE_STARTER_ID       # ID produit Solo
+VITE_PADDLE_PRICE_STARTER_ANNUAL_ID
 VITE_PADDLE_PRICE_PRO_ID           # ID produit Pro
+VITE_PADDLE_PRICE_PRO_ANNUAL_ID
+VITE_PADDLE_REFERRAL_ANNUAL_CODE   # optionnel, code Paddle séparé pour le parrainage annuel
 PADDLE_WEBHOOK_SECRET              # Vérif signature webhook
 
 # IA
@@ -202,6 +207,12 @@ FIREBASE_PRIVATE_KEY                # ⚠️ avec les \n échappés
 
 # Email (si utilisé)
 RESEND_API_KEY  ou  SENDGRID_API_KEY
+
+# Cron / sécurité serveur
+CRON_SECRET                         # long secret aléatoire pour /api/cron-reminders
+AUDIT_IP_SALT                       # sel unique prod pour hash IP
+APP_URL
+ALLOWED_ORIGINS
 ```
 
 ### En local (`.env.local`, gitignoré)
