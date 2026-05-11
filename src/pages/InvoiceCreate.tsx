@@ -1475,7 +1475,7 @@ export default function InvoiceCreate() {
 
       const sendResult = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(sendResult?.error || sendResult?.detail || "Erreur lors de l'envoi");
+        throw new Error(sendResult?.detail || sendResult?.error || "Erreur lors de l'envoi");
       }
 
       // Audit trail: trace the actual email send (the API call succeeded).
