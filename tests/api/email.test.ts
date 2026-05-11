@@ -18,12 +18,17 @@ vi.mock('../../api/_lib/audit.js', () => ({
   writeAuditEvent: vi.fn(),
 }));
 
+vi.mock('../../api/_lib/invoicePdf.js', () => ({
+  generateInvoicePdfAttachment: vi.fn(),
+}));
+
 import handler from '../../api/email';
 import { buildResendFromHeader, sendResendEmail, verifiedFromEmail } from '../../api/_lib/email';
 import { verifyAuth } from '../../api/_lib/auth.js';
 import { ensureFirebaseAdmin } from '../../api/_lib/firebaseAdmin.js';
 import { checkRateLimit } from '../../api/_lib/rateLimit.js';
 import { writeAuditEvent } from '../../api/_lib/audit.js';
+import { generateInvoicePdfAttachment } from '../../api/_lib/invoicePdf.js';
 
 describe('api/email', () => {
   beforeEach(() => {
@@ -34,6 +39,10 @@ describe('api/email', () => {
     vi.mocked(verifyAuth).mockResolvedValue({ uid: 'user_1', email: 'account@example.fr' });
     vi.mocked(checkRateLimit).mockResolvedValue({ ok: true });
     vi.mocked(writeAuditEvent).mockResolvedValue(undefined);
+    vi.mocked(generateInvoicePdfAttachment).mockResolvedValue({
+      filename: 'Facture_F-2026-001.pdf',
+      content: Buffer.from('%PDF-1.7\nserver-generated').toString('base64'),
+    });
     vi.mocked(ensureFirebaseAdmin).mockReturnValue(createMockAdmin());
   });
 
@@ -101,6 +110,50 @@ describe('api/email', () => {
       fromEmail: 'contact@photofacto.fr',
     }));
   });
+
+  it('envoie les factures avec un PDF généré serveur et audite hasPdf=true', async () => {
+    let resendBody: any;
+    global.fetch = vi.fn().mockImplementation(async (_url, init: any) => {
+      resendBody = JSON.parse(String(init.body));
+      return {
+        ok: true,
+        json: vi.fn().mockResolvedValue({ id: 'email_1' }),
+      };
+    }) as any;
+
+    const res = createMockResponse();
+    await handler(baseReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(generateInvoicePdfAttachment).toHaveBeenCalledWith(expect.objectContaining({
+      invoice: expect.objectContaining({ number: 'F-2026-001', ownerId: 'user_1' }),
+      company: expect.objectContaining({ name: 'Nom Artisan', email: 'artisan@example.fr' }),
+    }));
+    expect(resendBody.attachments).toEqual([
+      expect.objectContaining({
+        filename: 'Facture_F-2026-001.pdf',
+        content: Buffer.from('%PDF-1.7\nserver-generated').toString('base64'),
+      }),
+    ]);
+    expect(resendBody.html).toContain('Pièce jointe PDF');
+    expect(resendBody.html).toContain('Récapitulatif');
+    expect(writeAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({ invoiceId: 'invoice_1', recipientDomain: 'example.fr', hasPdf: true }),
+    }));
+  });
+
+  it('refuse les pièces jointes envoyées depuis le navigateur', async () => {
+    global.fetch = vi.fn();
+
+    const res = createMockResponse();
+    await handler(baseReq({
+      attachments: [{ filename: 'fake.pdf', content: 'malicious' }],
+    }), res);
+
+    expect(res.statusCode).toBe(400);
+    expect(generateInvoicePdfAttachment).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });
 
 function baseReq(body: Record<string, unknown> = {}) {
@@ -126,9 +179,17 @@ function createMockAdmin() {
         ownerId: 'user_1',
         clientId: 'client_1',
         clientName: 'Client Test',
+        clientEmail: 'client@example.fr',
         type: 'invoice',
         number: 'F-2026-001',
+        date: '2026-05-11',
+        dueDate: '2026-06-10',
         totalTTC: 1275,
+        totalHT: 1062.5,
+        totalTVA: 212.5,
+        items: [
+          { description: 'Pose meuble vasque', quantity: 1, unitPrice: 1062.5, vatRate: 20 },
+        ],
       }),
     }),
     set: vi.fn().mockResolvedValue(undefined),

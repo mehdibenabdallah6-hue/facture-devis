@@ -12,6 +12,7 @@ import {
   unauthorized,
 } from './_lib/http.js';
 import { buildContactHtml, sendResendEmail, verifiedFromEmail } from './_lib/email.js';
+import { generateInvoicePdfAttachment } from './_lib/invoicePdf.js';
 import { writeAuditEvent } from './_lib/audit.js';
 import { checkRateLimit, getClientIp } from './_lib/rateLimit.js';
 import { escapeHtml, isEmail, sanitizeText } from './_lib/validators.js';
@@ -150,6 +151,9 @@ async function handleInvoiceEmail(req: any, res: any, body: any) {
     const kind = invoice.type === 'quote' ? 'devis' : invoice.type === 'credit' ? 'avoir' : 'facture';
     replyTo = isEmail(company.email) ? company.email : authCtx.email;
 
+    step = 'generate_pdf';
+    const pdfAttachment = await generateInvoicePdfAttachment({ invoice, company });
+
     step = 'send_resend';
     const resendData = await sendResendEmail({
       to: recipients,
@@ -157,6 +161,7 @@ async function handleInvoiceEmail(req: any, res: any, body: any) {
       html: buildInvoiceEmailHtml({ kind, invoice, company, message: optionalMessage }),
       fromName: company.name || company.legalName || authCtx.email || 'Photofacto',
       replyTo,
+      attachments: [pdfAttachment],
     });
 
     step = 'mark_invoice_sent';
@@ -173,7 +178,7 @@ async function handleInvoiceEmail(req: any, res: any, body: any) {
       type: body.kind === 'reminder' ? 'reminder_sent' : 'email_sent',
       resourceType: 'invoice',
       resourceId: invoiceId,
-      metadata: { invoiceId, recipientDomain, hasPdf: false },
+      metadata: { invoiceId, recipientDomain, hasPdf: true },
     });
     return ok(res, { success: true, data: resendData });
   } catch (error: any) {
@@ -225,23 +230,66 @@ function buildSubject(kind: string, invoice: any) {
 
 function buildInvoiceEmailHtml(input: { kind: string; invoice: any; company: any; message: string }) {
   const { kind, invoice, company, message } = input;
-  const companyName = escapeHtml(company.name || company.legalName || 'Votre artisan');
-  const clientName = escapeHtml(invoice.clientName || 'Bonjour');
-  const number = escapeHtml(invoice.number || invoice.draftNumber || 'sans numéro');
+  const companyName = sanitizeText(company.name || company.legalName || 'Votre artisan', 160);
+  const clientName = sanitizeText(invoice.clientName || 'client', 160);
+  const number = sanitizeText(invoice.number || invoice.draftNumber || 'sans numéro', 80);
   const amount = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(invoice.totalTTC || 0));
   const shareUrl = invoice.type === 'quote' && invoice.shareUrl ? sanitizeText(invoice.shareUrl, 1000) : '';
+  const dueDate = formatEmailDate(invoice.dueDate);
+  const date = formatEmailDate(invoice.date);
+  const title = `${kind.charAt(0).toUpperCase()}${kind.slice(1)} ${number}`;
   return `
-    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937;max-width:620px">
-      <p>Bonjour ${clientName},</p>
-      <p>${message ? escapeHtml(message).replace(/\n/g, '<br/>') : `Veuillez trouver votre ${escapeHtml(kind)} ${number}.`}</p>
-      <div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:18px 0;background:#f9fafb">
-        <p style="margin:0 0 8px"><strong>${escapeHtml(kind.toUpperCase())} :</strong> ${number}</p>
-        <p style="margin:0"><strong>Montant :</strong> ${amount}</p>
+    <div style="margin:0;padding:0;background:#f8f5f1;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
+      <div style="max-width:640px;margin:0 auto;padding:28px 18px">
+        <div style="background:#ffffff;border:1px solid #eadfd4;border-radius:22px;overflow:hidden;box-shadow:0 14px 40px rgba(31,41,55,.08)">
+          <div style="height:8px;background:#e95d18"></div>
+          <div style="padding:30px 28px 22px">
+            <p style="margin:0 0 12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#e95d18;font-weight:700">Pièce jointe PDF</p>
+            <h1 style="margin:0 0 12px;font-size:25px;line-height:1.2;color:#1c1917">${escapeHtml(title)}</h1>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#57534e">Bonjour ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#57534e">
+              ${message ? escapeHtml(message).replace(/\n/g, '<br/>') : `Votre ${escapeHtml(kind)} est disponible en PDF en pièce jointe.`}
+            </p>
+
+            <div style="border:1px solid #f0dfcf;border-radius:18px;background:#fff8f2;padding:18px 18px 4px;margin:0 0 24px">
+              <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#e95d18">Récapitulatif</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;color:#44403c">
+                <tr>
+                  <td style="padding:8px 0;border-top:1px solid #f3e7dc">Document</td>
+                  <td style="padding:8px 0;border-top:1px solid #f3e7dc;text-align:right;font-weight:700;color:#1c1917">${escapeHtml(number)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;border-top:1px solid #f3e7dc">Date</td>
+                  <td style="padding:8px 0;border-top:1px solid #f3e7dc;text-align:right">${escapeHtml(date)}</td>
+                </tr>
+                ${dueDate !== '-' ? `
+                <tr>
+                  <td style="padding:8px 0;border-top:1px solid #f3e7dc">Échéance</td>
+                  <td style="padding:8px 0;border-top:1px solid #f3e7dc;text-align:right">${escapeHtml(dueDate)}</td>
+                </tr>` : ''}
+                <tr>
+                  <td style="padding:10px 0;border-top:1px solid #f3e7dc;font-weight:700">Montant TTC</td>
+                  <td style="padding:10px 0;border-top:1px solid #f3e7dc;text-align:right;font-size:18px;font-weight:800;color:#e95d18">${escapeHtml(amount)}</td>
+                </tr>
+              </table>
+            </div>
+
+            ${shareUrl ? `<p style="margin:0 0 24px"><a href="${escapeHtml(shareUrl)}" style="display:inline-block;background:#e95d18;color:#ffffff;padding:13px 18px;border-radius:12px;text-decoration:none;font-weight:800">Voir et signer le devis</a></p>` : ''}
+            <p style="margin:0;font-size:14px;line-height:1.6;color:#57534e">Le PDF joint a été généré automatiquement par Photofacto depuis les données du compte ${escapeHtml(companyName)}.</p>
+          </div>
+          <div style="padding:18px 28px;background:#faf7f3;border-top:1px solid #eadfd4">
+            <p style="margin:0;font-size:13px;line-height:1.5;color:#78716c">Cordialement,<br/><strong style="color:#1c1917">${escapeHtml(companyName)}</strong></p>
+          </div>
+        </div>
       </div>
-      ${shareUrl ? `<p><a href="${escapeHtml(shareUrl)}" style="display:inline-block;background:#0f766e;color:white;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Voir et signer le devis</a></p>` : ''}
-      <p>Cordialement,<br/>${companyName}</p>
     </div>
   `;
+}
+
+function formatEmailDate(value: unknown) {
+  const time = Date.parse(String(value || ''));
+  if (!Number.isFinite(time)) return '-';
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(time));
 }
 
 function buildWelcomeHtml(firstName: string) {

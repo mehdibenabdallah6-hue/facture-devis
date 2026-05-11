@@ -1469,7 +1469,7 @@ export default function InvoiceCreate() {
           action: 'send-invoice',
           invoiceId: id,
           to: email,
-          message: `Voici votre ${docName.toLowerCase()} ${formData.number}. Vérifiez le récapitulatif ci-dessous.`,
+          message: `Voici votre ${docName.toLowerCase()} ${formData.number}. Le PDF officiel est joint à cet e-mail.`,
         })
       });
 
