@@ -11,7 +11,7 @@ import {
   tooManyRequests,
   unauthorized,
 } from './_lib/http.js';
-import { buildContactHtml, sendResendEmail } from './_lib/email.js';
+import { buildContactHtml, sendResendEmail, verifiedFromEmail } from './_lib/email.js';
 import { writeAuditEvent } from './_lib/audit.js';
 import { checkRateLimit, getClientIp } from './_lib/rateLimit.js';
 import { escapeHtml, isEmail, sanitizeText } from './_lib/validators.js';
@@ -24,9 +24,9 @@ export default async function handler(req: any, res: any) {
   try {
     const body = parseJsonBody(req);
     const action = sanitizeText(body.action, 40);
-    if (action === 'contact') return handleContact(req, res, body);
-    if (action === 'welcome') return handleWelcome(req, res, body);
-    if (action === 'send-invoice') return handleInvoiceEmail(req, res, body);
+    if (action === 'contact') return await handleContact(req, res, body);
+    if (action === 'welcome') return await handleWelcome(req, res, body);
+    if (action === 'send-invoice') return await handleInvoiceEmail(req, res, body);
     return badRequest(res, 'Action email invalide.');
   } catch (error) {
     return serverError(res, error);
@@ -95,6 +95,7 @@ async function handleWelcome(req: any, res: any, body: any) {
 }
 
 async function handleInvoiceEmail(req: any, res: any, body: any) {
+  let step = 'auth';
   let authCtx;
   try {
     authCtx = await verifyAuth(req);
@@ -102,58 +103,105 @@ async function handleInvoiceEmail(req: any, res: any, body: any) {
     return unauthorized(res, error?.message || 'Authentification requise.');
   }
 
-  const limited = await checkRateLimit(`uid:invoice-email:${authCtx.uid}`, 20, 60 * 60 * 1000);
-  if (!limited.ok) return tooManyRequests(res, 'Trop d’e-mails envoyés récemment. Réessayez plus tard.');
-  if (Array.isArray(body.attachments) && body.attachments.length > 0) {
-    return badRequest(res, 'Les pièces jointes envoyées depuis le navigateur ne sont pas acceptées.');
+  let invoiceId = '';
+  let recipientDomain = '';
+  let replyTo = '';
+  const fromEmail = verifiedFromEmail();
+
+  try {
+    step = 'rate_limit';
+    const limited = await checkRateLimit(`uid:invoice-email:${authCtx.uid}`, 20, 60 * 60 * 1000);
+    if (!limited.ok) return tooManyRequests(res, 'Trop d’e-mails envoyés récemment. Réessayez plus tard.');
+    if (Array.isArray(body.attachments) && body.attachments.length > 0) {
+      return badRequest(res, 'Les pièces jointes envoyées depuis le navigateur ne sont pas acceptées.');
+    }
+
+    step = 'validate_body';
+    invoiceId = sanitizeText(body.invoiceId, 120);
+    const requestedTo = sanitizeText(body.to, 254).toLowerCase();
+    const optionalMessage = sanitizeText(body.message, 900);
+    const sendCopyToMe = body.sendCopyToMe === true;
+    if (!invoiceId) return badRequest(res, 'Document manquant pour l’envoi.');
+
+    step = 'firebase_admin';
+    const { db } = ensureFirebaseAdmin();
+    const invoiceRef = db.collection('invoices').doc(invoiceId);
+
+    step = 'load_invoice';
+    const invoiceSnap = await invoiceRef.get();
+    if (!invoiceSnap.exists) return badRequest(res, 'Document introuvable.');
+    const invoice = invoiceSnap.data() as any;
+    if (invoice.ownerId !== authCtx.uid) return forbidden(res, 'Vous ne pouvez pas envoyer ce document.');
+
+    step = 'load_company';
+    const companySnap = await db.collection('companies').doc(authCtx.uid).get();
+    const company = companySnap.exists ? (companySnap.data() as any) : {};
+
+    step = 'resolve_recipient';
+    const clientEmail = await resolveClientEmail(db, invoice, authCtx.uid);
+    if (!clientEmail) return badRequest(res, 'Ajoutez un e-mail valide au client avant l’envoi.');
+    if (requestedTo && requestedTo !== clientEmail.toLowerCase()) {
+      return forbidden(res, 'Le destinataire doit être l’e-mail du client lié au document.');
+    }
+    recipientDomain = clientEmail.split('@')[1] || '';
+
+    const recipients = [clientEmail];
+    if (sendCopyToMe && isEmail(authCtx.email)) recipients.push(authCtx.email);
+    const kind = invoice.type === 'quote' ? 'devis' : invoice.type === 'credit' ? 'avoir' : 'facture';
+    replyTo = isEmail(company.email) ? company.email : authCtx.email;
+
+    step = 'send_resend';
+    const resendData = await sendResendEmail({
+      to: recipients,
+      subject: buildSubject(kind, invoice),
+      html: buildInvoiceEmailHtml({ kind, invoice, company, message: optionalMessage }),
+      fromName: company.name || company.legalName || authCtx.email || 'Photofacto',
+      replyTo,
+    });
+
+    step = 'mark_invoice_sent';
+    await invoiceRef.set({
+      emailSentAt: new Date().toISOString(),
+      lastReminderAt: body.kind === 'reminder' ? new Date().toISOString() : invoice.lastReminderAt || null,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    step = 'audit';
+    await writeAuditEvent({
+      ownerId: authCtx.uid,
+      actorUid: authCtx.uid,
+      type: body.kind === 'reminder' ? 'reminder_sent' : 'email_sent',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      metadata: { invoiceId, recipientDomain, hasPdf: false },
+    });
+    return ok(res, { success: true, data: resendData });
+  } catch (error: any) {
+    const detail = safeEmailErrorDetail(error);
+    console.error('[email] send-invoice failed', {
+      uid: authCtx.uid,
+      invoiceId,
+      step,
+      status: error?.status,
+      code: error?.code,
+      message: detail,
+      recipientDomain,
+      hasReplyTo: Boolean(replyTo),
+      fromEmail,
+    });
+    return res.status(500).json({
+      error: 'L’e-mail n’a pas pu être envoyé.',
+      code: 'email_send_failed',
+      detail,
+    });
   }
+}
 
-  const invoiceId = sanitizeText(body.invoiceId, 120);
-  const requestedTo = sanitizeText(body.to, 254).toLowerCase();
-  const optionalMessage = sanitizeText(body.message, 900);
-  const sendCopyToMe = body.sendCopyToMe === true;
-  if (!invoiceId) return badRequest(res, 'Document manquant pour l’envoi.');
-
-  const { db } = ensureFirebaseAdmin();
-  const invoiceRef = db.collection('invoices').doc(invoiceId);
-  const invoiceSnap = await invoiceRef.get();
-  if (!invoiceSnap.exists) return badRequest(res, 'Document introuvable.');
-  const invoice = invoiceSnap.data() as any;
-  if (invoice.ownerId !== authCtx.uid) return forbidden(res, 'Vous ne pouvez pas envoyer ce document.');
-
-  const companySnap = await db.collection('companies').doc(authCtx.uid).get();
-  const company = companySnap.exists ? (companySnap.data() as any) : {};
-  const clientEmail = await resolveClientEmail(db, invoice, authCtx.uid);
-  if (!clientEmail) return badRequest(res, 'Ajoutez un e-mail valide au client avant l’envoi.');
-  if (requestedTo && requestedTo !== clientEmail.toLowerCase()) {
-    return forbidden(res, 'Le destinataire doit être l’e-mail du client lié au document.');
-  }
-
-  const recipients = [clientEmail];
-  if (sendCopyToMe && isEmail(authCtx.email)) recipients.push(authCtx.email);
-  const kind = invoice.type === 'quote' ? 'devis' : invoice.type === 'credit' ? 'avoir' : 'facture';
-  const resendData = await sendResendEmail({
-    to: recipients,
-    subject: buildSubject(kind, invoice),
-    html: buildInvoiceEmailHtml({ kind, invoice, company, message: optionalMessage }),
-    fromName: company.name || company.legalName || authCtx.email || 'Photofacto',
-    replyTo: isEmail(company.email) ? company.email : authCtx.email,
-  });
-
-  await invoiceRef.set({
-    emailSentAt: new Date().toISOString(),
-    lastReminderAt: body.kind === 'reminder' ? new Date().toISOString() : invoice.lastReminderAt || null,
-    updatedAt: new Date().toISOString(),
-  }, { merge: true });
-  await writeAuditEvent({
-    ownerId: authCtx.uid,
-    actorUid: authCtx.uid,
-    type: body.kind === 'reminder' ? 'reminder_sent' : 'email_sent',
-    resourceType: 'invoice',
-    resourceId: invoiceId,
-    metadata: { invoiceId, recipientDomain: clientEmail.split('@')[1] || '', hasPdf: false },
-  });
-  return ok(res, { success: true, data: resendData });
+function safeEmailErrorDetail(error: any) {
+  const message = sanitizeText(error?.message || error?.code || 'Erreur serveur pendant l’envoi.', 240);
+  if (!message) return 'Erreur serveur pendant l’envoi.';
+  if (/api[_-]?key|token|secret|bearer/i.test(message)) return 'Erreur de configuration du service e-mail.';
+  return message;
 }
 
 async function resolveClientEmail(db: any, invoice: any, ownerId: string): Promise<string | null> {

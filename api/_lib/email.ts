@@ -1,7 +1,18 @@
 import { escapeHtml, isEmail, sanitizeText } from './validators.js';
 
+const DEFAULT_FROM_EMAIL = 'contact@photofacto.fr';
+
 export function verifiedFromEmail() {
-  return extractEmailAddress(process.env.RESEND_FROM_EMAIL || 'factures@photofacto.fr');
+  const email = extractEmailAddress(process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL);
+  return isEmail(email) ? email : DEFAULT_FROM_EMAIL;
+}
+
+export function buildResendFromHeader(fromName?: string) {
+  const senderName = sanitizeEmailName(fromName || 'Photofacto');
+  const displayName = senderName.toLowerCase().includes('photofacto')
+    ? senderName
+    : `${senderName} via Photofacto`;
+  return `${displayName} <${verifiedFromEmail()}>`;
 }
 
 export async function sendResendEmail(payload: {
@@ -16,9 +27,8 @@ export async function sendResendEmail(payload: {
   if (!apiKey) throw new Error('RESEND_API_KEY missing');
   const cleanTo = payload.to.filter(isEmail);
   if (!cleanTo.length) throw new Error('No valid recipient');
-  const senderName = sanitizeEmailName(payload.fromName || 'Photofacto');
   const body: Record<string, any> = {
-    from: `${senderName}${senderName.toLowerCase().includes('photofacto') ? '' : ' via Photofacto'} <${verifiedFromEmail()}>`,
+    from: buildResendFromHeader(payload.fromName),
     to: cleanTo,
     subject: sanitizeText(payload.subject, 160),
     html: payload.html,
@@ -35,6 +45,7 @@ export async function sendResendEmail(payload: {
   if (!response.ok) {
     const error = new Error(data?.message || data?.error?.message || data?.error || 'Resend refused email');
     (error as any).status = response.status;
+    (error as any).code = data?.name || data?.error?.code || data?.error?.name || 'resend_error';
     throw error;
   }
   return data;
@@ -54,12 +65,16 @@ export function buildContactHtml(input: { name: string; email: string; phone?: s
 }
 
 function sanitizeEmailName(value: string): string {
-  return String(value || '').replace(/[<>"\r\n]/g, '').trim().slice(0, 80) || 'Photofacto';
+  return String(value || '')
+    .replace(/[<>"\r\n]/g, '')
+    .replace(/[,;]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'Photofacto';
 }
 
 function extractEmailAddress(value: string): string {
   const raw = String(value || '').trim();
   const match = raw.match(/<([^>]+)>/);
-  return (match?.[1] || raw || 'factures@photofacto.fr').trim();
+  return (match?.[1] || raw || DEFAULT_FROM_EMAIL).trim();
 }
-
